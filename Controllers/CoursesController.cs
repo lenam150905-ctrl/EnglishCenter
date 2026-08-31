@@ -1,5 +1,6 @@
 ﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.Models;
+using EnglishCenter.API.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,18 +10,18 @@ namespace EnglishCenter.API.Controllers
     [ApiController]
     public class CoursesController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ICourseService _courseService;
 
-        public CoursesController(ApplicationDbContext context)
+        public CoursesController(ICourseService courseService)
         {
-            _context = context;
+            _courseService = courseService;
         }
 
         // GET: api/courses
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Course>>> GetCourses()
         {
-            var courses = await _context.Courses.ToListAsync();
+            var courses = await _courseService.GetAllAsync();
 
             return Ok(courses);
         }
@@ -29,8 +30,7 @@ namespace EnglishCenter.API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Course>> GetCourse(int id)
         {
-            var course = await _context.Courses
-                .FirstOrDefaultAsync(c => c.Id == id);
+            var course = await _courseService.GetByIdAsync(id);
 
             if (course == null)
             {
@@ -39,49 +39,35 @@ namespace EnglishCenter.API.Controllers
 
             return Ok(course);
         }
-
         // POST: api/courses
         [HttpPost]
-        public async Task<ActionResult<Course>> CreateCourse(
-            Course course)
+        public async Task<ActionResult<Course>> CreateCourse(Course course)
         {
-            _context.Courses.Add(course);
-
-            await _context.SaveChangesAsync();
+            var createdCourse = await _courseService.CreateAsync(course);
 
             return CreatedAtAction(
                 nameof(GetCourse),
-                new { id = course.Id },
-                course);
+                new { id = createdCourse.Id },
+                createdCourse);
         }
 
         // PUT: api/courses/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCourse(
-            int id,
-            Course course)
+    int id,
+    Course course)
         {
             if (id != course.Id)
             {
                 return BadRequest();
             }
 
-            var existingCourse = await _context.Courses
-                .FirstOrDefaultAsync(c => c.Id == id);
+            var result = await _courseService.UpdateAsync(id, course);
 
-            if (existingCourse == null)
+            if (!result)
             {
                 return NotFound();
             }
-
-            existingCourse.CourseCode = course.CourseCode;
-            existingCourse.CourseName = course.CourseName;
-            existingCourse.Description = course.Description;
-            existingCourse.Duration = course.Duration;
-            existingCourse.TuitionFee = course.TuitionFee;
-            existingCourse.IsActive = course.IsActive;
-
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }
@@ -90,17 +76,12 @@ namespace EnglishCenter.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCourse(int id)
         {
-            var course = await _context.Courses
-                .FirstOrDefaultAsync(c => c.Id == id);
+            var result = await _courseService.DeleteAsync(id);
 
-            if (course == null)
+            if (!result)
             {
                 return NotFound();
             }
-
-            _context.Courses.Remove(course);
-
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }
