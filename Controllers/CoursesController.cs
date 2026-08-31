@@ -1,8 +1,6 @@
-﻿using EnglishCenter.API.Data;
-using EnglishCenter.API.Models;
+﻿using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EnglishCenter.API.Controllers
 {
@@ -19,16 +17,15 @@ namespace EnglishCenter.API.Controllers
 
         // GET: api/courses
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Course>>> GetCourses()
+        public async Task<ActionResult<IEnumerable<CourseDto>>> GetCourses()
         {
             var courses = await _courseService.GetAllAsync();
 
             return Ok(courses);
         }
-
         // GET: api/courses/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Course>> GetCourse(int id)
+        public async Task<ActionResult<CourseDto>> GetCourse(int id)
         {
             var course = await _courseService.GetByIdAsync(id);
 
@@ -41,28 +38,23 @@ namespace EnglishCenter.API.Controllers
         }
         // POST: api/courses
         [HttpPost]
-        public async Task<ActionResult<Course>> CreateCourse(Course course)
+        public async Task<ActionResult<CourseDto>> CreateCourse(
+      CourseCreateDto dto)
         {
-            var createdCourse = await _courseService.CreateAsync(course);
+            var course = await _courseService.CreateAsync(dto);
 
             return CreatedAtAction(
                 nameof(GetCourse),
-                new { id = createdCourse.Id },
-                createdCourse);
+                new { id = course.Id },
+                course);
         }
-
         // PUT: api/courses/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCourse(
     int id,
-    Course course)
+    CourseUpdateDto dto)
         {
-            if (id != course.Id)
-            {
-                return BadRequest();
-            }
-
-            var result = await _courseService.UpdateAsync(id, course);
+            var result = await _courseService.UpdateAsync(id, dto);
 
             if (!result)
             {
@@ -71,7 +63,6 @@ namespace EnglishCenter.API.Controllers
 
             return NoContent();
         }
-
         // DELETE: api/courses/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCourse(int id)

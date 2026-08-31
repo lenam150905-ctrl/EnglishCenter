@@ -1,6 +1,7 @@
 using EnglishCenter.API.Data;
 using EnglishCenter.API.Services;
 using Microsoft.EntityFrameworkCore;
+using EnglishCenter.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,10 +22,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+app.UseMiddleware<ExceptionMiddleware>();
+
 
 app.MapControllers();
 

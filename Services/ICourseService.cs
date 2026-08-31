@@ -1,16 +1,16 @@
-﻿using EnglishCenter.API.Models;
+﻿using EnglishCenter.API.DTOs;
 
 namespace EnglishCenter.API.Services
 {
     public interface ICourseService
     {
-        Task<List<Course>> GetAllAsync();
+        Task<List<CourseDto>> GetAllAsync();
 
-        Task<Course?> GetByIdAsync(int id);
+        Task<CourseDto?> GetByIdAsync(int id);
 
-        Task<Course> CreateAsync(Course course);
+        Task<CourseDto> CreateAsync(CourseCreateDto dto);
 
-        Task<bool> UpdateAsync(int id, Course course);
+        Task<bool> UpdateAsync(int id, CourseUpdateDto dto);
 
         Task<bool> DeleteAsync(int id);
     }

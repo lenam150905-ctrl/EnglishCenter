@@ -1,5 +1,5 @@
 ﻿using EnglishCenter.API.Data;
-using EnglishCenter.API.Models;
+using EnglishCenter.API.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace EnglishCenter.API.Services
@@ -13,39 +13,75 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<Course>> GetAllAsync()
+        public async Task<List<CourseDto>> GetAllAsync()
         {
-            return await _context.Courses.ToListAsync();
+            var courses = await _context.Courses.ToListAsync();
+
+            return courses.Select(c => new CourseDto
+            {
+                Id = c.Id,
+                CourseCode = c.CourseCode,
+                CourseName = c.CourseName,
+                TuitionFee = c.TuitionFee
+            }).ToList();
         }
 
-        public async Task<Course?> GetByIdAsync(int id)
+        public async Task<CourseDto?> GetByIdAsync(int id)
         {
-            return await _context.Courses
+            var course = await _context.Courses
                 .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (course == null)
+            {
+                return null;
+            }
+
+            return new CourseDto
+            {
+                Id = course.Id,
+                CourseCode = course.CourseCode,
+                CourseName = course.CourseName,
+                TuitionFee = course.TuitionFee
+            };
         }
 
-        public async Task<Course> CreateAsync(Course course)
+        public async Task<CourseDto> CreateAsync(CourseCreateDto dto)
         {
+            var course = new Models.Course
+            {
+                CourseCode = dto.CourseCode,
+                CourseName = dto.CourseName,
+                TuitionFee = dto.TuitionFee
+            };
+
             _context.Courses.Add(course);
 
             await _context.SaveChangesAsync();
 
-            return course;
+            return new CourseDto
+            {
+                Id = course.Id,
+                CourseCode = course.CourseCode,
+                CourseName = course.CourseName,
+                TuitionFee = course.TuitionFee
+            };
         }
 
-        public async Task<bool> UpdateAsync(int id, Course course)
+        public async Task<bool> UpdateAsync(
+            int id,
+            CourseUpdateDto dto)
         {
-            var existingCourse = await _context.Courses
+            var course = await _context.Courses
                 .FirstOrDefaultAsync(c => c.Id == id);
 
-            if (existingCourse == null)
+            if (course == null)
             {
                 return false;
             }
 
-            existingCourse.CourseCode = course.CourseCode;
-            existingCourse.CourseName = course.CourseName;
-            existingCourse.TuitionFee = course.TuitionFee;
+            course.CourseCode = dto.CourseCode;
+            course.CourseName = dto.CourseName;
+            course.TuitionFee = dto.TuitionFee;
 
             await _context.SaveChangesAsync();
 
