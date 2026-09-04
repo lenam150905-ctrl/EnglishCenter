@@ -1,11 +1,13 @@
 ﻿using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EnglishCenter.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class CertificatesController : ControllerBase
     {
         private readonly ICertificateService _certificateService;
@@ -16,7 +18,10 @@ namespace EnglishCenter.API.Controllers
             _certificateService = certificateService;
         }
 
+        // GET: api/Certificates
+        // Admin + Teacher + Student
         [HttpGet]
+        [Authorize(Roles = "Admin,Teacher,Student")]
         public async Task<ActionResult<IEnumerable<CertificateDto>>>
             GetCertificates()
         {
@@ -26,7 +31,10 @@ namespace EnglishCenter.API.Controllers
             return Ok(certificates);
         }
 
+        // GET: api/Certificates/1
+        // Admin + Teacher + Student
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Teacher,Student")]
         public async Task<ActionResult<CertificateDto>>
             GetCertificate(int id)
         {
@@ -41,7 +49,10 @@ namespace EnglishCenter.API.Controllers
             return Ok(certificate);
         }
 
+        // POST: api/Certificates
+        // Admin + Teacher
         [HttpPost]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<CertificateDto>>
             CreateCertificate(
                 CertificateCreateDto dto)
@@ -55,7 +66,10 @@ namespace EnglishCenter.API.Controllers
                 certificate);
         }
 
+        // PUT: api/Certificates/1
+        // Admin + Teacher
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult>
             UpdateCertificate(
                 int id,
@@ -73,7 +87,10 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
+        // DELETE: api/Certificates/1
+        // Chỉ Admin
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult>
             DeleteCertificate(int id)
         {

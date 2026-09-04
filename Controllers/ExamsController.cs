@@ -1,11 +1,13 @@
 ﻿using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EnglishCenter.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ExamsController : ControllerBase
     {
         private readonly IExamService _examService;
@@ -16,7 +18,10 @@ namespace EnglishCenter.API.Controllers
             _examService = examService;
         }
 
+        // GET: api/Exams
+        // Admin + Teacher + Student
         [HttpGet]
+        [Authorize(Roles = "Admin,Teacher,Student")]
         public async Task<ActionResult<IEnumerable<ExamDto>>>
             GetExams()
         {
@@ -26,7 +31,10 @@ namespace EnglishCenter.API.Controllers
             return Ok(exams);
         }
 
+        // GET: api/Exams/1
+        // Admin + Teacher + Student
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Teacher,Student")]
         public async Task<ActionResult<ExamDto>>
             GetExam(int id)
         {
@@ -41,7 +49,10 @@ namespace EnglishCenter.API.Controllers
             return Ok(exam);
         }
 
+        // POST: api/Exams
+        // Admin + Teacher
         [HttpPost]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<ExamDto>>
             CreateExam(ExamCreateDto dto)
         {
@@ -54,7 +65,10 @@ namespace EnglishCenter.API.Controllers
                 exam);
         }
 
+        // PUT: api/Exams/1
+        // Admin + Teacher
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult>
             UpdateExam(
                 int id,
@@ -71,7 +85,10 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
+        // DELETE: api/Exams/1
+        // Chỉ Admin
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult>
             DeleteExam(int id)
         {

@@ -1,11 +1,13 @@
 ﻿using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EnglishCenter.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class InvoicesController : ControllerBase
     {
         private readonly IInvoiceService _invoiceService;
@@ -16,7 +18,10 @@ namespace EnglishCenter.API.Controllers
             _invoiceService = invoiceService;
         }
 
+        // GET: api/Invoices
+        // Chỉ Admin
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<IEnumerable<InvoiceDto>>>
             GetInvoices()
         {
@@ -26,7 +31,10 @@ namespace EnglishCenter.API.Controllers
             return Ok(invoices);
         }
 
+        // GET: api/Invoices/1
+        // Chỉ Admin
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<InvoiceDto>>
             GetInvoice(int id)
         {
@@ -41,7 +49,10 @@ namespace EnglishCenter.API.Controllers
             return Ok(invoice);
         }
 
+        // POST: api/Invoices
+        // Chỉ Admin
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<InvoiceDto>>
             CreateInvoice(InvoiceCreateDto dto)
         {
@@ -54,7 +65,10 @@ namespace EnglishCenter.API.Controllers
                 invoice);
         }
 
+        // PUT: api/Invoices/1
+        // Chỉ Admin
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult>
             UpdateInvoice(
                 int id,
@@ -71,7 +85,10 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
+        // DELETE: api/Invoices/1
+        // Chỉ Admin
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult>
             DeleteInvoice(int id)
         {

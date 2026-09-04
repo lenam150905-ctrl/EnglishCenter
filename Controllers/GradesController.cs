@@ -1,11 +1,13 @@
 ﻿using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EnglishCenter.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class GradesController : ControllerBase
     {
         private readonly IGradeService _gradeService;
@@ -16,7 +18,10 @@ namespace EnglishCenter.API.Controllers
             _gradeService = gradeService;
         }
 
+        // GET: api/Grades
+        // Admin + Teacher
         [HttpGet]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<IEnumerable<GradeDto>>>
             GetGrades()
         {
@@ -26,7 +31,10 @@ namespace EnglishCenter.API.Controllers
             return Ok(grades);
         }
 
+        // GET: api/Grades/1
+        // Admin + Teacher
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<GradeDto>>
             GetGrade(int id)
         {
@@ -41,7 +49,10 @@ namespace EnglishCenter.API.Controllers
             return Ok(grade);
         }
 
+        // POST: api/Grades
+        // Admin + Teacher
         [HttpPost]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<GradeDto>>
             CreateGrade(GradeCreateDto dto)
         {
@@ -54,7 +65,10 @@ namespace EnglishCenter.API.Controllers
                 grade);
         }
 
+        // PUT: api/Grades/1
+        // Admin + Teacher
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult>
             UpdateGrade(
                 int id,
@@ -71,7 +85,10 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
+        // DELETE: api/Grades/1
+        // Chỉ Admin
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult>
             DeleteGrade(int id)
         {

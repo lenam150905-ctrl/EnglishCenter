@@ -1,11 +1,13 @@
 ﻿using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EnglishCenter.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class EnrollmentsController : ControllerBase
     {
         private readonly IEnrollmentService _enrollmentService;
@@ -16,7 +18,10 @@ namespace EnglishCenter.API.Controllers
             _enrollmentService = enrollmentService;
         }
 
+        // GET: api/Enrollments
+        // Admin + Teacher
         [HttpGet]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<IEnumerable<EnrollmentDto>>> GetEnrollments()
         {
             var enrollments =
@@ -25,7 +30,10 @@ namespace EnglishCenter.API.Controllers
             return Ok(enrollments);
         }
 
+        // GET: api/Enrollments/1
+        // Admin + Teacher
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<EnrollmentDto>> GetEnrollment(
             int id)
         {
@@ -40,7 +48,10 @@ namespace EnglishCenter.API.Controllers
             return Ok(enrollment);
         }
 
+        // POST: api/Enrollments
+        // Admin + Student
         [HttpPost]
+        [Authorize(Roles = "Admin,Student")]
         public async Task<ActionResult<EnrollmentDto>> CreateEnrollment(
             EnrollmentCreateDto dto)
         {
@@ -53,7 +64,10 @@ namespace EnglishCenter.API.Controllers
                 enrollment);
         }
 
+        // PUT: api/Enrollments/1
+        // Chỉ Admin
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateEnrollment(
             int id,
             EnrollmentUpdateDto dto)
@@ -69,7 +83,10 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
+        // DELETE: api/Enrollments/1
+        // Chỉ Admin
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteEnrollment(
             int id)
         {
