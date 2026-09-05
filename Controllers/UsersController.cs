@@ -20,9 +20,21 @@ namespace EnglishCenter.API.Controllers
         // GET: api/Users
         // Chỉ Admin
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers(string search)
+        public async Task<ActionResult<PagedResultDto<UserDto>>> GetUsers(
+    string? search,
+    string? role,
+    string? sortBy,
+    bool sortDesc = false,
+    int page = 1,
+    int pageSize = 20)
         {
-            var users = await _userService.GetAllAsync(search);
+            var users = await _userService.GetAllAsync(
+                search,
+                role,
+                sortBy,
+                sortDesc,
+                page,
+                pageSize);
 
             return Ok(users);
         }

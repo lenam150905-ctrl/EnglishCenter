@@ -14,20 +14,100 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<ExamDto>> GetAllAsync(string? search)
+        public async Task<PagedResultDto<ExamDto>> GetAllAsync(
+     string? search,
+     int? courseId,
+     string? examType,
+     string? sortBy,
+     bool sortDesc,
+     int page,
+     int pageSize)
         {
-            var query = _context.Exams.AsQueryable();
+            var query = _context.Exams
+                .Include(e => e.Course)
+                .AsQueryable();
+
+            // SEARCH
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(e =>
                     e.ExamName.Contains(search) ||
-                    e.ExamType.Contains(search));
+                    e.ExamType.Contains(search) ||
+                    (e.Course != null &&
+                     e.Course.CourseName.Contains(search)));
             }
+
+            // FILTER
+            if (courseId.HasValue)
+            {
+                query = query.Where(e =>
+                    e.CourseId == courseId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(examType))
+            {
+                query = query.Where(e =>
+                    e.ExamType == examType);
+            }
+
+            // SORT
+            if (!string.IsNullOrWhiteSpace(sortBy))
+            {
+                switch (sortBy.ToLower())
+                {
+                    case "id":
+                        query = sortDesc
+                            ? query.OrderByDescending(e => e.Id)
+                            : query.OrderBy(e => e.Id);
+                        break;
+
+                    case "examname":
+                        query = sortDesc
+                            ? query.OrderByDescending(e => e.ExamName)
+                            : query.OrderBy(e => e.ExamName);
+                        break;
+
+                    case "examtype":
+                        query = sortDesc
+                            ? query.OrderByDescending(e => e.ExamType)
+                            : query.OrderBy(e => e.ExamType);
+                        break;
+
+                    case "examdate":
+                        query = sortDesc
+                            ? query.OrderByDescending(e => e.ExamDate)
+                            : query.OrderBy(e => e.ExamDate);
+                        break;
+                }
+            }
+            else
+            {
+                query = query.OrderBy(e => e.Id);
+            }
+
+            // PAGINATION
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 20;
+            }
+
+            var totalItems = await query.CountAsync();
+
+            var totalPages = (int)Math.Ceiling(
+                (double)totalItems / pageSize);
+
             var exams = await query
-                .Include(e => e.Course)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return exams.Select(e => new ExamDto
+            // DTO
+            var data = exams.Select(e => new ExamDto
             {
                 Id = e.Id,
                 ExamName = e.ExamName,
@@ -36,6 +116,15 @@ namespace EnglishCenter.API.Services
                 CourseId = e.CourseId,
                 CourseName = e.Course?.CourseName
             }).ToList();
+
+            return new PagedResultDto<ExamDto>
+            {
+                Data = data,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                TotalPages = totalPages
+            };
         }
 
         public async Task<ExamDto?> GetByIdAsync(int id)

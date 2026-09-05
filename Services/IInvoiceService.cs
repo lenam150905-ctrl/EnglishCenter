@@ -4,7 +4,17 @@ namespace EnglishCenter.API.Services
 {
     public interface IInvoiceService
     {
-        Task<List<InvoiceDto>> GetAllAsync(string? search);
+        Task<PagedResultDto<InvoiceDto>> GetAllAsync(
+    string? search,
+    int? studentId,
+    int? enrollmentId,
+    string? status,
+    decimal? minAmount,
+    decimal? maxAmount,
+    string? sortBy,
+    bool sortDesc,
+    int page,
+    int pageSize);
 
         Task<InvoiceDto?> GetByIdAsync(int id);
 

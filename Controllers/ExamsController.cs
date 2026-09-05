@@ -22,15 +22,26 @@ namespace EnglishCenter.API.Controllers
         // Admin + Teacher + Student
         [HttpGet]
         [Authorize(Roles = "Admin,Teacher,Student")]
-        public async Task<ActionResult<IEnumerable<ExamDto>>>
-            GetExams(string? search)
+        public async Task<ActionResult<PagedResultDto<ExamDto>>> GetExams(
+    string? search,
+    int? courseId,
+    string? examType,
+    string? sortBy,
+    bool sortDesc = false,
+    int page = 1,
+    int pageSize = 20)
         {
-            var exams =
-                await _examService.GetAllAsync(search);
+            var exams = await _examService.GetAllAsync(
+                search,
+                courseId,
+                examType,
+                sortBy,
+                sortDesc,
+                page,
+                pageSize);
 
             return Ok(exams);
         }
-
         // GET: api/Exams/1
         // Admin + Teacher + Student
         [HttpGet("{id}")]

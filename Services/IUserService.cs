@@ -4,7 +4,13 @@ namespace EnglishCenter.API.Services
 {
     public interface IUserService
     {
-        Task<List<UserDto>> GetAllAsync(string? search);
+        Task<PagedResultDto<UserDto>> GetAllAsync(
+      string? search,
+      string? role,
+      string? sortBy,
+      bool sortDesc,
+      int page,
+      int pageSize);
 
         Task<UserDto?> GetByIdAsync(int id);
 

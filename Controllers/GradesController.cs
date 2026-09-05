@@ -22,11 +22,27 @@ namespace EnglishCenter.API.Controllers
         // Admin + Teacher
         [HttpGet]
         [Authorize(Roles = "Admin,Teacher")]
-        public async Task<ActionResult<IEnumerable<GradeDto>>>
-            GetGrades(string? search)
+        public async Task<ActionResult<PagedResultDto<GradeDto>>> GetGrades(
+    string? search,
+    int? examId,
+    int? studentId,
+    decimal? minScore,
+    decimal? maxScore,
+    string? sortBy,
+    bool sortDesc = false,
+    int page = 1,
+    int pageSize = 20)
         {
-            var grades =
-                await _gradeService.GetAllAsync(search);
+            var grades = await _gradeService.GetAllAsync(
+                search,
+                examId,
+                studentId,
+                minScore,
+                maxScore,
+                sortBy,
+                sortDesc,
+                page,
+                pageSize);
 
             return Ok(grades);
         }

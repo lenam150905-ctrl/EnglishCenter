@@ -14,10 +14,17 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<TeacherDto>> GetAllAsync(string? search)
+        public async Task<PagedResultDto<TeacherDto>> GetAllAsync(
+      string? search,
+      string? specialization,
+      string? sortBy,
+      bool sortDesc,
+      int page,
+      int pageSize)
         {
             var query = _context.Teachers.AsQueryable();
 
+            // SEARCH
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(t =>
@@ -26,9 +33,74 @@ namespace EnglishCenter.API.Services
                     t.Phone.Contains(search) ||
                     t.Specialization.Contains(search));
             }
-            var teachers = await query.ToListAsync();
 
-            return teachers.Select(t => new TeacherDto
+            // FILTER
+            if (!string.IsNullOrWhiteSpace(specialization))
+            {
+                query = query.Where(t =>
+                    t.Specialization == specialization);
+            }
+
+            // SORT
+            if (!string.IsNullOrWhiteSpace(sortBy))
+            {
+                switch (sortBy.ToLower())
+                {
+                    case "id":
+                        query = sortDesc
+                            ? query.OrderByDescending(t => t.Id)
+                            : query.OrderBy(t => t.Id);
+                        break;
+
+                    case "fullname":
+                        query = sortDesc
+                            ? query.OrderByDescending(t => t.FullName)
+                            : query.OrderBy(t => t.FullName);
+                        break;
+
+                    case "email":
+                        query = sortDesc
+                            ? query.OrderByDescending(t => t.Email)
+                            : query.OrderBy(t => t.Email);
+                        break;
+
+                    case "specialization":
+                        query = sortDesc
+                            ? query.OrderByDescending(t => t.Specialization)
+                            : query.OrderBy(t => t.Specialization);
+                        break;
+                }
+            }
+            else
+            {
+                query = query.OrderBy(t => t.Id);
+            }
+
+            // VALIDATE PAGINATION
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 20;
+            }
+
+            // TOTAL
+            var totalItems = await query.CountAsync();
+
+            var totalPages = (int)Math.Ceiling(
+                (double)totalItems / pageSize);
+
+            // PAGINATION
+            var teachers = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // DTO
+            var data = teachers.Select(t => new TeacherDto
             {
                 Id = t.Id,
                 FullName = t.FullName,
@@ -37,6 +109,15 @@ namespace EnglishCenter.API.Services
                 Specialization = t.Specialization,
                 UserId = t.UserId
             }).ToList();
+
+            return new PagedResultDto<TeacherDto>
+            {
+                Data = data,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                TotalPages = totalPages
+            };
         }
 
         public async Task<TeacherDto?> GetByIdAsync(int id)

@@ -4,7 +4,14 @@ namespace EnglishCenter.API.Services
 {
     public interface IStudentService
     {
-        Task<List<StudentDto>> GetAllAsync(string? search);
+        Task<PagedResultDto<StudentDto>> GetAllAsync(
+    string? search,
+    DateTime? fromDateOfBirth,
+    DateTime? toDateOfBirth,
+    string? sortBy,
+    bool sortDesc,
+    int page,
+    int pageSize);
 
         Task<StudentDto?> GetByIdAsync(int id);
 

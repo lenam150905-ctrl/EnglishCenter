@@ -14,35 +14,139 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<InvoiceDto>> GetAllAsync(string? search)
+        public async Task<PagedResultDto<InvoiceDto>> GetAllAsync(
+     string? search,
+     int? studentId,
+     int? enrollmentId,
+     string? status,
+     decimal? minAmount,
+     decimal? maxAmount,
+     string? sortBy,
+     bool sortDesc,
+     int page,
+     int pageSize)
         {
-            var query = _context.Invoices.AsQueryable();
+            var query = _context.Invoices
+                .Include(i => i.Student)
+                .Include(i => i.Enrollment)
+                .AsQueryable();
+
+            // SEARCH
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(i =>
+                    i.Student.FullName.Contains(search) ||
+                    i.Student.Email.Contains(search) ||
                     i.Status.Contains(search));
-                   
             }
-                       var invoices = await query
-                .Include(i => i.Student)
-                .Include(i => i.Enrollment)
-                    .ThenInclude(e => e.Course)
+
+            // FILTER
+            if (studentId.HasValue)
+            {
+                query = query.Where(i =>
+                    i.StudentId == studentId.Value);
+            }
+
+            if (enrollmentId.HasValue)
+            {
+                query = query.Where(i =>
+                    i.EnrollmentId == enrollmentId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                query = query.Where(i =>
+                    i.Status == status);
+            }
+
+            if (minAmount.HasValue)
+            {
+                query = query.Where(i =>
+                    i.Amount >= minAmount.Value);
+            }
+
+            if (maxAmount.HasValue)
+            {
+                query = query.Where(i =>
+                    i.Amount <= maxAmount.Value);
+            }
+
+            // SORT
+            if (!string.IsNullOrWhiteSpace(sortBy))
+            {
+                switch (sortBy.ToLower())
+                {
+                    case "id":
+                        query = sortDesc
+                            ? query.OrderByDescending(i => i.Id)
+                            : query.OrderBy(i => i.Id);
+                        break;
+
+                    case "amount":
+                        query = sortDesc
+                            ? query.OrderByDescending(i => i.Amount)
+                            : query.OrderBy(i => i.Amount);
+                        break;
+
+                    case "invoicedate":
+                        query = sortDesc
+                            ? query.OrderByDescending(i => i.InvoiceDate)
+                            : query.OrderBy(i => i.InvoiceDate);
+                        break;
+
+                    case "status":
+                        query = sortDesc
+                            ? query.OrderByDescending(i => i.Status)
+                            : query.OrderBy(i => i.Status);
+                        break;
+                }
+            }
+            else
+            {
+                query = query.OrderBy(i => i.Id);
+            }
+
+            // PAGINATION
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 20;
+            }
+
+            var totalItems = await query.CountAsync();
+
+            var totalPages = (int)Math.Ceiling(
+                (double)totalItems / pageSize);
+
+            var invoices = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return invoices.Select(i => new InvoiceDto
+            // DTO
+            var data = invoices.Select(i => new InvoiceDto
             {
                 Id = i.Id,
-
                 StudentId = i.StudentId,
-                StudentName = i.Student?.FullName ?? string.Empty,
-
+                StudentName = i.Student.FullName,
                 EnrollmentId = i.EnrollmentId,
-                CourseName = i.Enrollment?.Course?.CourseName,
-
                 Amount = i.Amount,
                 InvoiceDate = i.InvoiceDate,
                 Status = i.Status
             }).ToList();
+
+            return new PagedResultDto<InvoiceDto>
+            {
+                Data = data,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                TotalPages = totalPages
+            };
         }
 
         public async Task<InvoiceDto?> GetByIdAsync(int id)

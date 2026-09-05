@@ -22,11 +22,23 @@ namespace EnglishCenter.API.Controllers
         // Admin + Teacher
         [HttpGet]
         [Authorize(Roles = "Admin,Teacher")]
-        public async Task<ActionResult<IEnumerable<StudentDto>>>
-    GetStudents(string? search)
+        public async Task<ActionResult<PagedResultDto<StudentDto>>> GetStudents(
+    string? search,
+    DateTime? fromDateOfBirth,
+    DateTime? toDateOfBirth,
+    string? sortBy,
+    bool sortDesc = false,
+    int page = 1,
+    int pageSize = 20)
         {
-            var students =
-                await _studentService.GetAllAsync(search);
+            var students = await _studentService.GetAllAsync(
+                search,
+                fromDateOfBirth,
+                toDateOfBirth,
+                sortBy,
+                sortDesc,
+                page,
+                pageSize);
 
             return Ok(students);
         }

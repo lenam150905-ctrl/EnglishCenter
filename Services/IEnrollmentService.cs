@@ -4,7 +4,15 @@ namespace EnglishCenter.API.Services
 {
     public interface IEnrollmentService
     {
-        Task<List<EnrollmentDto>> GetAllAsync(string? search);
+        Task<PagedResultDto<EnrollmentDto>> GetAllAsync(
+      string? search,
+      int? studentId,
+      int? courseId,
+      string? status,
+      string? sortBy,
+      bool sortDesc,
+      int page,
+      int pageSize);
 
         Task<EnrollmentDto?> GetByIdAsync(int id);
 

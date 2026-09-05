@@ -13,26 +13,112 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<CourseDto>> GetAllAsync(string? search)
-        {
-            var query = _context.Courses.AsQueryable();
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                query = query.Where(c =>
-                    c.CourseName.Contains(search) ||
-                    c.TuitionFee.ToString().Contains(search));
+      public async Task<PagedResultDto<CourseDto>> GetAllAsync(
+    string? search,
+    decimal? minTuitionFee,
+    decimal? maxTuitionFee,
+    string? sortBy,
+    bool sortDesc,
+    int page,
+    int pageSize)
+{
+    var query = _context.Courses.AsQueryable();
 
+    // SEARCH
+    if (!string.IsNullOrWhiteSpace(search))
+    {
+        query = query.Where(c =>
+            c.CourseName.Contains(search) ||
+            c.Description.Contains(search));
             }
-            var courses = await _context.Courses.ToListAsync();
 
-            return courses.Select(c => new CourseDto
-            {
-                Id = c.Id,
-                CourseCode = c.CourseCode,
-                CourseName = c.CourseName,
-                TuitionFee = c.TuitionFee
-            }).ToList();
+    // FILTER - HỌC PHÍ
+    if (minTuitionFee.HasValue)
+    {
+        query = query.Where(c =>
+            c.TuitionFee >= minTuitionFee.Value);
+    }
+
+    if (maxTuitionFee.HasValue)
+    {
+        query = query.Where(c =>
+            c.TuitionFee <= maxTuitionFee.Value);
+    }
+
+    // SORT
+    if (!string.IsNullOrWhiteSpace(sortBy))
+    {
+        switch (sortBy.ToLower())
+        {
+            case "id":
+                query = sortDesc
+                    ? query.OrderByDescending(c => c.Id)
+                    : query.OrderBy(c => c.Id);
+                break;
+
+            case "coursename":
+                query = sortDesc
+                    ? query.OrderByDescending(c => c.CourseName)
+                    : query.OrderBy(c => c.CourseName);
+                break;
+
+            case "tuitionfee":
+                query = sortDesc
+                    ? query.OrderByDescending(c => c.TuitionFee)
+                    : query.OrderBy(c => c.TuitionFee);
+                break;
+
+            case "duration":
+                query = sortDesc
+                    ? query.OrderByDescending(c => c.Duration)
+                    : query.OrderBy(c => c.Duration);
+                break;
         }
+    }
+    else
+    {
+        query = query.OrderBy(c => c.Id);
+    }
+
+    // PAGINATION
+    if (page < 1)
+    {
+        page = 1;
+    }
+
+    if (pageSize < 1)
+    {
+        pageSize = 20;
+    }
+
+    var totalItems = await query.CountAsync();
+
+    var totalPages = (int)Math.Ceiling(
+        (double)totalItems / pageSize);
+
+    var courses = await query
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .ToListAsync();
+
+    // DTO
+    var data = courses.Select(c => new CourseDto
+    {
+        Id = c.Id,
+        CourseName = c.CourseName,
+        TuitionFee = c.TuitionFee
+      
+    }).ToList();
+
+    return new PagedResultDto<CourseDto>
+    {
+        Data = data,
+        Page = page,
+        PageSize = pageSize,
+        TotalItems = totalItems,
+        TotalPages = totalPages
+    };
+}
 
         public async Task<CourseDto?> GetByIdAsync(int id)
         {

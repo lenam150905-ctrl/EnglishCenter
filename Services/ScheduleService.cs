@@ -13,22 +13,100 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<ScheduleDto>> GetAllAsync(string? search)
+        public async Task<PagedResultDto<ScheduleDto>> GetAllAsync(
+     string? search,
+     int? courseId,
+     int? teacherId,
+     string? sortBy,
+     bool sortDesc,
+     int page,
+     int pageSize)
         {
-            var query = _context.Schedules.AsQueryable();
+            var query = _context.Schedules
+                .Include(s => s.Course)
+                .Include(s => s.Teacher)
+                .AsQueryable();
+
+            // SEARCH
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(s =>
+                    s.Room.Contains(search) ||
                     s.Course.CourseName.Contains(search) ||
-                    s.Teacher.FullName.Contains(search) ||
-                    s.Room.Contains(search));
+                    s.Teacher.FullName.Contains(search));
             }
+
+            // FILTER
+            if (courseId.HasValue)
+            {
+                query = query.Where(s =>
+                    s.CourseId == courseId.Value);
+            }
+
+            if (teacherId.HasValue)
+            {
+                query = query.Where(s =>
+                    s.TeacherId == teacherId.Value);
+            }
+
+            // SORT
+            if (!string.IsNullOrWhiteSpace(sortBy))
+            {
+                switch (sortBy.ToLower())
+                {
+                    case "id":
+                        query = sortDesc
+                            ? query.OrderByDescending(s => s.Id)
+                            : query.OrderBy(s => s.Id);
+                        break;
+
+                    case "starttime":
+                        query = sortDesc
+                            ? query.OrderByDescending(s => s.StartTime)
+                            : query.OrderBy(s => s.StartTime);
+                        break;
+
+                    case "endtime":
+                        query = sortDesc
+                            ? query.OrderByDescending(s => s.EndTime)
+                            : query.OrderBy(s => s.EndTime);
+                        break;
+
+                    case "room":
+                        query = sortDesc
+                            ? query.OrderByDescending(s => s.Room)
+                            : query.OrderBy(s => s.Room);
+                        break;
+                }
+            }
+            else
+            {
+                query = query.OrderBy(s => s.StartTime);
+            }
+
+            // PAGINATION
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 20;
+            }
+
+            var totalItems = await query.CountAsync();
+
+            var totalPages = (int)Math.Ceiling(
+                (double)totalItems / pageSize);
+
             var schedules = await query
-                .Include(s => s.Course)
-                .Include(s => s.Teacher)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return schedules.Select(s => new ScheduleDto
+            // DTO
+            var data = schedules.Select(s => new ScheduleDto
             {
                 Id = s.Id,
                 CourseId = s.CourseId,
@@ -39,6 +117,15 @@ namespace EnglishCenter.API.Services
                 EndTime = s.EndTime,
                 Room = s.Room
             }).ToList();
+
+            return new PagedResultDto<ScheduleDto>
+            {
+                Data = data,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                TotalPages = totalPages
+            };
         }
         public async Task<ScheduleDto?> GetByIdAsync(int id)
         {

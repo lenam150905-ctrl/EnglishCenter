@@ -14,20 +14,99 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<StudentDto>> GetAllAsync(string? search)
+        public async Task<PagedResultDto<StudentDto>> GetAllAsync(
+     string? search,
+     DateTime? fromDateOfBirth,
+     DateTime? toDateOfBirth,
+     string? sortBy,
+     bool sortDesc,
+     int page,
+     int pageSize)
         {
             var query = _context.Students.AsQueryable();
+
+            // SEARCH
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(s =>
                     s.FullName.Contains(search) ||
                     s.Email.Contains(search) ||
-                    s.Phone.Contains(search));
+                    s.Phone.Contains(search) ||
+                    s.Address.Contains(search));
             }
-            var students = await query.ToListAsync();
-              
 
-            return students.Select(s => new StudentDto
+            // FILTER
+            if (fromDateOfBirth.HasValue)
+            {
+                query = query.Where(s =>
+                    s.DateOfBirth >= fromDateOfBirth.Value);
+            }
+
+            if (toDateOfBirth.HasValue)
+            {
+                query = query.Where(s =>
+                    s.DateOfBirth <= toDateOfBirth.Value);
+            }
+
+            // SORT
+            if (!string.IsNullOrWhiteSpace(sortBy))
+            {
+                switch (sortBy.ToLower())
+                {
+                    case "id":
+                        query = sortDesc
+                            ? query.OrderByDescending(s => s.Id)
+                            : query.OrderBy(s => s.Id);
+                        break;
+
+                    case "fullname":
+                        query = sortDesc
+                            ? query.OrderByDescending(s => s.FullName)
+                            : query.OrderBy(s => s.FullName);
+                        break;
+
+                    case "dateofbirth":
+                        query = sortDesc
+                            ? query.OrderByDescending(s => s.DateOfBirth)
+                            : query.OrderBy(s => s.DateOfBirth);
+                        break;
+
+                    case "email":
+                        query = sortDesc
+                            ? query.OrderByDescending(s => s.Email)
+                            : query.OrderBy(s => s.Email);
+                        break;
+                }
+            }
+            else
+            {
+                query = query.OrderBy(s => s.Id);
+            }
+
+            // TOTAL
+            var totalItems = await query.CountAsync();
+
+            // PAGINATION
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 20;
+            }
+
+            var totalPages = (int)Math.Ceiling(
+                (double)totalItems / pageSize);
+
+            var students = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // DTO
+            var data = students.Select(s => new StudentDto
             {
                 Id = s.Id,
                 FullName = s.FullName,
@@ -35,11 +114,17 @@ namespace EnglishCenter.API.Services
                 Email = s.Email,
                 Phone = s.Phone,
                 Address = s.Address,
-                UserId = s.UserId,
-                UserName = s.User != null
-                    ? s.User.UserName
-                    : null
+                UserId = s.UserId
             }).ToList();
+
+            return new PagedResultDto<StudentDto>
+            {
+                Data = data,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                TotalPages = totalPages
+            };
         }
 
         public async Task<StudentDto?> GetByIdAsync(int id)

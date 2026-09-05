@@ -14,36 +14,120 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<GradeDto>> GetAllAsync(string? search)
+        public async Task<PagedResultDto<GradeDto>> GetAllAsync(
+     string? search,
+     int? examId,
+     int? studentId,
+     decimal? minScore,
+     decimal? maxScore,
+     string? sortBy,
+     bool sortDesc,
+     int page,
+     int pageSize)
         {
-            var query = _context.Grades.AsQueryable();
+            var query = _context.Grades
+                .Include(g => g.Exam)
+                .Include(g => g.Student)
+                .AsQueryable();
+
+            // SEARCH
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(g =>
                     g.Student.FullName.Contains(search) ||
-                    g.Exam.ExamName.Contains(search) ||
-                    g.Comment.Contains(search));
+                    g.Exam.ExamName.Contains(search));
             }
-                       var grades = await query
-                .Include(g => g.Exam)
-                .Include(g => g.Student)
+
+            // FILTER
+            if (examId.HasValue)
+            {
+                query = query.Where(g =>
+                    g.ExamId == examId.Value);
+            }
+
+            if (studentId.HasValue)
+            {
+                query = query.Where(g =>
+                    g.StudentId == studentId.Value);
+            }
+
+            if (minScore.HasValue)
+            {
+                query = query.Where(g =>
+                    g.Score >= minScore.Value);
+            }
+
+            if (maxScore.HasValue)
+            {
+                query = query.Where(g =>
+                    g.Score <= maxScore.Value);
+            }
+
+            // SORT
+            if (!string.IsNullOrWhiteSpace(sortBy))
+            {
+                switch (sortBy.ToLower())
+                {
+                    case "id":
+                        query = sortDesc
+                            ? query.OrderByDescending(g => g.Id)
+                            : query.OrderBy(g => g.Id);
+                        break;
+
+                    case "score":
+                        query = sortDesc
+                            ? query.OrderByDescending(g => g.Score)
+                            : query.OrderBy(g => g.Score);
+                        break;
+                }
+            }
+            else
+            {
+                query = query.OrderBy(g => g.Id);
+            }
+
+            // PAGINATION
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 20;
+            }
+
+            var totalItems = await query.CountAsync();
+
+            var totalPages = (int)Math.Ceiling(
+                (double)totalItems / pageSize);
+
+            var grades = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return grades.Select(g => new GradeDto
+            // DTO
+            var data = grades.Select(g => new GradeDto
             {
                 Id = g.Id,
-
                 ExamId = g.ExamId,
                 ExamName = g.Exam.ExamName,
-
                 StudentId = g.StudentId,
                 StudentName = g.Student.FullName,
-
                 Score = g.Score,
                 Comment = g.Comment
             }).ToList();
-        }
 
+            return new PagedResultDto<GradeDto>
+            {
+                Data = data,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                TotalPages = totalPages
+            };
+        }
         public async Task<GradeDto?> GetByIdAsync(int id)
         {
             var grade = await _context.Grades

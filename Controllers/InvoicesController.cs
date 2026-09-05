@@ -22,11 +22,29 @@ namespace EnglishCenter.API.Controllers
         // Chỉ Admin
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<IEnumerable<InvoiceDto>>>
-            GetInvoices(string? search)
+        public async Task<ActionResult<PagedResultDto<InvoiceDto>>> GetInvoices(
+    string? search,
+    int? studentId,
+    int? enrollmentId,
+    string? status,
+    decimal? minAmount,
+    decimal? maxAmount,
+    string? sortBy,
+    bool sortDesc = false,
+    int page = 1,
+    int pageSize = 20)
         {
-            var invoices =
-                await _invoiceService.GetAllAsync(search);
+            var invoices = await _invoiceService.GetAllAsync(
+                search,
+                studentId,
+                enrollmentId,
+                status,
+                minAmount,
+                maxAmount,
+                sortBy,
+                sortDesc,
+                page,
+                pageSize);
 
             return Ok(invoices);
         }

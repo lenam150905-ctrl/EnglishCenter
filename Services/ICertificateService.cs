@@ -4,7 +4,14 @@ namespace EnglishCenter.API.Services
 {
     public interface ICertificateService
     {
-        Task<List<CertificateDto>> GetAllAsync(string? search);
+        Task<PagedResultDto<CertificateDto>> GetAllAsync(
+    string? search,
+    int? studentId,
+    int? courseId,
+    string? sortBy,
+    bool sortDesc,
+    int page,
+    int pageSize);
 
         Task<CertificateDto?> GetByIdAsync(int id);
 

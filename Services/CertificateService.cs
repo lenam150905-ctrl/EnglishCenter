@@ -14,34 +14,113 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<CertificateDto>> GetAllAsync(string? search)
+        public async Task<PagedResultDto<CertificateDto>> GetAllAsync(
+    string? search,
+    int? studentId,
+    int? courseId,
+    string? sortBy,
+    bool sortDesc,
+    int page,
+    int pageSize)
         {
-            var query = _context.Certificates.AsQueryable();
+            var query = _context.Certificates
+                .Include(c => c.Student)
+                .Include(c => c.Course)
+                .AsQueryable();
+
+            // SEARCH
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(c =>
-                    c.CertificateCode.Contains(search));
-
+                    c.CertificateCode.Contains(search) ||
+                    c.Student.FullName.Contains(search) ||
+                    c.Course.CourseName.Contains(search));
             }
+
+            // FILTER
+            if (studentId.HasValue)
+            {
+                query = query.Where(c =>
+                    c.StudentId == studentId.Value);
+            }
+
+            if (courseId.HasValue)
+            {
+                query = query.Where(c =>
+                    c.CourseId == courseId.Value);
+            }
+
+            // SORT
+            if (!string.IsNullOrWhiteSpace(sortBy))
+            {
+                switch (sortBy.ToLower())
+                {
+                    case "id":
+                        query = sortDesc
+                            ? query.OrderByDescending(c => c.Id)
+                            : query.OrderBy(c => c.Id);
+                        break;
+
+                    case "certificatecode":
+                        query = sortDesc
+                            ? query.OrderByDescending(c => c.CertificateCode)
+                            : query.OrderBy(c => c.CertificateCode);
+                        break;
+
+                    case "issuedate":
+                        query = sortDesc
+                            ? query.OrderByDescending(c => c.IssueDate)
+                            : query.OrderBy(c => c.IssueDate);
+                        break;
+                }
+            }
+            else
+            {
+                query = query.OrderBy(c => c.Id);
+            }
+
+            // PAGINATION
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 20;
+            }
+
+            var totalItems = await query.CountAsync();
+
+            var totalPages = (int)Math.Ceiling(
+                (double)totalItems / pageSize);
+
             var certificates = await query
-                .Include(c => c.Student)
-                .Include(c => c.Course)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return certificates.Select(c => new CertificateDto
+            // DTO
+            var data = certificates.Select(c => new CertificateDto
             {
                 Id = c.Id,
-
                 StudentId = c.StudentId,
-                StudentName = c.Student?.FullName ?? string.Empty,
-
+                StudentName = c.Student.FullName,
                 CourseId = c.CourseId,
-                CourseName = c.Course?.CourseName ?? string.Empty,
-
+                CourseName = c.Course.CourseName,
                 CertificateCode = c.CertificateCode,
                 IssueDate = c.IssueDate,
                 PdfFilePath = c.PdfFilePath
             }).ToList();
+
+            return new PagedResultDto<CertificateDto>
+            {
+                Data = data,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                TotalPages = totalPages
+            };
         }
 
         public async Task<CertificateDto?> GetByIdAsync(int id)

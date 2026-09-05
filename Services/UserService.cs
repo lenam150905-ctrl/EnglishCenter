@@ -14,25 +14,92 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<UserDto>> GetAllAsync(string? search)
+        public async Task<PagedResultDto<UserDto>> GetAllAsync(
+      string? search,
+      string? role,
+      string? sortBy,
+      bool sortDesc,
+      int page,
+      int pageSize)
         {
-             var query = _context.Users.AsQueryable();
+            var query = _context.Users.AsQueryable();
+
+            // SEARCH
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(u =>
                     u.UserName.Contains(search) ||
                     u.Role.Contains(search));
-                 
             }
-            var users = await query
-                .ToListAsync();
 
-            return users.Select(u => new UserDto
+            // FILTER
+            if (!string.IsNullOrWhiteSpace(role))
             {
-                Id = u.Id,
-                UserName = u.UserName,
-                Role = u.Role
-            }).ToList();
+                query = query.Where(u =>
+                    u.Role == role);
+            }
+
+            // SORT
+            if (!string.IsNullOrWhiteSpace(sortBy))
+            {
+                switch (sortBy.ToLower())
+                {
+                    case "username":
+                        query = sortDesc
+                            ? query.OrderByDescending(u => u.UserName)
+                            : query.OrderBy(u => u.UserName);
+                        break;
+
+                    case "role":
+                        query = sortDesc
+                            ? query.OrderByDescending(u => u.Role)
+                            : query.OrderBy(u => u.Role);
+                        break;
+
+                    case "id":
+                        query = sortDesc
+                            ? query.OrderByDescending(u => u.Id)
+                            : query.OrderBy(u => u.Id);
+                        break;
+                }
+
+            }
+            else
+            {
+                query = query.OrderBy(u => u.Id);
+            }
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 20;
+            }
+            var totalItems = await query.CountAsync();
+            // PAGINATION
+            var users = await query
+    .Skip((page - 1) * pageSize)
+    .Take(pageSize)
+    .ToListAsync();
+            var totalPages = (int)Math.Ceiling(
+    (double)totalItems / pageSize);
+
+            return new PagedResultDto<UserDto>
+            {
+                Data = users.Select(u => new UserDto
+                {
+                    Id = u.Id,
+                    UserName = u.UserName,
+                    Role = u.Role
+                }).ToList(),
+
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                TotalPages = totalPages
+            };
         }
 
         public async Task<UserDto?> GetByIdAsync(int id)

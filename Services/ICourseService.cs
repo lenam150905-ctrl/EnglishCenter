@@ -4,7 +4,14 @@ namespace EnglishCenter.API.Services
 {
     public interface ICourseService
     {
-        Task<List<CourseDto>> GetAllAsync(string? search);
+        Task<PagedResultDto<CourseDto>> GetAllAsync(
+    string? search,
+    decimal? minTuitionFee,
+    decimal? maxTuitionFee,
+    string? sortBy,
+    bool sortDesc,
+    int page,
+    int pageSize);
 
         Task<CourseDto?> GetByIdAsync(int id);
 

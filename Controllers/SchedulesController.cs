@@ -21,9 +21,23 @@ namespace EnglishCenter.API.Controllers
         // Admin + Teacher + Student
         [HttpGet]
         [Authorize(Roles = "Admin,Teacher,Student")]
-        public async Task<ActionResult<IEnumerable<ScheduleDto>>> GetSchedules(string? search)
+        public async Task<ActionResult<PagedResultDto<ScheduleDto>>> GetSchedules(
+    string? search,
+    int? courseId,
+    int? teacherId,
+    string? sortBy,
+    bool sortDesc = false,
+    int page = 1,
+    int pageSize = 20)
         {
-            var schedules = await _scheduleService.GetAllAsync(search);
+            var schedules = await _scheduleService.GetAllAsync(
+                search,
+                courseId,
+                teacherId,
+                sortBy,
+                sortDesc,
+                page,
+                pageSize);
 
             return Ok(schedules);
         }
