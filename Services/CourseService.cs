@@ -1,5 +1,6 @@
 ﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace EnglishCenter.API.Services
@@ -106,8 +107,10 @@ namespace EnglishCenter.API.Services
     {
         Id = c.Id,
         CourseName = c.CourseName,
-        TuitionFee = c.TuitionFee
-      
+        TuitionFee = c.TuitionFee,
+        Duration = c.Duration,
+        Description = c.Description
+
     }).ToList();
 
     return new PagedResultDto<CourseDto>
@@ -135,17 +138,65 @@ namespace EnglishCenter.API.Services
                 Id = course.Id,
                 CourseCode = course.CourseCode,
                 CourseName = course.CourseName,
-                TuitionFee = course.TuitionFee
+                TuitionFee = course.TuitionFee,
+                Description = course.Description,
+                Duration = course.Duration
             };
         }
 
         public async Task<CourseDto> CreateAsync(CourseCreateDto dto)
         {
-            var course = new Models.Course
+            // COURSE NAME
+            if (string.IsNullOrWhiteSpace(dto.CourseName))
             {
-                CourseCode = dto.CourseCode,
+                throw new ArgumentException(
+                    "Tên khóa học không được để trống.");
+            }
+
+            if (dto.CourseName.Length > 100)
+            {
+                throw new ArgumentException(
+                    "Tên khóa học không được vượt quá 100 ký tự.");
+            }
+
+            // DESCRIPTION
+            if (string.IsNullOrWhiteSpace(dto.Description))
+            {
+                throw new ArgumentException(
+                    "Mô tả không được để trống.");
+            }
+
+            // TUITION FEE
+            if (dto.TuitionFee <= 0)
+            {
+                throw new ArgumentException(
+                    "Học phí phải lớn hơn 0.");
+            }
+
+            // DURATION
+            if (dto.Duration <= 0)
+            {
+                throw new ArgumentException(
+                    "Thời lượng khóa học phải lớn hơn 0.");
+            }
+
+            // CHECK COURSE NAME
+            var existed = await _context.Courses
+                .AnyAsync(c =>
+                    c.CourseName == dto.CourseName);
+
+            if (existed)
+            {
+                throw new ArgumentException(
+                    "Tên khóa học đã tồn tại.");
+            }
+
+            var course = new Course
+            {
                 CourseName = dto.CourseName,
-                TuitionFee = dto.TuitionFee
+                Description = dto.Description,
+                TuitionFee = dto.TuitionFee,
+                Duration = dto.Duration
             };
 
             _context.Courses.Add(course);
@@ -155,27 +206,76 @@ namespace EnglishCenter.API.Services
             return new CourseDto
             {
                 Id = course.Id,
-                CourseCode = course.CourseCode,
                 CourseName = course.CourseName,
-                TuitionFee = course.TuitionFee
+               Duration = course.Duration,
+                TuitionFee = course.TuitionFee,
+                Description = course.Description
+
             };
         }
 
-        public async Task<bool> UpdateAsync(
-            int id,
-            CourseUpdateDto dto)
+        public async Task<bool> UpdateAsync(int id, CourseUpdateDto dto)
         {
+            // KIỂM TRA COURSE
             var course = await _context.Courses
-                .FirstOrDefaultAsync(c => c.Id == id);
+                .FindAsync(id);
 
             if (course == null)
             {
                 return false;
             }
 
-            course.CourseCode = dto.CourseCode;
+            // COURSE NAME
+            if (string.IsNullOrWhiteSpace(dto.CourseName))
+            {
+                throw new ArgumentException(
+                    "Tên khóa học không được để trống.");
+            }
+
+            if (dto.CourseName.Length > 100)
+            {
+                throw new ArgumentException(
+                    "Tên khóa học không được vượt quá 100 ký tự.");
+            }
+
+            // DESCRIPTION
+            if (string.IsNullOrWhiteSpace(dto.Description))
+            {
+                throw new ArgumentException(
+                    "Mô tả không được để trống.");
+            }
+
+            // TUITION FEE
+            if (dto.TuitionFee <= 0)
+            {
+                throw new ArgumentException(
+                    "Học phí phải lớn hơn 0.");
+            }
+
+            // DURATION
+            if (dto.Duration <= 0)
+            {
+                throw new ArgumentException(
+                    "Thời lượng khóa học phải lớn hơn 0.");
+            }
+
+            // CHECK COURSE NAME TRÙNG
+            var existed = await _context.Courses
+                .AnyAsync(c =>
+                    c.Id != id &&
+                    c.CourseName == dto.CourseName);
+
+            if (existed)
+            {
+                throw new ArgumentException(
+                    "Tên khóa học đã tồn tại.");
+            }
+
+            // UPDATE
             course.CourseName = dto.CourseName;
+            course.Description = dto.Description;
             course.TuitionFee = dto.TuitionFee;
+            course.Duration = dto.Duration;
 
             await _context.SaveChangesAsync();
 

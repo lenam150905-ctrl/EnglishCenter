@@ -143,6 +143,72 @@ namespace EnglishCenter.API.Services
 
         public async Task<TeacherDto> CreateAsync(TeacherCreateDto dto)
         {
+            // FULL NAME
+            if (string.IsNullOrWhiteSpace(dto.FullName))
+            {
+                throw new ArgumentException(
+                    "Họ tên không được để trống.");
+            }
+
+            if (dto.FullName.Length > 100)
+            {
+                throw new ArgumentException(
+                    "Họ tên không được vượt quá 100 ký tự.");
+            }
+
+            // EMAIL
+            if (string.IsNullOrWhiteSpace(dto.Email))
+            {
+                throw new ArgumentException(
+                    "Email không được để trống.");
+            }
+
+            if (!dto.Email.Contains("@"))
+            {
+                throw new ArgumentException(
+                    "Email không hợp lệ.");
+            }
+
+            // PHONE
+            if (string.IsNullOrWhiteSpace(dto.Phone))
+            {
+                throw new ArgumentException(
+                    "Số điện thoại không được để trống.");
+            }
+
+            if (dto.Phone.Length < 9 || dto.Phone.Length > 15)
+            {
+                throw new ArgumentException(
+                    "Số điện thoại không hợp lệ.");
+            }
+
+            // SPECIALIZATION
+            if (string.IsNullOrWhiteSpace(dto.Specialization))
+            {
+                throw new ArgumentException(
+                    "Chuyên môn không được để trống.");
+            }
+
+            // CHECK EMAIL TRÙNG
+            var existedEmail = await _context.Teachers
+                .AnyAsync(t => t.Email == dto.Email);
+
+            if (existedEmail)
+            {
+                throw new ArgumentException(
+                    "Email đã tồn tại.");
+            }
+
+            // CHECK PHONE TRÙNG
+            var existedPhone = await _context.Teachers
+                .AnyAsync(t => t.Phone == dto.Phone);
+
+            if (existedPhone)
+            {
+                throw new ArgumentException(
+                    "Số điện thoại đã tồn tại.");
+            }
+
             var teacher = new Teacher
             {
                 FullName = dto.FullName,
@@ -167,18 +233,88 @@ namespace EnglishCenter.API.Services
             };
         }
 
-        public async Task<bool> UpdateAsync(
-            int id,
-            TeacherUpdateDto dto)
+        public async Task<bool> UpdateAsync(int id, TeacherUpdateDto dto)
         {
+            // KIỂM TRA TEACHER
             var teacher = await _context.Teachers
-                .FirstOrDefaultAsync(t => t.Id == id);
+                .FindAsync(id);
 
             if (teacher == null)
             {
                 return false;
             }
 
+            // FULL NAME
+            if (string.IsNullOrWhiteSpace(dto.FullName))
+            {
+                throw new ArgumentException(
+                    "Họ tên không được để trống.");
+            }
+
+            if (dto.FullName.Length > 100)
+            {
+                throw new ArgumentException(
+                    "Họ tên không được vượt quá 100 ký tự.");
+            }
+
+            // EMAIL
+            if (string.IsNullOrWhiteSpace(dto.Email))
+            {
+                throw new ArgumentException(
+                    "Email không được để trống.");
+            }
+
+            if (!dto.Email.Contains("@"))
+            {
+                throw new ArgumentException(
+                    "Email không hợp lệ.");
+            }
+
+            // PHONE
+            if (string.IsNullOrWhiteSpace(dto.Phone))
+            {
+                throw new ArgumentException(
+                    "Số điện thoại không được để trống.");
+            }
+
+            if (dto.Phone.Length < 9 || dto.Phone.Length > 15)
+            {
+                throw new ArgumentException(
+                    "Số điện thoại không hợp lệ.");
+            }
+
+            // SPECIALIZATION
+            if (string.IsNullOrWhiteSpace(dto.Specialization))
+            {
+                throw new ArgumentException(
+                    "Chuyên môn không được để trống.");
+            }
+
+            // EMAIL TRÙNG
+            var existedEmail = await _context.Teachers
+                .AnyAsync(t =>
+                    t.Id != id &&
+                    t.Email == dto.Email);
+
+            if (existedEmail)
+            {
+                throw new ArgumentException(
+                    "Email đã tồn tại.");
+            }
+
+            // PHONE TRÙNG
+            var existedPhone = await _context.Teachers
+                .AnyAsync(t =>
+                    t.Id != id &&
+                    t.Phone == dto.Phone);
+
+            if (existedPhone)
+            {
+                throw new ArgumentException(
+                    "Số điện thoại đã tồn tại.");
+            }
+
+            // UPDATE
             teacher.FullName = dto.FullName;
             teacher.Email = dto.Email;
             teacher.Phone = dto.Phone;
@@ -189,7 +325,6 @@ namespace EnglishCenter.API.Services
 
             return true;
         }
-
         public async Task<bool> DeleteAsync(int id)
         {
             var teacher = await _context.Teachers

@@ -27,9 +27,10 @@ namespace EnglishCenter.API.Services
      int pageSize)
         {
             var query = _context.Invoices
-                .Include(i => i.Student)
-                .Include(i => i.Enrollment)
-                .AsQueryable();
+     .Include(i => i.Student)
+     .Include(i => i.Enrollment)
+         .ThenInclude(e => e.Course)
+     .AsQueryable();
 
             // SEARCH
             if (!string.IsNullOrWhiteSpace(search))
@@ -37,7 +38,9 @@ namespace EnglishCenter.API.Services
                 query = query.Where(i =>
                     i.Student.FullName.Contains(search) ||
                     i.Student.Email.Contains(search) ||
-                    i.Status.Contains(search));
+                    i.Status.Contains(search) ||
+                   ( i.Enrollment != null &&
+                     i.Enrollment.Course.CourseName.Contains(search)));
             }
 
             // FILTER
@@ -135,6 +138,7 @@ namespace EnglishCenter.API.Services
                 StudentName = i.Student.FullName,
                 EnrollmentId = i.EnrollmentId,
                 Amount = i.Amount,
+                CourseName = i.Enrollment?.Course?.CourseName,
                 InvoiceDate = i.InvoiceDate,
                 Status = i.Status
             }).ToList();
@@ -179,26 +183,24 @@ namespace EnglishCenter.API.Services
         }
 
         public async Task<InvoiceDto> CreateAsync(
-            InvoiceCreateDto dto)
+     InvoiceCreateDto dto)
         {
-            var student = await _context.Students
-                .FirstOrDefaultAsync(
-                    s => s.Id == dto.StudentId);
+            // STUDENT
+            var studentExists = await _context.Students
+                .AnyAsync(s => s.Id == dto.StudentId);
 
-            if (student == null)
+            if (!studentExists)
             {
                 throw new ArgumentException(
                     "Student không tồn tại.");
             }
 
-            Enrollment? enrollment = null;
-
+            // ENROLLMENT
             if (dto.EnrollmentId.HasValue)
             {
-                enrollment = await _context.Enrollments
-                    .Include(e => e.Course)
-                    .FirstOrDefaultAsync(
-                        e => e.Id == dto.EnrollmentId.Value);
+                var enrollment = await _context.Enrollments
+                    .FirstOrDefaultAsync(e =>
+                        e.Id == dto.EnrollmentId.Value);
 
                 if (enrollment == null)
                 {
@@ -206,10 +208,49 @@ namespace EnglishCenter.API.Services
                         "Enrollment không tồn tại.");
                 }
 
+                // KIỂM TRA ENROLLMENT THUỘC STUDENT
                 if (enrollment.StudentId != dto.StudentId)
                 {
                     throw new ArgumentException(
                         "Enrollment không thuộc Student này.");
+                }
+            }
+
+            // AMOUNT
+            if (dto.Amount <= 0)
+            {
+                throw new ArgumentException(
+                    "Số tiền phải lớn hơn 0.");
+            }
+
+            // INVOICE DATE
+            if (dto.InvoiceDate > DateTime.Now)
+            {
+                throw new ArgumentException(
+                    "Ngày lập hóa đơn không được lớn hơn ngày hiện tại.");
+            }
+
+            // STATUS
+            if (dto.Status != "Unpaid" &&
+                dto.Status != "Paid" &&
+                dto.Status != "Cancelled")
+            {
+                throw new ArgumentException(
+                    "Status không hợp lệ.");
+            }
+
+            // CHECK INVOICE TRÙNG ENROLLMENT
+            if (dto.EnrollmentId.HasValue)
+            {
+                var existed = await _context.Invoices
+                    .AnyAsync(i =>
+                        i.EnrollmentId == dto.EnrollmentId.Value &&
+                        i.Status != "Cancelled");
+
+                if (existed)
+                {
+                    throw new ArgumentException(
+                        "Enrollment này đã có hóa đơn.");
                 }
             }
 
@@ -229,13 +270,8 @@ namespace EnglishCenter.API.Services
             return new InvoiceDto
             {
                 Id = invoice.Id,
-
                 StudentId = invoice.StudentId,
-                StudentName = student.FullName,
-
                 EnrollmentId = invoice.EnrollmentId,
-                CourseName = enrollment?.Course?.CourseName,
-
                 Amount = invoice.Amount,
                 InvoiceDate = invoice.InvoiceDate,
                 Status = invoice.Status
@@ -243,9 +279,10 @@ namespace EnglishCenter.API.Services
         }
 
         public async Task<bool> UpdateAsync(
-            int id,
-            InvoiceUpdateDto dto)
+      int id,
+      InvoiceUpdateDto dto)
         {
+            // KIỂM TRA INVOICE
             var invoice = await _context.Invoices
                 .FindAsync(id);
 
@@ -254,21 +291,22 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
-            var student = await _context.Students
-                .FirstOrDefaultAsync(
-                    s => s.Id == dto.StudentId);
+            // STUDENT
+            var studentExists = await _context.Students
+                .AnyAsync(s => s.Id == dto.StudentId);
 
-            if (student == null)
+            if (!studentExists)
             {
                 throw new ArgumentException(
                     "Student không tồn tại.");
             }
 
+            // ENROLLMENT
             if (dto.EnrollmentId.HasValue)
             {
                 var enrollment = await _context.Enrollments
-                    .FirstOrDefaultAsync(
-                        e => e.Id == dto.EnrollmentId.Value);
+                    .FirstOrDefaultAsync(e =>
+                        e.Id == dto.EnrollmentId.Value);
 
                 if (enrollment == null)
                 {
@@ -276,6 +314,7 @@ namespace EnglishCenter.API.Services
                         "Enrollment không tồn tại.");
                 }
 
+                // ENROLLMENT THUỘC ĐÚNG STUDENT
                 if (enrollment.StudentId != dto.StudentId)
                 {
                     throw new ArgumentException(
@@ -283,6 +322,46 @@ namespace EnglishCenter.API.Services
                 }
             }
 
+            // AMOUNT
+            if (dto.Amount <= 0)
+            {
+                throw new ArgumentException(
+                    "Số tiền phải lớn hơn 0.");
+            }
+
+            // INVOICE DATE
+            if (dto.InvoiceDate > DateTime.Now)
+            {
+                throw new ArgumentException(
+                    "Ngày lập hóa đơn không được lớn hơn ngày hiện tại.");
+            }
+
+            // STATUS
+            if (dto.Status != "Unpaid" &&
+                dto.Status != "Paid" &&
+                dto.Status != "Cancelled")
+            {
+                throw new ArgumentException(
+                    "Status không hợp lệ.");
+            }
+
+            // CHECK INVOICE TRÙNG
+            if (dto.EnrollmentId.HasValue)
+            {
+                var existed = await _context.Invoices
+                    .AnyAsync(i =>
+                        i.Id != id &&
+                        i.EnrollmentId == dto.EnrollmentId.Value &&
+                        i.Status != "Cancelled");
+
+                if (existed)
+                {
+                    throw new ArgumentException(
+                        "Enrollment này đã có hóa đơn.");
+                }
+            }
+
+            // UPDATE
             invoice.StudentId = dto.StudentId;
             invoice.EnrollmentId = dto.EnrollmentId;
             invoice.Amount = dto.Amount;
@@ -293,7 +372,6 @@ namespace EnglishCenter.API.Services
 
             return true;
         }
-
         public async Task<bool> DeleteAsync(int id)
         {
             var invoice = await _context.Invoices

@@ -155,28 +155,44 @@ namespace EnglishCenter.API.Services
             };
         }
 
-        public async Task<GradeDto> CreateAsync(
-            GradeCreateDto dto)
+        public async Task<GradeDto> CreateAsync(GradeCreateDto dto)
         {
-            var exam = await _context.Exams
-                .FirstOrDefaultAsync(e => e.Id == dto.ExamId);
+            // EXAM
+            var examExists = await _context.Exams
+                .AnyAsync(e => e.Id == dto.ExamId);
 
-            if (exam == null)
+            if (!examExists)
             {
                 throw new ArgumentException(
                     "Exam không tồn tại.");
             }
 
-            var student = await _context.Students
-                .FirstOrDefaultAsync(
-                    s => s.Id == dto.StudentId);
+            // STUDENT
+            var studentExists = await _context.Students
+                .AnyAsync(s => s.Id == dto.StudentId);
 
-            if (student == null)
+            if (!studentExists)
             {
                 throw new ArgumentException(
                     "Student không tồn tại.");
             }
 
+            // SCORE
+            if (dto.Score < 0 || dto.Score > 10)
+            {
+                throw new ArgumentException(
+                    "Điểm phải nằm trong khoảng từ 0 đến 10.");
+            }
+
+            // COMMENT
+            if (dto.Comment != null &&
+                dto.Comment.Length > 500)
+            {
+                throw new ArgumentException(
+                    "Nhận xét không được vượt quá 500 ký tự.");
+            }
+
+            // CHECK GRADE TRÙNG
             var existed = await _context.Grades
                 .AnyAsync(g =>
                     g.ExamId == dto.ExamId &&
@@ -185,7 +201,7 @@ namespace EnglishCenter.API.Services
             if (existed)
             {
                 throw new ArgumentException(
-                    "Student này đã có điểm trong kỳ thi.");
+                    "Student đã có điểm cho bài thi này.");
             }
 
             var grade = new Grade
@@ -193,7 +209,7 @@ namespace EnglishCenter.API.Services
                 ExamId = dto.ExamId,
                 StudentId = dto.StudentId,
                 Score = dto.Score,
-                Comment = dto.Comment
+                Comment = dto.Comment ?? string.Empty
             };
 
             _context.Grades.Add(grade);
@@ -203,22 +219,18 @@ namespace EnglishCenter.API.Services
             return new GradeDto
             {
                 Id = grade.Id,
-
                 ExamId = grade.ExamId,
-                ExamName = exam.ExamName,
-
                 StudentId = grade.StudentId,
-                StudentName = student.FullName,
-
                 Score = grade.Score,
                 Comment = grade.Comment
             };
         }
 
         public async Task<bool> UpdateAsync(
-            int id,
-            GradeUpdateDto dto)
+    int id,
+    GradeUpdateDto dto)
         {
+            // KIỂM TRA GRADE
             var grade = await _context.Grades
                 .FindAsync(id);
 
@@ -227,26 +239,42 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
-            var exam = await _context.Exams
-                .FirstOrDefaultAsync(
-                    e => e.Id == dto.ExamId);
+            // EXAM
+            var examExists = await _context.Exams
+                .AnyAsync(e => e.Id == dto.ExamId);
 
-            if (exam == null)
+            if (!examExists)
             {
                 throw new ArgumentException(
                     "Exam không tồn tại.");
             }
 
-            var student = await _context.Students
-                .FirstOrDefaultAsync(
-                    s => s.Id == dto.StudentId);
+            // STUDENT
+            var studentExists = await _context.Students
+                .AnyAsync(s => s.Id == dto.StudentId);
 
-            if (student == null)
+            if (!studentExists)
             {
                 throw new ArgumentException(
                     "Student không tồn tại.");
             }
 
+            // SCORE
+            if (dto.Score < 0 || dto.Score > 10)
+            {
+                throw new ArgumentException(
+                    "Điểm phải nằm trong khoảng từ 0 đến 10.");
+            }
+
+            // COMMENT
+            if (dto.Comment != null &&
+                dto.Comment.Length > 500)
+            {
+                throw new ArgumentException(
+                    "Nhận xét không được vượt quá 500 ký tự.");
+            }
+
+            // CHECK TRÙNG
             var existed = await _context.Grades
                 .AnyAsync(g =>
                     g.Id != id &&
@@ -256,13 +284,14 @@ namespace EnglishCenter.API.Services
             if (existed)
             {
                 throw new ArgumentException(
-                    "Student này đã có điểm trong kỳ thi.");
+                    "Student đã có điểm cho bài thi này.");
             }
 
+            // UPDATE
             grade.ExamId = dto.ExamId;
             grade.StudentId = dto.StudentId;
             grade.Score = dto.Score;
-            grade.Comment = dto.Comment;
+            grade.Comment = dto.Comment ?? string.Empty;
 
             await _context.SaveChangesAsync();
 

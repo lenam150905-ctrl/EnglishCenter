@@ -149,28 +149,58 @@ namespace EnglishCenter.API.Services
             };
         }
 
-        public async Task<ExamDto> CreateAsync(
-            ExamCreateDto dto)
+        public async Task<ExamDto> CreateAsync(ExamCreateDto dto)
         {
-            if (dto.ExamDate < DateTime.Now)
+            // EXAM NAME
+            if (string.IsNullOrWhiteSpace(dto.ExamName))
             {
                 throw new ArgumentException(
-                    "Ngày thi không được nhỏ hơn ngày hiện tại.");
+                    "Tên bài thi không được để trống.");
             }
 
-            Course? course = null;
+            if (dto.ExamName.Length > 100)
+            {
+                throw new ArgumentException(
+                    "Tên bài thi không được vượt quá 100 ký tự.");
+            }
 
+            // EXAM TYPE
+            if (string.IsNullOrWhiteSpace(dto.ExamType))
+            {
+                throw new ArgumentException(
+                    "Loại bài thi không được để trống.");
+            }
+
+            // COURSE
             if (dto.CourseId.HasValue)
             {
-                course = await _context.Courses
-                    .FirstOrDefaultAsync(
-                        c => c.Id == dto.CourseId.Value);
+                var courseExists = await _context.Courses
+                    .AnyAsync(c => c.Id == dto.CourseId.Value);
 
-                if (course == null)
+                if (!courseExists)
                 {
                     throw new ArgumentException(
                         "Course không tồn tại.");
                 }
+            }
+
+            // EXAM DATE
+            if (dto.ExamDate < DateTime.Now)
+            {
+                throw new ArgumentException(
+                    "Ngày thi không được ở trong quá khứ.");
+            }
+
+            // CHECK EXAM TRÙNG
+            var existed = await _context.Exams
+                .AnyAsync(e =>
+                    e.ExamName == dto.ExamName &&
+                    e.CourseId == dto.CourseId);
+
+            if (existed)
+            {
+                throw new ArgumentException(
+                    "Bài thi này đã tồn tại trong khóa học.");
             }
 
             var exam = new Exam
@@ -184,21 +214,22 @@ namespace EnglishCenter.API.Services
             _context.Exams.Add(exam);
 
             await _context.SaveChangesAsync();
+
             return new ExamDto
             {
                 Id = exam.Id,
                 ExamName = exam.ExamName,
                 ExamType = exam.ExamType,
                 ExamDate = exam.ExamDate,
-                CourseId = exam.CourseId,
-                CourseName = course?.CourseName
+                CourseId = exam.CourseId
             };
         }
 
         public async Task<bool> UpdateAsync(
-            int id,
-            ExamUpdateDto dto)
+     int id,
+     ExamUpdateDto dto)
         {
+            // KIỂM TRA EXAM
             var exam = await _context.Exams
                 .FindAsync(id);
 
@@ -207,17 +238,31 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
-            if (dto.ExamDate < DateTime.Now)
+            // EXAM NAME
+            if (string.IsNullOrWhiteSpace(dto.ExamName))
             {
                 throw new ArgumentException(
-                    "Ngày thi không được nhỏ hơn ngày hiện tại.");
+                    "Tên bài thi không được để trống.");
             }
 
+            if (dto.ExamName.Length > 100)
+            {
+                throw new ArgumentException(
+                    "Tên bài thi không được vượt quá 100 ký tự.");
+            }
+
+            // EXAM TYPE
+            if (string.IsNullOrWhiteSpace(dto.ExamType))
+            {
+                throw new ArgumentException(
+                    "Loại bài thi không được để trống.");
+            }
+
+            // COURSE
             if (dto.CourseId.HasValue)
             {
                 var courseExists = await _context.Courses
-                    .AnyAsync(
-                        c => c.Id == dto.CourseId.Value);
+                    .AnyAsync(c => c.Id == dto.CourseId.Value);
 
                 if (!courseExists)
                 {
@@ -226,6 +271,27 @@ namespace EnglishCenter.API.Services
                 }
             }
 
+            // EXAM DATE
+            if (dto.ExamDate < DateTime.Now)
+            {
+                throw new ArgumentException(
+                    "Ngày thi không được ở trong quá khứ.");
+            }
+
+            // CHECK TRÙNG
+            var existed = await _context.Exams
+                .AnyAsync(e =>
+                    e.Id != id &&
+                    e.ExamName == dto.ExamName &&
+                    e.CourseId == dto.CourseId);
+
+            if (existed)
+            {
+                throw new ArgumentException(
+                    "Bài thi này đã tồn tại trong khóa học.");
+            }
+
+            // UPDATE
             exam.ExamName = dto.ExamName;
             exam.ExamType = dto.ExamType;
             exam.ExamDate = dto.ExamDate;
@@ -235,7 +301,6 @@ namespace EnglishCenter.API.Services
 
             return true;
         }
-
         public async Task<bool> DeleteAsync(int id)
         {
             var exam = await _context.Exams

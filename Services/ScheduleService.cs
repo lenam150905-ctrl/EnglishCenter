@@ -1,5 +1,6 @@
 ﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace EnglishCenter.API.Services
@@ -149,9 +150,76 @@ namespace EnglishCenter.API.Services
                 Room = schedule.Room
             };
         }
-        public async Task<ScheduleDto> CreateAsync(ScheduleCreateDto dto)
+        public async Task<ScheduleDto> CreateAsync(
+     ScheduleCreateDto dto)
         {
-            var schedule = new  Models.Schedule
+            // COURSE
+            var courseExists = await _context.Courses
+                .AnyAsync(c => c.Id == dto.CourseId);
+
+            if (!courseExists)
+            {
+                throw new ArgumentException(
+                    "Course không tồn tại.");
+            }
+
+            // TEACHER
+            var teacherExists = await _context.Teachers
+                .AnyAsync(t => t.Id == dto.TeacherId);
+
+            if (!teacherExists)
+            {
+                throw new ArgumentException(
+                    "Teacher không tồn tại.");
+            }
+
+            // START TIME
+            if (dto.StartTime >= dto.EndTime)
+            {
+                throw new ArgumentException(
+                    "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc.");
+            }
+
+            // ROOM
+            if (string.IsNullOrWhiteSpace(dto.Room))
+            {
+                throw new ArgumentException(
+                    "Phòng học không được để trống.");
+            }
+
+            if (dto.Room.Length > 50)
+            {
+                throw new ArgumentException(
+                    "Tên phòng không được vượt quá 50 ký tự.");
+            }
+
+            // CHECK TEACHER TRÙNG LỊCH
+            var teacherBusy = await _context.Schedules
+                .AnyAsync(s =>
+                    s.TeacherId == dto.TeacherId &&
+                    dto.StartTime < s.EndTime &&
+                    dto.EndTime > s.StartTime);
+
+            if (teacherBusy)
+            {
+                throw new ArgumentException(
+                    "Teacher đã có lịch trong khoảng thời gian này.");
+            }
+
+            // CHECK ROOM TRÙNG LỊCH
+            var roomBusy = await _context.Schedules
+                .AnyAsync(s =>
+                    s.Room == dto.Room &&
+                    dto.StartTime < s.EndTime &&
+                    dto.EndTime > s.StartTime);
+
+            if (roomBusy)
+            {
+                throw new ArgumentException(
+                    "Phòng học đã được sử dụng trong khoảng thời gian này.");
+            }
+
+            var schedule = new Schedule
             {
                 CourseId = dto.CourseId,
                 TeacherId = dto.TeacherId,
@@ -159,60 +227,111 @@ namespace EnglishCenter.API.Services
                 EndTime = dto.EndTime,
                 Room = dto.Room
             };
-            if (schedule.StartTime<DateTime.Now)
-            {
-                throw new ArgumentException("Ngày giờ không được nhỏ hơn ngày hiện tại");
-            }
 
-            if (schedule.EndTime<schedule.StartTime)
-            {
-                throw new ArgumentException("Ngày kết thúc không được bé hơn ngày bắt đầu");
-            }
             _context.Schedules.Add(schedule);
-            await _context.SaveChangesAsync();
-            await _context.Entry(schedule)
-    .Reference(s => s.Course)
-    .LoadAsync();
 
-            await _context.Entry(schedule)
-                .Reference(s => s.Teacher)
-                .LoadAsync();
+            await _context.SaveChangesAsync();
+
             return new ScheduleDto
             {
                 Id = schedule.Id,
                 CourseId = schedule.CourseId,
                 TeacherId = schedule.TeacherId,
                 StartTime = schedule.StartTime,
-                CourseName = schedule.Course.CourseName,
-                TeacherName = schedule.Teacher.FullName,
                 EndTime = schedule.EndTime,
                 Room = schedule.Room
             };
         }
-    public async Task<bool> UpdateAsync(int id, ScheduleUpdateDto dto)
+        public async Task<bool> UpdateAsync(
+     int id,
+     ScheduleUpdateDto dto)
         {
-            var schedule = await _context.Schedules.FindAsync(id);
+            // KIỂM TRA SCHEDULE
+            var schedule = await _context.Schedules
+                .FindAsync(id);
+
             if (schedule == null)
             {
                 return false;
             }
-            if (dto.StartTime < DateTime.Now)
+
+            // COURSE
+            var courseExists = await _context.Courses
+                .AnyAsync(c => c.Id == dto.CourseId);
+
+            if (!courseExists)
             {
                 throw new ArgumentException(
-                    "Ngày giờ không được nhỏ hơn ngày hiện tại");
+                    "Course không tồn tại.");
             }
 
-            if (dto.EndTime <= dto.StartTime)
+            // TEACHER
+            var teacherExists = await _context.Teachers
+                .AnyAsync(t => t.Id == dto.TeacherId);
+
+            if (!teacherExists)
             {
                 throw new ArgumentException(
-                    "Ngày kết thúc phải lớn hơn ngày bắt đầu");
+                    "Teacher không tồn tại.");
             }
+
+            // TIME
+            if (dto.StartTime >= dto.EndTime)
+            {
+                throw new ArgumentException(
+                    "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc.");
+            }
+
+            // ROOM
+            if (string.IsNullOrWhiteSpace(dto.Room))
+            {
+                throw new ArgumentException(
+                    "Phòng học không được để trống.");
+            }
+
+            if (dto.Room.Length > 50)
+            {
+                throw new ArgumentException(
+                    "Tên phòng không được vượt quá 50 ký tự.");
+            }
+
+            // TEACHER TRÙNG LỊCH
+            var teacherBusy = await _context.Schedules
+                .AnyAsync(s =>
+                    s.Id != id &&
+                    s.TeacherId == dto.TeacherId &&
+                    dto.StartTime < s.EndTime &&
+                    dto.EndTime > s.StartTime);
+
+            if (teacherBusy)
+            {
+                throw new ArgumentException(
+                    "Teacher đã có lịch trong khoảng thời gian này.");
+            }
+
+            // ROOM TRÙNG LỊCH
+            var roomBusy = await _context.Schedules
+                .AnyAsync(s =>
+                    s.Id != id &&
+                    s.Room == dto.Room &&
+                    dto.StartTime < s.EndTime &&
+                    dto.EndTime > s.StartTime);
+
+            if (roomBusy)
+            {
+                throw new ArgumentException(
+                    "Phòng học đã được sử dụng trong khoảng thời gian này.");
+            }
+
+            // UPDATE
             schedule.CourseId = dto.CourseId;
             schedule.TeacherId = dto.TeacherId;
             schedule.StartTime = dto.StartTime;
             schedule.EndTime = dto.EndTime;
             schedule.Room = dto.Room;
+
             await _context.SaveChangesAsync();
+
             return true;
         }
         public async Task<bool> DeleteAsync(int id)

@@ -48,25 +48,6 @@ namespace EnglishCenter.API.Middleware
             }
         }
 
-        private static async Task HandleExceptionAsync(
-            HttpContext context,
-            Exception exception)
-        {
-            context.Response.StatusCode =
-                (int)HttpStatusCode.InternalServerError;
-
-            context.Response.ContentType =
-                "application/json";
-
-            var response = new
-            {
-                statusCode = 500,
-                message = "Đã xảy ra lỗi trong hệ thống."
-            };
-
-            var json = JsonSerializer.Serialize(response);
-
-            await context.Response.WriteAsync(json);
-        }
+      
     }
 }

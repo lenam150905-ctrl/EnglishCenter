@@ -153,36 +153,91 @@ namespace EnglishCenter.API.Services
             };
         }
 
-        public async Task<StudentDto> CreateAsync(
-            StudentCreateDto dto)
+        public async Task<StudentDto> CreateAsync(StudentCreateDto dto)
         {
+            // FULL NAME
+            if (string.IsNullOrWhiteSpace(dto.FullName))
+            {
+                throw new ArgumentException(
+                    "Họ tên không được để trống.");
+            }
+
+            if (dto.FullName.Length > 100)
+            {
+                throw new ArgumentException(
+                    "Họ tên không được vượt quá 100 ký tự.");
+            }
+
+            // DATE OF BIRTH
             if (dto.DateOfBirth > DateTime.Now)
             {
                 throw new ArgumentException(
                     "Ngày sinh không được lớn hơn ngày hiện tại.");
             }
 
+            // EMAIL
+            if (string.IsNullOrWhiteSpace(dto.Email))
+            {
+                throw new ArgumentException(
+                    "Email không được để trống.");
+            }
+
+            if (!dto.Email.Contains("@"))
+            {
+                throw new ArgumentException(
+                    "Email không hợp lệ.");
+            }
+
+            // PHONE
+            if (string.IsNullOrWhiteSpace(dto.Phone))
+            {
+                throw new ArgumentException(
+                    "Số điện thoại không được để trống.");
+            }
+
+            if (dto.Phone.Length < 9 || dto.Phone.Length > 15)
+            {
+                throw new ArgumentException(
+                    "Số điện thoại không hợp lệ.");
+            }
+
+            // ADDRESS
+            if (string.IsNullOrWhiteSpace(dto.Address))
+            {
+                throw new ArgumentException(
+                    "Địa chỉ không được để trống.");
+            }
+
+            // CHECK EMAIL
+            var existedEmail = await _context.Students
+                .AnyAsync(s => s.Email == dto.Email);
+
+            if (existedEmail)
+            {
+                throw new ArgumentException(
+                    "Email đã tồn tại.");
+            }
+
+            // CHECK PHONE
+            var existedPhone = await _context.Students
+                .AnyAsync(s => s.Phone == dto.Phone);
+
+            if (existedPhone)
+            {
+                throw new ArgumentException(
+                    "Số điện thoại đã tồn tại.");
+            }
+
+            // CHECK USER
             if (dto.UserId.HasValue)
             {
-                var user = await _context.Users
-                    .FirstOrDefaultAsync(
-                        u => u.Id == dto.UserId.Value);
+                var userExists = await _context.Users
+                    .AnyAsync(u => u.Id == dto.UserId.Value);
 
-                if (user == null)
+                if (!userExists)
                 {
                     throw new ArgumentException(
                         "User không tồn tại.");
-                }
-
-                var userAlreadyUsed =
-                    await _context.Students
-                        .AnyAsync(s =>
-                            s.UserId == dto.UserId.Value);
-
-                if (userAlreadyUsed)
-                {
-                    throw new ArgumentException(
-                        "User này đã được liên kết với một Student.");
                 }
             }
 
@@ -200,10 +255,6 @@ namespace EnglishCenter.API.Services
 
             await _context.SaveChangesAsync();
 
-            await _context.Entry(student)
-                .Reference(s => s.User)
-                .LoadAsync();
-
             return new StudentDto
             {
                 Id = student.Id,
@@ -212,17 +263,12 @@ namespace EnglishCenter.API.Services
                 Email = student.Email,
                 Phone = student.Phone,
                 Address = student.Address,
-                UserId = student.UserId,
-                UserName = student.User != null
-                    ? student.User.UserName
-                    : null
+                UserId = student.UserId
             };
         }
-
-        public async Task<bool> UpdateAsync(
-            int id,
-            StudentUpdateDto dto)
+        public async Task<bool> UpdateAsync(int id, StudentUpdateDto dto)
         {
+            // KIỂM TRA STUDENT
             var student = await _context.Students
                 .FindAsync(id);
 
@@ -231,37 +277,97 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
+            // FULL NAME
+            if (string.IsNullOrWhiteSpace(dto.FullName))
+            {
+                throw new ArgumentException(
+                    "Họ tên không được để trống.");
+            }
+
+            if (dto.FullName.Length > 100)
+            {
+                throw new ArgumentException(
+                    "Họ tên không được vượt quá 100 ký tự.");
+            }
+
+            // DATE OF BIRTH
             if (dto.DateOfBirth > DateTime.Now)
             {
                 throw new ArgumentException(
                     "Ngày sinh không được lớn hơn ngày hiện tại.");
             }
 
+            // EMAIL
+            if (string.IsNullOrWhiteSpace(dto.Email))
+            {
+                throw new ArgumentException(
+                    "Email không được để trống.");
+            }
+
+            if (!dto.Email.Contains("@"))
+            {
+                throw new ArgumentException(
+                    "Email không hợp lệ.");
+            }
+
+            // PHONE
+            if (string.IsNullOrWhiteSpace(dto.Phone))
+            {
+                throw new ArgumentException(
+                    "Số điện thoại không được để trống.");
+            }
+
+            if (dto.Phone.Length < 9 || dto.Phone.Length > 10)
+            {
+                throw new ArgumentException(
+                    "Số điện thoại không hợp lệ.");
+            }
+
+            // ADDRESS
+            if (string.IsNullOrWhiteSpace(dto.Address))
+            {
+                throw new ArgumentException(
+                    "Địa chỉ không được để trống.");
+            }
+
+            // CHECK EMAIL TRÙNG
+            var existedEmail = await _context.Students
+                .AnyAsync(s =>
+                    s.Id != id &&
+                    s.Email == dto.Email);
+
+            if (existedEmail)
+            {
+                throw new ArgumentException(
+                    "Email đã tồn tại.");
+            }
+
+            // CHECK PHONE TRÙNG
+            var existedPhone = await _context.Students
+                .AnyAsync(s =>
+                    s.Id != id &&
+                    s.Phone == dto.Phone);
+
+            if (existedPhone)
+            {
+                throw new ArgumentException(
+                    "Số điện thoại đã tồn tại.");
+            }
+
+            // CHECK USER
             if (dto.UserId.HasValue)
             {
-                var user = await _context.Users
-                    .FirstOrDefaultAsync(
-                        u => u.Id == dto.UserId.Value);
+                var userExists = await _context.Users
+                    .AnyAsync(u => u.Id == dto.UserId.Value);
 
-                if (user == null)
+                if (!userExists)
                 {
                     throw new ArgumentException(
                         "User không tồn tại.");
                 }
-
-                var userAlreadyUsed =
-                    await _context.Students
-                        .AnyAsync(s =>
-                            s.Id != id &&
-                            s.UserId == dto.UserId.Value);
-
-                if (userAlreadyUsed)
-                {
-                    throw new ArgumentException(
-                        "User này đã được liên kết với Student khác.");
-                }
             }
 
+            // UPDATE
             student.FullName = dto.FullName;
             student.DateOfBirth = dto.DateOfBirth;
             student.Email = dto.Email;

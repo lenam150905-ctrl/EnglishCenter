@@ -157,26 +157,36 @@ namespace EnglishCenter.API.Services
         }
 
         public async Task<EnrollmentDto> CreateAsync(
-            EnrollmentCreateDto dto)
+     EnrollmentCreateDto dto)
         {
-            var student = await _context.Students
-                .FindAsync(dto.StudentId);
+            // STUDENT
+            var studentExists = await _context.Students
+                .AnyAsync(s => s.Id == dto.StudentId);
 
-            if (student == null)
+            if (!studentExists)
             {
                 throw new ArgumentException(
-                    "Sinh viên không tồn tại.");
+                    "Student không tồn tại.");
             }
 
-            var course = await _context.Courses
-                .FindAsync(dto.CourseId);
+            // COURSE
+            var courseExists = await _context.Courses
+                .AnyAsync(c => c.Id == dto.CourseId);
 
-            if (course == null)
+            if (!courseExists)
             {
                 throw new ArgumentException(
-                    "Khóa học không tồn tại.");
+                    "Course không tồn tại.");
             }
 
+            // ENROLLMENT DATE
+            if (dto.EnrollmentDate > DateTime.Now)
+            {
+                throw new ArgumentException(
+                    "Ngày đăng ký không được lớn hơn ngày hiện tại.");
+            }
+
+            // CHECK ĐĂNG KÝ TRÙNG
             var existed = await _context.Enrollments
                 .AnyAsync(e =>
                     e.StudentId == dto.StudentId &&
@@ -185,48 +195,34 @@ namespace EnglishCenter.API.Services
             if (existed)
             {
                 throw new ArgumentException(
-                    "Học viên đã đăng ký khóa học này.");
+                    "Student đã đăng ký khóa học này.");
             }
 
             var enrollment = new Enrollment
             {
                 StudentId = dto.StudentId,
                 CourseId = dto.CourseId,
-                EnrollmentDate = dto.EnrollmentDate,
-                Status = dto.Status
+                EnrollmentDate = dto.EnrollmentDate
             };
 
             _context.Enrollments.Add(enrollment);
 
             await _context.SaveChangesAsync();
 
-            await _context.Entry(enrollment)
-                .Reference(e => e.Student)
-                .LoadAsync();
-
-            await _context.Entry(enrollment)
-                .Reference(e => e.Course)
-                .LoadAsync();
-
             return new EnrollmentDto
             {
                 Id = enrollment.Id,
-
                 StudentId = enrollment.StudentId,
-                StudentName = enrollment.Student.FullName,
-
                 CourseId = enrollment.CourseId,
-                CourseName = enrollment.Course.CourseName,
-
-                EnrollmentDate = enrollment.EnrollmentDate,
-                Status = enrollment.Status
+                EnrollmentDate = enrollment.EnrollmentDate
             };
         }
 
         public async Task<bool> UpdateAsync(
-            int id,
-            EnrollmentUpdateDto dto)
+     int id,
+     EnrollmentUpdateDto dto)
         {
+            // KIỂM TRA ENROLLMENT
             var enrollment = await _context.Enrollments
                 .FindAsync(id);
 
@@ -235,24 +231,34 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
-            var student = await _context.Students
-                .FindAsync(dto.StudentId);
+            // STUDENT
+            var studentExists = await _context.Students
+                .AnyAsync(s => s.Id == dto.StudentId);
 
-            if (student == null)
+            if (!studentExists)
             {
                 throw new ArgumentException(
-                    "Sinh viên không tồn tại.");
+                    "Student không tồn tại.");
             }
 
-            var course = await _context.Courses
-                .FindAsync(dto.CourseId);
+            // COURSE
+            var courseExists = await _context.Courses
+                .AnyAsync(c => c.Id == dto.CourseId);
 
-            if (course == null)
+            if (!courseExists)
             {
                 throw new ArgumentException(
-                    "Khóa học không tồn tại.");
+                    "Course không tồn tại.");
             }
 
+            // ENROLLMENT DATE
+            if (dto.EnrollmentDate > DateTime.Now)
+            {
+                throw new ArgumentException(
+                    "Ngày đăng ký không được lớn hơn ngày hiện tại.");
+            }
+
+            // CHECK ĐĂNG KÝ TRÙNG
             var existed = await _context.Enrollments
                 .AnyAsync(e =>
                     e.Id != id &&
@@ -262,13 +268,13 @@ namespace EnglishCenter.API.Services
             if (existed)
             {
                 throw new ArgumentException(
-                    "Học viên đã đăng ký khóa học này.");
+                    "Student đã đăng ký khóa học này.");
             }
 
+            // UPDATE
             enrollment.StudentId = dto.StudentId;
             enrollment.CourseId = dto.CourseId;
             enrollment.EnrollmentDate = dto.EnrollmentDate;
-            enrollment.Status = dto.Status;
 
             await _context.SaveChangesAsync();
 

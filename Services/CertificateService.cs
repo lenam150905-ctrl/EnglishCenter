@@ -154,34 +154,88 @@ namespace EnglishCenter.API.Services
         }
 
         public async Task<CertificateDto> CreateAsync(
-            CertificateCreateDto dto)
+    CertificateCreateDto dto)
         {
-            var student = await _context.Students
-                .FirstOrDefaultAsync(s => s.Id == dto.StudentId);
+            // STUDENT
+            var studentExists = await _context.Students
+                .AnyAsync(s => s.Id == dto.StudentId);
 
-            if (student == null)
+            if (!studentExists)
             {
                 throw new ArgumentException(
                     "Student không tồn tại.");
             }
 
-            var course = await _context.Courses
-                .FirstOrDefaultAsync(c => c.Id == dto.CourseId);
+            // COURSE
+            var courseExists = await _context.Courses
+                .AnyAsync(c => c.Id == dto.CourseId);
 
-            if (course == null)
+            if (!courseExists)
             {
                 throw new ArgumentException(
                     "Course không tồn tại.");
             }
 
-            var codeExists = await _context.Certificates
+            // CERTIFICATE CODE
+            if (string.IsNullOrWhiteSpace(dto.CertificateCode))
+            {
+                throw new ArgumentException(
+                    "Mã chứng chỉ không được để trống.");
+            }
+
+            if (dto.CertificateCode.Length > 50)
+            {
+                throw new ArgumentException(
+                    "Mã chứng chỉ không được vượt quá 50 ký tự.");
+            }
+
+            // CHECK CODE TRÙNG
+            var existedCode = await _context.Certificates
                 .AnyAsync(c =>
                     c.CertificateCode == dto.CertificateCode);
 
-            if (codeExists)
+            if (existedCode)
             {
                 throw new ArgumentException(
                     "Mã chứng chỉ đã tồn tại.");
+            }
+
+            // ISSUE DATE
+            if (dto.IssueDate > DateTime.Now)
+            {
+                throw new ArgumentException(
+                    "Ngày cấp không được lớn hơn ngày hiện tại.");
+            }
+
+            // PDF
+            if (string.IsNullOrWhiteSpace(dto.PdfFilePath))
+            {
+                throw new ArgumentException(
+                    "Đường dẫn file PDF không được để trống.");
+            }
+
+            // CHECK STUDENT ĐÃ HỌC COURSE
+            var enrollmentExists = await _context.Enrollments
+                .AnyAsync(e =>
+                    e.StudentId == dto.StudentId &&
+                    e.CourseId == dto.CourseId);
+
+            if (!enrollmentExists)
+            {
+                throw new ArgumentException(
+                    "Student chưa đăng ký khóa học này.");
+            }
+
+            // CHECK ĐÃ CÓ CERTIFICATE
+            var existedCertificate = await _context.Certificates
+                .AnyAsync(c =>
+                    c.StudentId == dto.StudentId &&
+                    c.CourseId == dto.CourseId);
+
+            if (existedCertificate)
+            {
+                throw new ArgumentException(
+                    "Student đã có chứng chỉ cho khóa học này.");
             }
 
             var certificate = new Certificate
@@ -200,27 +254,19 @@ namespace EnglishCenter.API.Services
             return new CertificateDto
             {
                 Id = certificate.Id,
-
                 StudentId = certificate.StudentId,
-                StudentName = student.FullName,
-
                 CourseId = certificate.CourseId,
-                CourseName = course.CourseName,
-
-                CertificateCode =
-                    certificate.CertificateCode,
-
+                CertificateCode = certificate.CertificateCode,
                 IssueDate = certificate.IssueDate,
-
-                PdfFilePath =
-                    certificate.PdfFilePath
+                PdfFilePath = certificate.PdfFilePath
             };
         }
 
         public async Task<bool> UpdateAsync(
-            int id,
-            CertificateUpdateDto dto)
+     int id,
+     CertificateUpdateDto dto)
         {
+            // KIỂM TRA CERTIFICATE
             var certificate = await _context.Certificates
                 .FindAsync(id);
 
@@ -229,42 +275,96 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
-            var student = await _context.Students
-                .FirstOrDefaultAsync(s => s.Id == dto.StudentId);
+            // STUDENT
+            var studentExists = await _context.Students
+                .AnyAsync(s => s.Id == dto.StudentId);
 
-            if (student == null)
+            if (!studentExists)
             {
                 throw new ArgumentException(
                     "Student không tồn tại.");
             }
 
-            var course = await _context.Courses
-                .FirstOrDefaultAsync(c => c.Id == dto.CourseId);
+            // COURSE
+            var courseExists = await _context.Courses
+                .AnyAsync(c => c.Id == dto.CourseId);
 
-            if (course == null)
+            if (!courseExists)
             {
                 throw new ArgumentException(
                     "Course không tồn tại.");
             }
 
-            var codeExists = await _context.Certificates
-                .AnyAsync(c =>
-                    c.CertificateCode == dto.CertificateCode
-                    && c.Id != id);
+            // CERTIFICATE CODE
+            if (string.IsNullOrWhiteSpace(dto.CertificateCode))
+            {
+                throw new ArgumentException(
+                    "Mã chứng chỉ không được để trống.");
+            }
 
-            if (codeExists)
+            if (dto.CertificateCode.Length > 50)
+            {
+                throw new ArgumentException(
+                    "Mã chứng chỉ không được vượt quá 50 ký tự.");
+            }
+
+            // CHECK CODE TRÙNG
+            var existedCode = await _context.Certificates
+                .AnyAsync(c =>
+                    c.Id != id &&
+                    c.CertificateCode == dto.CertificateCode);
+
+            if (existedCode)
             {
                 throw new ArgumentException(
                     "Mã chứng chỉ đã tồn tại.");
             }
 
+            // ISSUE DATE
+            if (dto.IssueDate > DateTime.Now)
+            {
+                throw new ArgumentException(
+                    "Ngày cấp không được lớn hơn ngày hiện tại.");
+            }
+
+            // PDF
+            if (string.IsNullOrWhiteSpace(dto.PdfFilePath))
+            {
+                throw new ArgumentException(
+                    "Đường dẫn file PDF không được để trống.");
+            }
+
+            // CHECK STUDENT ĐÃ ĐĂNG KÝ COURSE
+            var enrollmentExists = await _context.Enrollments
+                .AnyAsync(e =>
+                    e.StudentId == dto.StudentId &&
+                    e.CourseId == dto.CourseId);
+
+            if (!enrollmentExists)
+            {
+                throw new ArgumentException(
+                    "Student chưa đăng ký khóa học này.");
+            }
+
+            // CHECK CERTIFICATE TRÙNG STUDENT + COURSE
+            var existedCertificate = await _context.Certificates
+                .AnyAsync(c =>
+                    c.Id != id &&
+                    c.StudentId == dto.StudentId &&
+                    c.CourseId == dto.CourseId);
+
+            if (existedCertificate)
+            {
+                throw new ArgumentException(
+                    "Student đã có chứng chỉ cho khóa học này.");
+            }
+
+            // UPDATE
             certificate.StudentId = dto.StudentId;
             certificate.CourseId = dto.CourseId;
-            certificate.CertificateCode =
-                dto.CertificateCode;
+            certificate.CertificateCode = dto.CertificateCode;
             certificate.IssueDate = dto.IssueDate;
-            certificate.PdfFilePath =
-                dto.PdfFilePath;
+            certificate.PdfFilePath = dto.PdfFilePath;
 
             await _context.SaveChangesAsync();
 
