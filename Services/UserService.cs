@@ -14,9 +14,17 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<UserDto>> GetAllAsync()
+        public async Task<List<UserDto>> GetAllAsync(string? search)
         {
-            var users = await _context.Users
+             var query = _context.Users.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(u =>
+                    u.UserName.Contains(search) ||
+                    u.Role.Contains(search));
+                 
+            }
+            var users = await query
                 .ToListAsync();
 
             return users.Select(u => new UserDto

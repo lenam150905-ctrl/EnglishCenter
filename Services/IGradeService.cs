@@ -4,7 +4,7 @@ namespace EnglishCenter.API.Services
 {
     public interface IGradeService
     {
-        Task<List<GradeDto>> GetAllAsync();
+        Task<List<GradeDto>> GetAllAsync(string? search);
 
         Task<GradeDto?> GetByIdAsync(int id);
 

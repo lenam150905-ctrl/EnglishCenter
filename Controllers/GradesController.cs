@@ -23,10 +23,10 @@ namespace EnglishCenter.API.Controllers
         [HttpGet]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<IEnumerable<GradeDto>>>
-            GetGrades()
+            GetGrades(string? search)
         {
             var grades =
-                await _gradeService.GetAllAsync();
+                await _gradeService.GetAllAsync(search);
 
             return Ok(grades);
         }

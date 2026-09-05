@@ -4,7 +4,7 @@ namespace EnglishCenter.API.Services
 {
     public interface IInvoiceService
     {
-        Task<List<InvoiceDto>> GetAllAsync();
+        Task<List<InvoiceDto>> GetAllAsync(string? search);
 
         Task<InvoiceDto?> GetByIdAsync(int id);
 

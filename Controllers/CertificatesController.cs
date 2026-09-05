@@ -23,10 +23,10 @@ namespace EnglishCenter.API.Controllers
         [HttpGet]
         [Authorize(Roles = "Admin,Teacher,Student")]
         public async Task<ActionResult<IEnumerable<CertificateDto>>>
-            GetCertificates()
+            GetCertificates(string? search)
         {
             var certificates =
-                await _certificateService.GetAllAsync();
+                await _certificateService.GetAllAsync(search);
 
             return Ok(certificates);
         }

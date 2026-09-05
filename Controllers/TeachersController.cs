@@ -21,9 +21,9 @@ namespace EnglishCenter.API.Controllers
         // Admin + Teacher + Student
         [HttpGet]
         [Authorize(Roles = "Admin,Teacher,Student")]
-        public async Task<ActionResult<IEnumerable<TeacherDto>>> GetTeachers()
+        public async Task<ActionResult<IEnumerable<TeacherDto>>> GetTeachers(string? search)
         {
-            var teachers = await _teacherService.GetAllAsync();
+            var teachers = await _teacherService.GetAllAsync( search);
 
             return Ok(teachers);
         }

@@ -14,9 +14,17 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<GradeDto>> GetAllAsync()
+        public async Task<List<GradeDto>> GetAllAsync(string? search)
         {
-            var grades = await _context.Grades
+            var query = _context.Grades.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(g =>
+                    g.Student.FullName.Contains(search) ||
+                    g.Exam.ExamName.Contains(search) ||
+                    g.Comment.Contains(search));
+            }
+                       var grades = await query
                 .Include(g => g.Exam)
                 .Include(g => g.Student)
                 .ToListAsync();

@@ -23,10 +23,10 @@ namespace EnglishCenter.API.Controllers
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<IEnumerable<InvoiceDto>>>
-            GetInvoices()
+            GetInvoices(string? search)
         {
             var invoices =
-                await _invoiceService.GetAllAsync();
+                await _invoiceService.GetAllAsync(search);
 
             return Ok(invoices);
         }

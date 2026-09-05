@@ -14,11 +14,18 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<StudentDto>> GetAllAsync()
+        public async Task<List<StudentDto>> GetAllAsync(string? search)
         {
-            var students = await _context.Students
-                .Include(s => s.User)
-                .ToListAsync();
+            var query = _context.Students.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(s =>
+                    s.FullName.Contains(search) ||
+                    s.Email.Contains(search) ||
+                    s.Phone.Contains(search));
+            }
+            var students = await query.ToListAsync();
+              
 
             return students.Select(s => new StudentDto
             {

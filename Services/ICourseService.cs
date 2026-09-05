@@ -4,7 +4,7 @@ namespace EnglishCenter.API.Services
 {
     public interface ICourseService
     {
-        Task<List<CourseDto>> GetAllAsync();
+        Task<List<CourseDto>> GetAllAsync(string? search);
 
         Task<CourseDto?> GetByIdAsync(int id);
 

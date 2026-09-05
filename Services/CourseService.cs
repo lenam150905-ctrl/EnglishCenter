@@ -13,8 +13,16 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<CourseDto>> GetAllAsync()
+        public async Task<List<CourseDto>> GetAllAsync(string? search)
         {
+            var query = _context.Courses.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(c =>
+                    c.CourseName.Contains(search) ||
+                    c.TuitionFee.ToString().Contains(search));
+
+            }
             var courses = await _context.Courses.ToListAsync();
 
             return courses.Select(c => new CourseDto

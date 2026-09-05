@@ -4,7 +4,7 @@ namespace EnglishCenter.API.Services
 {
     public interface IUserService
     {
-        Task<List<UserDto>> GetAllAsync();
+        Task<List<UserDto>> GetAllAsync(string? search);
 
         Task<UserDto?> GetByIdAsync(int id);
 

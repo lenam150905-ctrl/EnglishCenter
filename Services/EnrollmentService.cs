@@ -14,8 +14,16 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<EnrollmentDto>> GetAllAsync()
+        public async Task<List<EnrollmentDto>> GetAllAsync(string? search)
         {
+            var query = _context.Enrollments.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(e =>
+                    e.Student.FullName.Contains(search) ||
+                    e.Course.CourseName.Contains(search) ||
+                    e.Status.Contains(search));
+            }
             var enrollments = await _context.Enrollments
                 .Include(e => e.Student)
                 .Include(e => e.Course)

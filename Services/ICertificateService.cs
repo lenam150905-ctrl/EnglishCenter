@@ -4,7 +4,7 @@ namespace EnglishCenter.API.Services
 {
     public interface ICertificateService
     {
-        Task<List<CertificateDto>> GetAllAsync();
+        Task<List<CertificateDto>> GetAllAsync(string? search);
 
         Task<CertificateDto?> GetByIdAsync(int id);
 

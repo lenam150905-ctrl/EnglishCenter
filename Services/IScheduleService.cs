@@ -4,7 +4,7 @@ namespace EnglishCenter.API.Services
 {
     public interface IScheduleService
     {
-        Task<List<ScheduleDto>> GetAllAsync();
+        Task<List<ScheduleDto>> GetAllAsync(string? search);
         Task<ScheduleDto?> GetByIdAsync(int id);
         Task<ScheduleDto> CreateAsync(ScheduleCreateDto dto);
         Task<bool> UpdateAsync(int id, ScheduleUpdateDto dto);

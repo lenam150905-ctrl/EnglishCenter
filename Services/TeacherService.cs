@@ -14,9 +14,19 @@ namespace EnglishCenter.API.Services
             _context = context;
         }
 
-        public async Task<List<TeacherDto>> GetAllAsync()
+        public async Task<List<TeacherDto>> GetAllAsync(string? search)
         {
-            var teachers = await _context.Teachers.ToListAsync();
+            var query = _context.Teachers.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(t =>
+                    t.FullName.Contains(search) ||
+                    t.Email.Contains(search) ||
+                    t.Phone.Contains(search) ||
+                    t.Specialization.Contains(search));
+            }
+            var teachers = await query.ToListAsync();
 
             return teachers.Select(t => new TeacherDto
             {

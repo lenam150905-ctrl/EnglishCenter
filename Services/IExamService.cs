@@ -4,7 +4,7 @@ namespace EnglishCenter.API.Services
 {
     public interface IExamService
     {
-        Task<List<ExamDto>> GetAllAsync();
+        Task<List<ExamDto>> GetAllAsync(string? search);
 
         Task<ExamDto?> GetByIdAsync(int id);
 
