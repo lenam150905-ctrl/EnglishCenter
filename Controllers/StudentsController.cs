@@ -114,5 +114,13 @@ namespace EnglishCenter.API.Controllers
 
             return NoContent();
         }
+        [HttpPost("import-excel")]
+        [Authorize(Roles = "Admin,Teacher")]
+        public async Task<IActionResult> ImportExcel(IFormFile file)
+        {
+            var result = await _studentService.ImportExcelAsync(file);
+
+            return Ok(result);
+        }
     }
 }

@@ -2,6 +2,7 @@
 using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Models;
 using Microsoft.EntityFrameworkCore;
+using ClosedXML.Excel;
 
 namespace EnglishCenter.API.Services
 {
@@ -395,6 +396,235 @@ namespace EnglishCenter.API.Services
             await _context.SaveChangesAsync();
 
             return true;
+        }
+        public async Task<ExcelImportResultDto> ImportExcelAsync(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                throw new ArgumentException("File Excel không được để trống.");
+            }
+
+            if (!Path.GetExtension(file.FileName)
+                .Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException(
+                    "Chỉ hỗ trợ file Excel có định dạng .xlsx.");
+            }
+
+            var result = new ExcelImportResultDto();
+            var studentsToAdd = new List<Student>();
+
+            using var stream = new MemoryStream();
+
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+
+            using var workbook = new XLWorkbook(stream);
+            var worksheet = workbook.Worksheet(1);
+            var headers = new[]
+{
+    "FullName",
+    "DateOfBirth",
+    "Email",
+    "Phone",
+    "Address",
+    "UserId"
+};
+
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var actualHeader = worksheet
+                    .Cell(1, i + 1)
+                    .GetString()
+                    .Trim();
+
+                if (!string.Equals(
+                    actualHeader,
+                    headers[i],
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ArgumentException(
+                        $"Cột {i + 1} phải là '{headers[i]}'.");
+                }
+            }
+
+            var rows = worksheet.RowsUsed().Skip(1);
+
+            foreach (var row in rows)
+            {
+                result.TotalRows++;
+
+                try
+                {
+                    var fullName = row.Cell(1).GetString().Trim();
+                    var dateOfBirthText = row.Cell(2).GetString().Trim();
+                    var email = row.Cell(3).GetString().Trim();
+                    var phone = row.Cell(4).GetString().Trim();
+                    var address = row.Cell(5).GetString().Trim();
+                    var userIdText = row.Cell(6).GetString().Trim();
+                    if (string.IsNullOrWhiteSpace(fullName))
+                    {
+                        throw new ArgumentException(
+                            "Họ tên không được để trống.");
+                    }
+                    // FULL NAME
+                    if (fullName.Length < 2 || fullName.Length > 100)
+                    {
+                        throw new ArgumentException(
+                            "Họ tên phải từ 2 đến 100 ký tự.");
+                    }
+
+                    // EMAIL
+                    if (!System.Text.RegularExpressions.Regex.IsMatch(
+                        email,
+                        @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+                    {
+                        throw new ArgumentException(
+                            "Email không đúng định dạng.");
+                    }
+
+                    // PHONE
+                    if (!System.Text.RegularExpressions.Regex.IsMatch(
+                        phone,
+                        @"^0\d{9,10}$"))
+                    {
+                        throw new ArgumentException(
+                            "Số điện thoại phải bắt đầu bằng 0 và có 10-11 số.");
+                    }
+
+                    // DATE OF BIRTH
+                    if (!DateTime.TryParse(
+                        dateOfBirthText,
+                        out DateTime dateOfBirth))
+                    {
+                        throw new ArgumentException(
+                            "Ngày sinh không hợp lệ.");
+                    }
+
+                    if (dateOfBirth > DateTime.Now)
+                    {
+                        throw new ArgumentException(
+                            "Ngày sinh không được lớn hơn ngày hiện tại.");
+                    }
+
+                    var age = DateTime.Now.Year - dateOfBirth.Year;
+
+                    if (dateOfBirth.Date > DateTime.Now.AddYears(-age).Date)
+                    {
+                        age--;
+                    }
+
+                    if (age < 6 || age > 100)
+                    {
+                        throw new ArgumentException(
+                            "Tuổi phải nằm trong khoảng từ 6 đến 100.");
+                    }
+
+                    // ADDRESS
+                    if (address.Length > 200)
+                    {
+                        throw new ArgumentException(
+                            "Địa chỉ không được vượt quá 200 ký tự.");
+                    }
+                    // FULL NAME
+                   
+
+                    // EMAIL
+                    if (string.IsNullOrWhiteSpace(email))
+                    {
+                        throw new ArgumentException(
+                            "Email không được để trống.");
+                    }
+
+                    // PHONE
+                    if (string.IsNullOrWhiteSpace(phone))
+                    {
+                        throw new ArgumentException(
+                            "Số điện thoại không được để trống.");
+                    }
+
+                    // DATE OF BIRTH
+                  
+
+                    // USER ID
+                    if (!int.TryParse(userIdText, out int userId))
+                    {
+                        throw new ArgumentException(
+                            "UserId không hợp lệ.");
+                    }
+
+                    // CHECK EMAIL TRÙNG
+                    var emailExists = await _context.Students
+                        .AnyAsync(s => s.Email == email);
+
+                    if (emailExists)
+                    {
+                        throw new ArgumentException(
+                            "Email đã tồn tại.");
+                    }
+
+                    // CHECK PHONE TRÙNG
+                    var phoneExists = await _context.Students
+                        .AnyAsync(s => s.Phone == phone);
+
+                    if (phoneExists)
+                    {
+                        throw new ArgumentException(
+                            "Số điện thoại đã tồn tại.");
+                    }
+
+                    // CHECK USER
+                    var userExists = await _context.Users
+                        .AnyAsync(u => u.Id == userId);
+
+                    if (!userExists)
+                    {
+                        throw new ArgumentException(
+                            "UserId không tồn tại.");
+                    }
+
+                    // CHECK USER ĐÃ GÁN STUDENT
+                    var userUsed = await _context.Students
+                        .AnyAsync(s => s.UserId == userId);
+
+                    if (userUsed)
+                    {
+                        throw new ArgumentException(
+                            "User này đã được gán cho Student khác.");
+                    }
+
+                    var student = new Student
+                    {
+                        FullName = fullName,
+                        DateOfBirth = dateOfBirth,
+                        Email = email,
+                        Phone = phone,
+                        Address = address,
+                        UserId = userId
+                    };
+
+                    studentsToAdd.Add(student);
+
+
+                }
+                catch (Exception ex)
+                {
+                    result.FailedRows++;
+
+                    result.Errors.Add(
+                        $"Dòng {row.RowNumber()}: {ex.Message}");
+                }
+            }
+            if (studentsToAdd.Count > 0)
+            {
+                await _context.Students.AddRangeAsync(studentsToAdd);
+
+                await _context.SaveChangesAsync();
+
+                result.SuccessRows = studentsToAdd.Count;
+            }
+
+            return result;
         }
     }
 }
