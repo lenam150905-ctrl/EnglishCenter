@@ -256,7 +256,7 @@ AuditContext.GetUserId(
             var email = user.Email;
             var role = user.Role;
 
-            _context.Users.Remove(user);
+            user.IsDeleted = true;
 
             await _context.SaveChangesAsync();
 

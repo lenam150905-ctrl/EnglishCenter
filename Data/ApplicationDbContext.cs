@@ -128,6 +128,36 @@ namespace EnglishCenter.API.Data
                 .WithMany()
                 .HasForeignKey(c => c.CourseId)
                 .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Course>()
+       .HasQueryFilter(c => !c.IsDeleted);
+
+            modelBuilder.Entity<Student>()
+                .HasQueryFilter(s => !s.IsDeleted);
+
+            modelBuilder.Entity<Teacher>()
+                .HasQueryFilter(t => !t.IsDeleted);
+
+            modelBuilder.Entity<Exam>()
+                .HasQueryFilter(e => !e.IsDeleted);
+
+            modelBuilder.Entity<Schedule>()
+                .HasQueryFilter(s => !s.IsDeleted);
+
+            modelBuilder.Entity<User>()
+                .HasQueryFilter(u => !u.IsDeleted);
+            modelBuilder.Entity<Enrollment>()
+       .HasQueryFilter(c => !c.IsDeleted);
+
+            modelBuilder.Entity<Grade>()
+                .HasQueryFilter(s => !s.IsDeleted);
+
+            modelBuilder.Entity<Invoice>()
+                .HasQueryFilter(t => !t.IsDeleted);
+
+            modelBuilder.Entity<Certificate>()
+                .HasQueryFilter(e => !e.IsDeleted);
+
+           
         }
     }
 }

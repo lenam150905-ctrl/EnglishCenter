@@ -13,7 +13,7 @@
         public DateTime EndTime { get; set; }
 
         public string Room { get; set; } = string.Empty;
-
+        public bool IsDeleted { get; set; } = false;
         public Course? Course { get; set; }
 
         public Teacher? Teacher { get; set; }

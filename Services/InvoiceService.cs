@@ -415,7 +415,7 @@ AuditContext.GetUserId(
             var amount = invoice.Amount;
             var status = invoice.Status;
 
-            _context.Invoices.Remove(invoice);
+            invoice.IsDeleted = true;
 
             await _context.SaveChangesAsync();
 

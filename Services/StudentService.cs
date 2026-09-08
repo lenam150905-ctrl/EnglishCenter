@@ -428,7 +428,7 @@ AuditContext.GetUserId(
             var fullName = student.FullName;
             var email = student.Email;
 
-            _context.Students.Remove(student);
+            student.IsDeleted = true;
 
             await _context.SaveChangesAsync();
 

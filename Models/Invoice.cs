@@ -13,7 +13,7 @@
         public DateTime InvoiceDate { get; set; }
 
         public string Status { get; set; } = "Unpaid";
-
+        public bool IsDeleted { get; set; } = false;
         public Student? Student { get; set; }
 
         public Enrollment? Enrollment { get; set; }

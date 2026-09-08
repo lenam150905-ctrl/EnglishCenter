@@ -11,7 +11,7 @@
         public string Phone { get; set; } = string.Empty;
 
         public string Specialization { get; set; } = string.Empty;
-
+        public bool IsDeleted { get; set; } = false;
         public int? UserId { get; set; }
 
         public User? User { get; set; }

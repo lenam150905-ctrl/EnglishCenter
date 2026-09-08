@@ -17,5 +17,6 @@
         public Student? Student { get; set; }
 
         public Course? Course { get; set; }
+        public bool IsDeleted { get; set; } = false;
     }
 }

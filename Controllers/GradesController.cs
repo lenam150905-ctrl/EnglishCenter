@@ -1,4 +1,5 @@
 ﻿using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Models;
 using EnglishCenter.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,11 +12,13 @@ namespace EnglishCenter.API.Controllers
     public class GradesController : ControllerBase
     {
         private readonly IGradeService _gradeService;
+        private readonly ISoftDeleteService _softDeleteService;
 
         public GradesController(
-            IGradeService gradeService)
+            IGradeService gradeService, ISoftDeleteService softDeleteService)
         {
             _gradeService = gradeService;
+            _softDeleteService = softDeleteService;
         }
 
         // GET: api/Grades
@@ -117,6 +120,27 @@ namespace EnglishCenter.API.Controllers
             }
 
             return NoContent();
+        }
+        [HttpPut("{id}/restore")]
+        [Authorize(Roles = "Admin")]
+
+        public async Task<IActionResult> Restore(int id)
+        {
+            var result =
+                await _softDeleteService.RestoreAsync<Course>(id);
+
+            if (!result)
+            {
+                return NotFound(new
+                {
+                    message = "Không tìm thấy khóa học đã bị xóa."
+                });
+            }
+
+            return Ok(new
+            {
+                message = "Khôi phục khóa học thành công."
+            });
         }
     }
 }

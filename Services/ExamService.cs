@@ -343,7 +343,7 @@ AuditContext.GetUserId(
 
             var examName = exam.ExamName;
 
-            _context.Exams.Remove(exam);
+            exam.IsDeleted = true;
 
             await _context.SaveChangesAsync();
 

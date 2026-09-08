@@ -9,7 +9,7 @@
         public int CourseId { get; set; }
 
         public DateTime EnrollmentDate { get; set; }
-
+        public bool IsDeleted { get; set; } = false;
         public string Status { get; set; } = "Pending";
 
         public Student? Student { get; set; }

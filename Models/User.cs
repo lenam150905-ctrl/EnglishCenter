@@ -10,6 +10,7 @@
 
         public string Role { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public bool IsDeleted { get; set; } = false;
         public Teacher? Teacher { get; set; }
 
         public Student? Student { get; set; }

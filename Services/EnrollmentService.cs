@@ -346,7 +346,7 @@ AuditContext.GetUserId(
   
             var courseId = enrollment.CourseId;
 
-            _context.Enrollments.Remove(enrollment);
+            enrollment.IsDeleted = true;
 
             await _context.SaveChangesAsync();
 

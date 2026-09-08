@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using EnglishCenter.API.DTOs;
+﻿using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Models;
 using EnglishCenter.API.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace EnglishCenter.API.Controllers
 {
@@ -11,10 +12,12 @@ namespace EnglishCenter.API.Controllers
     public class SchedulesController : ControllerBase
     {
         private readonly IScheduleService _scheduleService;
+        private readonly ISoftDeleteService _softDeleteService;
 
-        public SchedulesController(IScheduleService scheduleService)
+        public SchedulesController(IScheduleService scheduleService, ISoftDeleteService softDeleteService)
         {
             _scheduleService = scheduleService;
+            _softDeleteService = softDeleteService;
         }
 
         // GET: api/Schedules
@@ -105,6 +108,26 @@ namespace EnglishCenter.API.Controllers
             }
 
             return NoContent();
+        }
+        [HttpPut("{id}/restore")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Restore(int id)
+        {
+            var result =
+                await _softDeleteService.RestoreAsync<Course>(id);
+
+            if (!result)
+            {
+                return NotFound(new
+                {
+                    message = "Không tìm thấy khóa học đã bị xóa."
+                });
+            }
+
+            return Ok(new
+            {
+                message = "Khôi phục khóa học thành công."
+            });
         }
     }
 }

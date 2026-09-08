@@ -1,4 +1,5 @@
 ﻿using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Models;
 using EnglishCenter.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,14 +13,17 @@ namespace EnglishCenter.API.Controllers
     {
         private readonly ICertificateService _certificateService;
         private readonly ICertificatePdfService _certificatePdfService;
+        private readonly ISoftDeleteService _softDeleteService;
 
 
         public CertificatesController(
     ICertificateService certificateService,
-    ICertificatePdfService certificatePdfService)
+    ICertificatePdfService certificatePdfService,
+    ISoftDeleteService softDeleteService)
         {
             _certificateService = certificateService;
             _certificatePdfService = certificatePdfService;
+            _softDeleteService = softDeleteService;
         }
 
         // GET: api/Certificates
@@ -142,6 +146,27 @@ namespace EnglishCenter.API.Controllers
                     message = ex.Message
                 });
             }
+        }
+        [HttpPut("{id}/restore")]
+        [Authorize(Roles = "Admin")]
+
+        public async Task<IActionResult> Restore(int id)
+        {
+            var result =
+                await _softDeleteService.RestoreAsync<Course>(id);
+
+            if (!result)
+            {
+                return NotFound(new
+                {
+                    message = "Không tìm thấy khóa học đã bị xóa."
+                });
+            }
+
+            return Ok(new
+            {
+                message = "Khôi phục khóa học thành công."
+            });
         }
     }
 }

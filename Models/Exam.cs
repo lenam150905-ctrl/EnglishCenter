@@ -11,7 +11,7 @@ namespace EnglishCenter.API.Models
         public string ExamType { get; set; } = string.Empty;
 
         public DateTime ExamDate { get; set; }
-
+        public bool IsDeleted { get; set; } = false;
         public int? CourseId { get; set; }
 
         public Course? Course { get; set; }

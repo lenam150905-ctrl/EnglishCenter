@@ -347,7 +347,7 @@ namespace EnglishCenter.API.Services
 
             var courseName = course.CourseName;
 
-            _context.Courses.Remove(course);
+            course.IsDeleted = true;
 
             await _context.SaveChangesAsync();
           

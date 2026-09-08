@@ -404,7 +404,7 @@ AuditContext.GetUserId(
             var teacherId = schedule.TeacherId;
             var room = schedule.Room;
 
-            _context.Schedules.Remove(schedule);
+            schedule.IsDeleted = true;
 
             await _context.SaveChangesAsync();
 

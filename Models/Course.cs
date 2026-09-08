@@ -14,7 +14,7 @@
 
         public decimal TuitionFee { get; set; }
         public string Status { get; set; } = "Pending";
-     
+        public bool IsDeleted { get; set; } = false;
 
         public ICollection<Enrollment> Enrollments { get; set; }
             = new List<Enrollment>();

@@ -385,7 +385,7 @@ AuditContext.GetUserId(
             var examId = grade.ExamId;
             var score = grade.Score;
 
-            _context.Grades.Remove(grade);
+            grade.IsDeleted = true;
 
             await _context.SaveChangesAsync();
 

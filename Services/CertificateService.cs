@@ -440,7 +440,7 @@ AuditContext.GetUserId(
 
             var certificateCode = certificate.CertificateCode;
 
-            _context.Certificates.Remove(certificate);
+            certificate.IsDeleted = true;
 
             await _context.SaveChangesAsync();
 
