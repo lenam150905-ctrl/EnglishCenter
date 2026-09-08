@@ -11,11 +11,15 @@ namespace EnglishCenter.API.Controllers
     public class CertificatesController : ControllerBase
     {
         private readonly ICertificateService _certificateService;
+        private readonly ICertificatePdfService _certificatePdfService;
+
 
         public CertificatesController(
-            ICertificateService certificateService)
+    ICertificateService certificateService,
+    ICertificatePdfService certificatePdfService)
         {
             _certificateService = certificateService;
+            _certificatePdfService = certificatePdfService;
         }
 
         // GET: api/Certificates
@@ -115,6 +119,29 @@ namespace EnglishCenter.API.Controllers
             }
 
             return NoContent();
+        }
+        [HttpPost("{id}/export-pdf")]
+        public async Task<IActionResult> ExportPdf(int id)
+        {
+            try
+            {
+                var path = await _certificatePdfService
+                    .GenerateCertificatePdfAsync(id);
+
+                return Ok(new
+                {
+                    message = "Xuất chứng chỉ PDF thành công.",
+                    pdfFilePath = path
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    statusCode = 400,
+                    message = ex.Message
+                });
+            }
         }
     }
 }

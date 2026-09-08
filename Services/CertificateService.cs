@@ -207,13 +207,7 @@ namespace EnglishCenter.API.Services
                     "Ngày cấp không được lớn hơn ngày hiện tại.");
             }
 
-            // PDF
-            if (string.IsNullOrWhiteSpace(dto.PdfFilePath))
-            {
-                throw new ArgumentException(
-                    "Đường dẫn file PDF không được để trống.");
-            }
-
+          
             // CHECK STUDENT ĐÃ HỌC COURSE
             var enrollmentExists = await _context.Enrollments
                 .AnyAsync(e =>
@@ -262,7 +256,7 @@ namespace EnglishCenter.API.Services
                 CourseId = dto.CourseId,
                 CertificateCode = dto.CertificateCode,
                 IssueDate = dto.IssueDate,
-                PdfFilePath = dto.PdfFilePath
+                PdfFilePath = dto.PdfFilePath ?? string.Empty
             };
 
             _context.Certificates.Add(certificate);

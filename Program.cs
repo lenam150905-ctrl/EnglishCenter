@@ -6,6 +6,7 @@ using EnglishCenter.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using QuestPDF.Infrastructure;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +21,8 @@ builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection("EmailSettings"));
 builder.Services.Configure<VNPaySettings>(
     builder.Configuration.GetSection("VNPay"));
+builder.Services.AddScoped<ICertificatePdfService,
+    CertificatePdfService>();
 builder.Services.AddScoped<IVNPayService, VNPayService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
@@ -54,18 +57,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 var app = builder.Build();
-
+QuestPDF.Settings.License = LicenseType.Community;
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseStaticFiles();
+
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
 app.UseMiddleware<ExceptionMiddleware>();
-
 
 app.MapControllers();
 
