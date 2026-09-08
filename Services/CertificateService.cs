@@ -1,5 +1,6 @@
 ﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,14 +10,23 @@ namespace EnglishCenter.API.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IAuditLogService _auditLogService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public CertificateService(
             ApplicationDbContext context,
-            IAuditLogService auditLogService)
+            IAuditLogService auditLogService, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _auditLogService = auditLogService;
+            _httpContextAccessor = httpContextAccessor;
         }
+        private int? userid =>
+AuditContext.GetUserId(
+ _httpContextAccessor.HttpContext!);
+
+        private string? ipaddress =>
+            AuditContext.GetIPAddress(
+                _httpContextAccessor.HttpContext!);
         public async Task<PagedResultDto<CertificateDto>> GetAllAsync(
     string? search,
     int? studentId,
@@ -267,12 +277,12 @@ namespace EnglishCenter.API.Services
             await _context.SaveChangesAsync();
 
             await _auditLogService.CreateAsync(
-                certificate.StudentId,
+                userid,
                 "CREATE",
                 "Certificate",
                 certificate.Id,
                 $"Cấp chứng chỉ {certificate.CertificateCode} cho Student ID {certificate.StudentId}",
-                null);
+                ipaddress);
 
             return new CertificateDto
             {
@@ -408,12 +418,12 @@ namespace EnglishCenter.API.Services
             await _context.SaveChangesAsync();
 
             await _auditLogService.CreateAsync(
-                certificate.StudentId,
+                userid,
                 "UPDATE",
                 "Certificate",
                 certificate.Id,
                 $"Cập nhật chứng chỉ {certificate.CertificateCode}",
-                null);
+                ipaddress);
 
             return true;
         }
@@ -428,7 +438,6 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
-            var studentId = certificate.StudentId;
             var certificateCode = certificate.CertificateCode;
 
             _context.Certificates.Remove(certificate);
@@ -436,12 +445,12 @@ namespace EnglishCenter.API.Services
             await _context.SaveChangesAsync();
 
             await _auditLogService.CreateAsync(
-                studentId,
+               userid,
                 "DELETE",
                 "Certificate",
                 id,
                 $"Xóa chứng chỉ {certificateCode}",
-                null);
+                ipaddress);
 
             return true;
         }

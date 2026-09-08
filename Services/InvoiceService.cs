@@ -1,5 +1,6 @@
 ﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,12 +9,24 @@ namespace EnglishCenter.API.Services
     public class InvoiceService : IInvoiceService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditLogService _auditLogService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public InvoiceService(ApplicationDbContext context)
+        public InvoiceService(
+            ApplicationDbContext context,
+            IAuditLogService auditLogService, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _auditLogService = auditLogService;
+            _httpContextAccessor = httpContextAccessor;
         }
+        private int? userid =>
+AuditContext.GetUserId(
+ _httpContextAccessor.HttpContext!);
 
+        private string? ipaddress =>
+            AuditContext.GetIPAddress(
+                _httpContextAccessor.HttpContext!);
         public async Task<PagedResultDto<InvoiceDto>> GetAllAsync(
      string? search,
      int? studentId,
@@ -267,6 +280,14 @@ namespace EnglishCenter.API.Services
 
             await _context.SaveChangesAsync();
 
+            await _auditLogService.CreateAsync(
+                userid,
+                "CREATE",
+                "Invoice",
+                invoice.Id,
+                $"Tạo hóa đơn cho Student ID {invoice.StudentId}, số tiền {invoice.Amount:0.00}, Status: {invoice.Status}",
+                ipaddress);
+
             return new InvoiceDto
             {
                 Id = invoice.Id,
@@ -370,6 +391,14 @@ namespace EnglishCenter.API.Services
 
             await _context.SaveChangesAsync();
 
+            await _auditLogService.CreateAsync(
+                userid,
+                "UPDATE",
+                "Invoice",
+                invoice.Id,
+                $"Cập nhật hóa đơn ID {invoice.Id}, số tiền {invoice.Amount:0.00}, Status: {invoice.Status}",
+                ipaddress);
+
             return true;
         }
         public async Task<bool> DeleteAsync(int id)
@@ -382,9 +411,21 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
+            var studentId = invoice.StudentId;
+            var amount = invoice.Amount;
+            var status = invoice.Status;
+
             _context.Invoices.Remove(invoice);
 
             await _context.SaveChangesAsync();
+
+            await _auditLogService.CreateAsync(
+                userid,
+                "DELETE",
+                "Invoice",
+                id,
+                $"Xóa hóa đơn ID {id}, số tiền {amount:0.00}, Status: {status}",
+                ipaddress);
 
             return true;
         }

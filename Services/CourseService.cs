@@ -1,20 +1,36 @@
-﻿using EnglishCenter.API.Data;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
+using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
 
 namespace EnglishCenter.API.Services
 {
     public class CourseService : ICourseService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditLogService _auditLogService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public CourseService(ApplicationDbContext context)
+        public CourseService(
+            ApplicationDbContext context,
+            IAuditLogService auditLogService, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _auditLogService = auditLogService;
+            _httpContextAccessor = httpContextAccessor; 
         }
 
-      public async Task<PagedResultDto<CourseDto>> GetAllAsync(
+        private int? userid =>
+     AuditContext.GetUserId(
+         _httpContextAccessor.HttpContext!);
+
+        private string? ipaddress =>
+            AuditContext.GetIPAddress(
+                _httpContextAccessor.HttpContext!);
+        public async Task<PagedResultDto<CourseDto>> GetAllAsync(
     string? search,
     decimal? minTuitionFee,
     decimal? maxTuitionFee,
@@ -217,6 +233,16 @@ namespace EnglishCenter.API.Services
             _context.Courses.Add(course);
 
             await _context.SaveChangesAsync();
+           
+
+
+            await _auditLogService.CreateAsync(
+                userid,
+                "CREATE",
+                "Course",
+                course.Id,
+                $"Tạo khóa học {course.CourseName}",
+                ipaddress);
 
             return new CourseDto
             {
@@ -296,6 +322,15 @@ namespace EnglishCenter.API.Services
             course.Duration = dto.Duration;
 
             await _context.SaveChangesAsync();
+     
+       
+            await _auditLogService.CreateAsync(
+                userid,
+                "UPDATE",
+                "Course",
+                course.Id,
+                $"Cập nhật khóa học {course.CourseName}",
+                ipaddress);
 
             return true;
         }
@@ -310,9 +345,20 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
+            var courseName = course.CourseName;
+
             _context.Courses.Remove(course);
 
             await _context.SaveChangesAsync();
+          
+      
+            await _auditLogService.CreateAsync(
+                userid,
+                "DELETE",
+                "Course",
+                id,
+                $"Xóa khóa học {courseName}",
+                ipaddress);
 
             return true;
         }

@@ -1,5 +1,6 @@
 ﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,12 +9,25 @@ namespace EnglishCenter.API.Services
     public class UserService : IUserService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditLogService _auditLogService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UserService(ApplicationDbContext context)
+        public UserService(
+            ApplicationDbContext context,
+            IAuditLogService auditLogService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _auditLogService = auditLogService;
+            _httpContextAccessor = httpContextAccessor;
         }
+        private int? userid =>
+AuditContext.GetUserId(
+ _httpContextAccessor.HttpContext!);
 
+        private string? ipaddress =>
+            AuditContext.GetIPAddress(
+                _httpContextAccessor.HttpContext!);
         public async Task<PagedResultDto<UserDto>> GetAllAsync(
       string? search,
       string? role,
@@ -154,6 +168,13 @@ namespace EnglishCenter.API.Services
             _context.Users.Add(user);
 
             await _context.SaveChangesAsync();
+            await _auditLogService.CreateAsync(
+    userid,
+    "CREATE",
+    "User",
+    user.Id,
+    $"Tạo tài khoản {user.UserName} - Email: {user.Email}, Role: {user.Role}",
+    ipaddress);
 
             return new UserDto
             {
@@ -210,6 +231,14 @@ namespace EnglishCenter.API.Services
 
             await _context.SaveChangesAsync();
 
+            await _auditLogService.CreateAsync(
+                userid,
+                "UPDATE",
+                "User",
+                user.Id,
+                $"Cập nhật tài khoản {user.UserName} - Email: {user.Email}, Role: {user.Role}",
+                ipaddress);
+
             return true;
         }
 
@@ -223,9 +252,21 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
+            var userName = user.UserName;
+            var email = user.Email;
+            var role = user.Role;
+
             _context.Users.Remove(user);
 
             await _context.SaveChangesAsync();
+
+            await _auditLogService.CreateAsync(
+                userid,
+                "DELETE",
+                "User",
+                id,
+                $"Xóa tài khoản {userName} - Email: {email}, Role: {role}",
+                ipaddress);
 
             return true;
         }

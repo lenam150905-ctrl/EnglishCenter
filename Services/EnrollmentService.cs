@@ -1,5 +1,6 @@
 ﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,13 +10,23 @@ namespace EnglishCenter.API.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IAuditLogService _auditLogService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         public EnrollmentService(
      ApplicationDbContext context,
-     IAuditLogService auditLogService)
+     IAuditLogService auditLogService,
+     IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _auditLogService = auditLogService;
+            _httpContextAccessor = httpContextAccessor;
         }
+        private int? userid =>
+AuditContext.GetUserId(
+ _httpContextAccessor.HttpContext!);
+
+        private string? ipaddress =>
+            AuditContext.GetIPAddress(
+                _httpContextAccessor.HttpContext!);
         public async Task<PagedResultDto<EnrollmentDto>> GetAllAsync(
       string? search,
       int? studentId,
@@ -212,12 +223,12 @@ namespace EnglishCenter.API.Services
 
             await _context.SaveChangesAsync();
             await _auditLogService.CreateAsync(
-    dto.StudentId,
+    userid,
     "CREATE",
     "Enrollment",
     enrollment.Id,
     $"Student đăng ký khóa học ID {dto.CourseId}",
-    null);
+    ipaddress);
 
             // Tạo Invoice sau khi đã có EnrollmentId
             var course = await _context.Courses
@@ -312,12 +323,12 @@ namespace EnglishCenter.API.Services
 
             await _context.SaveChangesAsync();
             await _auditLogService.CreateAsync(
-    enrollment.StudentId,
+    userid,
     "UPDATE",
     "Enrollment",
     enrollment.Id,
     $"Cập nhật đăng ký khóa học ID {enrollment.CourseId}",
-    null);
+    ipaddress);
 
             return true;
         }
@@ -332,7 +343,7 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
-            var studentId = enrollment.StudentId;
+  
             var courseId = enrollment.CourseId;
 
             _context.Enrollments.Remove(enrollment);
@@ -340,12 +351,12 @@ namespace EnglishCenter.API.Services
             await _context.SaveChangesAsync();
 
             await _auditLogService.CreateAsync(
-                studentId,
+                userid,
                 "DELETE",
                 "Enrollment",
                 id,
                 $"Xóa đăng ký khóa học ID {courseId}",
-                null);
+                ipaddress);
 
             return true;
         }

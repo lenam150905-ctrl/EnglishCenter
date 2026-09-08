@@ -1,5 +1,6 @@
 ﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,11 +9,24 @@ namespace EnglishCenter.API.Services
     public class ExamService : IExamService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditLogService _auditLogService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public ExamService(ApplicationDbContext context)
+        public ExamService(
+            ApplicationDbContext context,
+            IAuditLogService auditLogService, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _auditLogService = auditLogService;
+            _httpContextAccessor = httpContextAccessor;
         }
+        private int? userid =>
+AuditContext.GetUserId(
+ _httpContextAccessor.HttpContext!);
+
+        private string? ipaddress =>
+            AuditContext.GetIPAddress(
+                _httpContextAccessor.HttpContext!);
 
         public async Task<PagedResultDto<ExamDto>> GetAllAsync(
      string? search,
@@ -215,6 +229,14 @@ namespace EnglishCenter.API.Services
 
             await _context.SaveChangesAsync();
 
+            await _auditLogService.CreateAsync(
+                userid,
+                "CREATE",
+                "Exam",
+                exam.Id,
+                $"Tạo bài thi {exam.ExamName}",
+                ipaddress);
+
             return new ExamDto
             {
                 Id = exam.Id,
@@ -299,6 +321,14 @@ namespace EnglishCenter.API.Services
 
             await _context.SaveChangesAsync();
 
+            await _auditLogService.CreateAsync(
+                userid,
+                "UPDATE",
+                "Exam",
+                exam.Id,
+                $"Cập nhật bài thi {exam.ExamName}",
+                ipaddress);
+
             return true;
         }
         public async Task<bool> DeleteAsync(int id)
@@ -311,9 +341,19 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
+            var examName = exam.ExamName;
+
             _context.Exams.Remove(exam);
 
             await _context.SaveChangesAsync();
+
+            await _auditLogService.CreateAsync(
+                userid,
+                "DELETE",
+                "Exam",
+                id,
+                $"Xóa bài thi {examName}",
+                ipaddress);
 
             return true;
         }

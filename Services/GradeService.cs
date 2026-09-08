@@ -1,5 +1,6 @@
 ﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,12 +9,25 @@ namespace EnglishCenter.API.Services
     public class GradeService : IGradeService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditLogService _auditLogService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public GradeService(ApplicationDbContext context)
+        public GradeService(
+            ApplicationDbContext context,
+            IAuditLogService auditLogService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _auditLogService = auditLogService;
+            _httpContextAccessor = httpContextAccessor;
         }
+        private int? userid =>
+AuditContext.GetUserId(
+ _httpContextAccessor.HttpContext!);
 
+        private string? ipaddress =>
+            AuditContext.GetIPAddress(
+                _httpContextAccessor.HttpContext!);
         public async Task<PagedResultDto<GradeDto>> GetAllAsync(
      string? search,
      int? examId,
@@ -241,6 +255,13 @@ namespace EnglishCenter.API.Services
             _context.Grades.Add(grade);
 
             await _context.SaveChangesAsync();
+            await _auditLogService.CreateAsync(
+    userid,
+    "CREATE",
+    "Grade",
+    grade.Id,
+    $"Chấm điểm {grade.Score:0.0} cho Student ID {grade.StudentId}, Exam ID {grade.ExamId}",
+    ipaddress);
 
             return new GradeDto
             {
@@ -311,6 +332,25 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException(
                     "Student đã có điểm cho bài thi này.");
             }
+            var exam = await _context.Exams
+               .FirstOrDefaultAsync(e => e.Id == dto.ExamId);
+            var enrollment = await _context.Enrollments
+              .FirstOrDefaultAsync(e =>
+                  e.StudentId == dto.StudentId &&
+                  e.CourseId == exam.CourseId.Value);
+
+            if (enrollment == null)
+            {
+                throw new ArgumentException(
+                    "Student chưa đăng ký khóa học.");
+            }
+
+            // PHẢI ĐÃ THANH TOÁN
+            if (enrollment.Status != "Active")
+            {
+                throw new ArgumentException(
+                    "Student chưa thanh toán hoặc chưa được kích hoạt khóa học.");
+            }
 
             // UPDATE
             grade.ExamId = dto.ExamId;
@@ -319,6 +359,14 @@ namespace EnglishCenter.API.Services
             grade.Comment = dto.Comment ?? string.Empty;
 
             await _context.SaveChangesAsync();
+
+            await _auditLogService.CreateAsync(
+                userid,
+                "UPDATE",
+                "Grade",
+                grade.Id,
+                $"Cập nhật điểm {grade.Score:0.0} cho Student ID {grade.StudentId}, Exam ID {grade.ExamId}",
+                ipaddress);
 
             return true;
         }
@@ -333,9 +381,21 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
+            var studentId = grade.StudentId;
+            var examId = grade.ExamId;
+            var score = grade.Score;
+
             _context.Grades.Remove(grade);
 
             await _context.SaveChangesAsync();
+
+            await _auditLogService.CreateAsync(
+                userid,
+                "DELETE",
+                "Grade",
+                id,
+                $"Xóa điểm {score:0.0} của Student ID {studentId}, Exam ID {examId}",
+                ipaddress);
 
             return true;
         }

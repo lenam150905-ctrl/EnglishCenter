@@ -1,4 +1,5 @@
 ﻿using EnglishCenter.API.Data;
+using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Services;
 using EnglishCenter.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -14,14 +15,27 @@ namespace EnglishCenter.API.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IVNPayService _vnPayService;
+        private readonly IAuditLogService _auditLogService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public PaymentsController(
-            ApplicationDbContext context,
-            IVNPayService vnPayService)
+    ApplicationDbContext context,
+    IVNPayService vnPayService,
+    IAuditLogService auditLogService,
+    IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _vnPayService = vnPayService;
+            _auditLogService = auditLogService;
+            _httpContextAccessor = httpContextAccessor;
         }
+        private int? userid =>
+AuditContext.GetUserId(
+ _httpContextAccessor.HttpContext!);
+
+        private string? ipaddress =>
+            AuditContext.GetIPAddress(
+                _httpContextAccessor.HttpContext!);
 
         // Tạo link thanh toán VNPAY
         [HttpPost("create-vnpay/{invoiceId}")]
@@ -66,6 +80,13 @@ namespace EnglishCenter.API.Controllers
                     invoice.Amount,
                     $"Thanh toan hoa don {invoice.Id}",
                     ipAddress);
+            await _auditLogService.CreateAsync(
+    userid,
+    "PAYMENT_CREATED",
+    "Invoice",
+    invoice.Id,
+    $"Tạo link thanh toán VNPay cho Invoice ID {invoice.Id}, số tiền {invoice.Amount:0.00}",
+    ipaddress);
 
             return Ok(new
             {
@@ -158,6 +179,13 @@ namespace EnglishCenter.API.Controllers
                 }
 
                 await _context.SaveChangesAsync();
+                await _auditLogService.CreateAsync(
+    userid,
+    "PAYMENT_SUCCESS",
+    "Invoice",
+    invoice.Id,
+    $"Thanh toán VNPay thành công Invoice ID {invoice.Id}, số tiền {invoice.Amount:0.00}",
+    ipaddress);
 
                 return Ok(new
                 {
@@ -166,7 +194,13 @@ namespace EnglishCenter.API.Controllers
                     status = invoice.Status
                 });
             }
-        
+            await _auditLogService.CreateAsync(
+        userid,
+        "PAYMENT_FAILED",
+        "Invoice",
+        invoice.Id,
+        $"Thanh toán VNPay thất bại Invoice ID {invoice.Id}, ResponseCode: {responseCode}, TransactionStatus: {transactionStatus}",
+        ipaddress);
 
             return BadRequest(new
             {
@@ -174,6 +208,7 @@ namespace EnglishCenter.API.Controllers
                 responseCode = responseCode,
                 transactionStatus = transactionStatus
             });
+
         }
     }
 }

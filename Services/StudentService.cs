@@ -1,19 +1,36 @@
-﻿using EnglishCenter.API.Data;
+﻿using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Office2010.Excel;
+using DocumentFormat.OpenXml.Spreadsheet;
+using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
 using Microsoft.EntityFrameworkCore;
-using ClosedXML.Excel;
+using System.Net;
 
 namespace EnglishCenter.API.Services
 {
     public class StudentService : IStudentService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditLogService _auditLogService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public StudentService(ApplicationDbContext context)
+        public StudentService(
+            ApplicationDbContext context,
+            IAuditLogService auditLogService, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _auditLogService = auditLogService;
+            _httpContextAccessor = httpContextAccessor;
         }
+        private int? userid =>
+AuditContext.GetUserId(
+ _httpContextAccessor.HttpContext!);
+
+        private string? ipaddress =>
+            AuditContext.GetIPAddress(
+                _httpContextAccessor.HttpContext!);
 
         public async Task<PagedResultDto<StudentDto>> GetAllAsync(
      string? search,
@@ -256,6 +273,14 @@ namespace EnglishCenter.API.Services
 
             await _context.SaveChangesAsync();
 
+            await _auditLogService.CreateAsync(
+                userid,
+                "CREATE",
+                "Student",
+                student.Id,
+                $"Tạo Student {student.FullName} - Email: {student.Email}",
+                ipaddress);
+
             return new StudentDto
             {
                 Id = student.Id,
@@ -378,6 +403,14 @@ namespace EnglishCenter.API.Services
 
             await _context.SaveChangesAsync();
 
+            await _auditLogService.CreateAsync(
+                userid,
+                "UPDATE",
+                "Student",
+                student.Id,
+                $"Cập nhật thông tin Student {student.FullName}",
+                ipaddress);
+
             return true;
         }
 
@@ -391,9 +424,21 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
+            var userId = student.UserId;
+            var fullName = student.FullName;
+            var email = student.Email;
+
             _context.Students.Remove(student);
 
             await _context.SaveChangesAsync();
+
+            await _auditLogService.CreateAsync(
+                userId,
+                "DELETE",
+                "Student",
+                id,
+                $"Xóa Student {fullName} - Email: {email}",
+                ipaddress);
 
             return true;
         }
@@ -623,6 +668,14 @@ namespace EnglishCenter.API.Services
 
                 result.SuccessRows = studentsToAdd.Count;
             }
+           
+            await _auditLogService.CreateAsync(
+    userid,
+    "IMPORT",
+    "Student",
+   null,
+    $"Import Excel Student: thành công {result.SuccessRows}/{result.TotalRows} dòng, lỗi {result.FailedRows} dòng.",
+    ipaddress);
 
             return result;
         }

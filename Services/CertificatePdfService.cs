@@ -1,8 +1,10 @@
 ﻿using EnglishCenter.API.Data;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using EnglishCenter.API.Middleware;
 
 namespace EnglishCenter.API.Services
 {
@@ -11,16 +13,24 @@ namespace EnglishCenter.API.Services
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _environment;
         private readonly IAuditLogService _auditLogService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         public CertificatePdfService(
       ApplicationDbContext context,
       IWebHostEnvironment environment,
-      IAuditLogService auditLogService)
+      IAuditLogService auditLogService, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _environment = environment;
             _auditLogService = auditLogService;
+            _httpContextAccessor = httpContextAccessor;
         }
+        private int? userid =>
+AuditContext.GetUserId(
+ _httpContextAccessor.HttpContext!);
 
+        private string? ipaddress =>
+            AuditContext.GetIPAddress(
+                _httpContextAccessor.HttpContext!);
         public async Task<string> GenerateCertificatePdfAsync(
             int certificateId)
         {
@@ -163,12 +173,12 @@ namespace EnglishCenter.API.Services
             await _context.SaveChangesAsync();
             // AUDIT LOG
             await _auditLogService.CreateAsync(
-                certificate.StudentId,
+                userid,
                 "EXPORT_PDF",
                 "Certificate",
                 certificate.Id,
                 $"Xuất PDF chứng chỉ {certificate.CertificateCode}",
-                null);
+                ipaddress);
 
 
             return certificate.PdfFilePath;

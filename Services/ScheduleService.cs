@@ -1,5 +1,6 @@
 ﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,12 +9,25 @@ namespace EnglishCenter.API.Services
     public class ScheduleService : IScheduleService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditLogService _auditLogService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public ScheduleService(ApplicationDbContext context)
+        public ScheduleService(
+            ApplicationDbContext context,
+            IAuditLogService auditLogService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _auditLogService = auditLogService;
+            _httpContextAccessor = httpContextAccessor;
         }
+        private int? userid =>
+AuditContext.GetUserId(
+ _httpContextAccessor.HttpContext!);
 
+        private string? ipaddress =>
+            AuditContext.GetIPAddress(
+                _httpContextAccessor.HttpContext!);
         public async Task<PagedResultDto<ScheduleDto>> GetAllAsync(
      string? search,
      int? courseId,
@@ -252,6 +266,13 @@ namespace EnglishCenter.API.Services
             _context.Schedules.Add(schedule);
 
             await _context.SaveChangesAsync();
+            await _auditLogService.CreateAsync(
+    userid,
+    "CREATE",
+    "Schedule",
+    schedule.Id,
+    $"Tạo lịch học Course ID {schedule.CourseId}, Teacher ID {schedule.TeacherId}, phòng {schedule.Room}",
+    ipaddress);
 
             return new ScheduleDto
             {
@@ -285,9 +306,18 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException(
                     "Course không tồn tại.");
             }
+            var hasPaidStudent = await _context.Enrollments
+             .AnyAsync(e =>
+                 e.CourseId == dto.CourseId &&
+                 e.Status == "Active");
 
-            // TEACHER
-            var teacherExists = await _context.Teachers
+            if (!hasPaidStudent)
+            {
+                throw new ArgumentException(
+                    "Chưa có học sinh đăng ký và thanh toán khóa học.");
+            }
+                // TEACHER
+                var teacherExists = await _context.Teachers
                 .AnyAsync(t => t.Id == dto.TeacherId);
 
             if (!teacherExists)
@@ -351,8 +381,15 @@ namespace EnglishCenter.API.Services
             schedule.StartTime = dto.StartTime;
             schedule.EndTime = dto.EndTime;
             schedule.Room = dto.Room;
-
             await _context.SaveChangesAsync();
+
+            await _auditLogService.CreateAsync(
+                userid,
+                "UPDATE",
+                "Schedule",
+                schedule.Id,
+                $"Cập nhật lịch học Course ID {schedule.CourseId}, Teacher ID {schedule.TeacherId}, phòng {schedule.Room}",
+                ipaddress);
 
             return true;
         }
@@ -363,8 +400,22 @@ namespace EnglishCenter.API.Services
             {
                 return false;
             }
+            var courseId = schedule.CourseId;
+            var teacherId = schedule.TeacherId;
+            var room = schedule.Room;
+
             _context.Schedules.Remove(schedule);
+
             await _context.SaveChangesAsync();
+
+            await _auditLogService.CreateAsync(
+                userid,
+                "DELETE",
+                "Schedule",
+                id,
+                $"Xóa lịch học Course ID {courseId}, Teacher ID {teacherId}, phòng {room}",
+                ipaddress);
+
             return true;
         }
     }

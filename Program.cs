@@ -37,6 +37,7 @@ builder.Services.AddScoped<ICertificateService, CertificateService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!);
@@ -67,6 +68,9 @@ if (app.Environment.IsDevelopment())
 app.UseStaticFiles();
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
+
+app.UseMiddleware<AuditContextMiddleware>();
 
 app.UseAuthorization();
 
