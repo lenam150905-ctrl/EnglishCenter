@@ -10,13 +10,15 @@ namespace EnglishCenter.API.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _environment;
-
+        private readonly IAuditLogService _auditLogService;
         public CertificatePdfService(
-            ApplicationDbContext context,
-            IWebHostEnvironment environment)
+      ApplicationDbContext context,
+      IWebHostEnvironment environment,
+      IAuditLogService auditLogService)
         {
             _context = context;
             _environment = environment;
+            _auditLogService = auditLogService;
         }
 
         public async Task<string> GenerateCertificatePdfAsync(
@@ -159,6 +161,15 @@ namespace EnglishCenter.API.Services
                 $"/certificates/{fileName}";
 
             await _context.SaveChangesAsync();
+            // AUDIT LOG
+            await _auditLogService.CreateAsync(
+                certificate.StudentId,
+                "EXPORT_PDF",
+                "Certificate",
+                certificate.Id,
+                $"Xuất PDF chứng chỉ {certificate.CertificateCode}",
+                null);
+
 
             return certificate.PdfFilePath;
         }

@@ -8,12 +8,15 @@ namespace EnglishCenter.API.Services
     public class CertificateService : ICertificateService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditLogService _auditLogService;
 
-        public CertificateService(ApplicationDbContext context)
+        public CertificateService(
+            ApplicationDbContext context,
+            IAuditLogService auditLogService)
         {
             _context = context;
+            _auditLogService = auditLogService;
         }
-
         public async Task<PagedResultDto<CertificateDto>> GetAllAsync(
     string? search,
     int? studentId,
@@ -263,6 +266,14 @@ namespace EnglishCenter.API.Services
 
             await _context.SaveChangesAsync();
 
+            await _auditLogService.CreateAsync(
+                certificate.StudentId,
+                "CREATE",
+                "Certificate",
+                certificate.Id,
+                $"Cấp chứng chỉ {certificate.CertificateCode} cho Student ID {certificate.StudentId}",
+                null);
+
             return new CertificateDto
             {
                 Id = certificate.Id,
@@ -394,8 +405,15 @@ namespace EnglishCenter.API.Services
             certificate.CertificateCode = dto.CertificateCode;
             certificate.IssueDate = dto.IssueDate;
             certificate.PdfFilePath = dto.PdfFilePath;
-
             await _context.SaveChangesAsync();
+
+            await _auditLogService.CreateAsync(
+                certificate.StudentId,
+                "UPDATE",
+                "Certificate",
+                certificate.Id,
+                $"Cập nhật chứng chỉ {certificate.CertificateCode}",
+                null);
 
             return true;
         }
@@ -410,9 +428,20 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
+            var studentId = certificate.StudentId;
+            var certificateCode = certificate.CertificateCode;
+
             _context.Certificates.Remove(certificate);
 
             await _context.SaveChangesAsync();
+
+            await _auditLogService.CreateAsync(
+                studentId,
+                "DELETE",
+                "Certificate",
+                id,
+                $"Xóa chứng chỉ {certificateCode}",
+                null);
 
             return true;
         }

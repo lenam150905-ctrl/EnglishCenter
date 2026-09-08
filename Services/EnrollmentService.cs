@@ -8,12 +8,14 @@ namespace EnglishCenter.API.Services
     public class EnrollmentService : IEnrollmentService
     {
         private readonly ApplicationDbContext _context;
-
-        public EnrollmentService(ApplicationDbContext context)
+        private readonly IAuditLogService _auditLogService;
+        public EnrollmentService(
+     ApplicationDbContext context,
+     IAuditLogService auditLogService)
         {
             _context = context;
+            _auditLogService = auditLogService;
         }
-
         public async Task<PagedResultDto<EnrollmentDto>> GetAllAsync(
       string? search,
       int? studentId,
@@ -209,6 +211,13 @@ namespace EnglishCenter.API.Services
             _context.Enrollments.Add(enrollment);
 
             await _context.SaveChangesAsync();
+            await _auditLogService.CreateAsync(
+    dto.StudentId,
+    "CREATE",
+    "Enrollment",
+    enrollment.Id,
+    $"Student đăng ký khóa học ID {dto.CourseId}",
+    null);
 
             // Tạo Invoice sau khi đã có EnrollmentId
             var course = await _context.Courses
@@ -302,6 +311,13 @@ namespace EnglishCenter.API.Services
             enrollment.EnrollmentDate = dto.EnrollmentDate;
 
             await _context.SaveChangesAsync();
+            await _auditLogService.CreateAsync(
+    enrollment.StudentId,
+    "UPDATE",
+    "Enrollment",
+    enrollment.Id,
+    $"Cập nhật đăng ký khóa học ID {enrollment.CourseId}",
+    null);
 
             return true;
         }
@@ -316,9 +332,20 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
+            var studentId = enrollment.StudentId;
+            var courseId = enrollment.CourseId;
+
             _context.Enrollments.Remove(enrollment);
 
             await _context.SaveChangesAsync();
+
+            await _auditLogService.CreateAsync(
+                studentId,
+                "DELETE",
+                "Enrollment",
+                id,
+                $"Xóa đăng ký khóa học ID {courseId}",
+                null);
 
             return true;
         }

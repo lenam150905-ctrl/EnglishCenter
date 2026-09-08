@@ -22,6 +22,7 @@ namespace EnglishCenter.API.Data
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<Certificate> Certificates { get; set; }
         public DbSet<PasswordResetOtp> PasswordResetOtps { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<LoginOtp> LoginOtps { get; set; }
         protected override void OnModelCreating(
             ModelBuilder modelBuilder)

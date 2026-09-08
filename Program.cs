@@ -21,8 +21,7 @@ builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection("EmailSettings"));
 builder.Services.Configure<VNPaySettings>(
     builder.Configuration.GetSection("VNPay"));
-builder.Services.AddScoped<ICertificatePdfService,
-    CertificatePdfService>();
+builder.Services.AddScoped<ICertificatePdfService, CertificatePdfService>();
 builder.Services.AddScoped<IVNPayService, VNPayService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
@@ -36,6 +35,8 @@ builder.Services.AddScoped<IGradeService, GradeService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<ICertificateService, CertificateService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!);
