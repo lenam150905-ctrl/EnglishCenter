@@ -6,6 +6,17 @@ namespace EnglishCenter.API.Services
     {
         Task<bool> RegisterAsync(RegisterDto dto);
 
-        Task<AuthResponseDto?> LoginAsync(LoginDto dto);
+        Task<LoginResultDto?> LoginAsync(LoginDto dto);
+
+        Task<bool> ResetPasswordAsync(ResetPasswordDto dto);
+
+        Task<string> ForgotPasswordAsync(ForgotPasswordDto dto);
+
+        Task<bool> VerifyOtpAsync(VerifyOtpDto dto);
+
+        Task<bool> SendLoginOtpAsync(string userName);
+
+        Task<LoginResultDto?> VerifyLoginOtpAsync(
+            VerifyLoginOtpDto dto);
     }
 }

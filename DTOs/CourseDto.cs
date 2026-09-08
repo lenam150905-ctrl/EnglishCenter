@@ -10,7 +10,7 @@ namespace EnglishCenter.API.DTOs
         public int Duration { get; set; }
         public string Description { get; set; }
         public string CourseName { get; set; }
-
+        public string Status { get; set; } = string.Empty;
         public decimal TuitionFee { get; set; }
     }
 }

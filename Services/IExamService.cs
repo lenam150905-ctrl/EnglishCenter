@@ -23,5 +23,8 @@ namespace EnglishCenter.API.Services
             ExamUpdateDto dto);
 
         Task<bool> DeleteAsync(int id);
+        Task<bool> CanStartExamAsync(
+    int studentId,
+    int examId);
     }
 }

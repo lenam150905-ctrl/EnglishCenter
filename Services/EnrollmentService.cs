@@ -202,10 +202,34 @@ namespace EnglishCenter.API.Services
             {
                 StudentId = dto.StudentId,
                 CourseId = dto.CourseId,
-                EnrollmentDate = dto.EnrollmentDate
+                EnrollmentDate = dto.EnrollmentDate,
+                Status = "Pending"
             };
 
             _context.Enrollments.Add(enrollment);
+
+            await _context.SaveChangesAsync();
+
+            // Tạo Invoice sau khi đã có EnrollmentId
+            var course = await _context.Courses
+                .FirstOrDefaultAsync(c => c.Id == dto.CourseId);
+
+            if (course == null)
+            {
+                throw new ArgumentException(
+                    "Course không tồn tại.");
+            }
+
+            var invoice = new Invoice
+            {
+                EnrollmentId = enrollment.Id,
+                Amount = course.TuitionFee,
+                Status = "Unpaid",
+                StudentId= dto.StudentId,
+                InvoiceDate = DateTime.Now
+            };
+
+            _context.Invoices.Add(invoice);
 
             await _context.SaveChangesAsync();
 
@@ -214,7 +238,8 @@ namespace EnglishCenter.API.Services
                 Id = enrollment.Id,
                 StudentId = enrollment.StudentId,
                 CourseId = enrollment.CourseId,
-                EnrollmentDate = enrollment.EnrollmentDate
+                EnrollmentDate = enrollment.EnrollmentDate,
+                Status = enrollment.Status
             };
         }
 

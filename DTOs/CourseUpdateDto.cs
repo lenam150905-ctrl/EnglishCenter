@@ -15,6 +15,7 @@ namespace EnglishCenter.API.DTOs
         [Range(0, 1000000000, ErrorMessage = "Học phí phải từ 0 đến 1 tỷ")]
         public decimal TuitionFee { get; set; }
         public int Duration { get; set; }
-        public string Description { get; set; } 
+        public string Description { get; set; }
+        public string Status { get; set; } = string.Empty;
     }
 }

@@ -13,8 +13,8 @@
         public int Duration { get; set; }
 
         public decimal TuitionFee { get; set; }
-
-        public bool IsActive { get; set; } = true;
+        public string Status { get; set; } = "Pending";
+     
 
         public ICollection<Enrollment> Enrollments { get; set; }
             = new List<Enrollment>();

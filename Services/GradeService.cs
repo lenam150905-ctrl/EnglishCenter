@@ -157,16 +157,6 @@ namespace EnglishCenter.API.Services
 
         public async Task<GradeDto> CreateAsync(GradeCreateDto dto)
         {
-            // EXAM
-            var examExists = await _context.Exams
-                .AnyAsync(e => e.Id == dto.ExamId);
-
-            if (!examExists)
-            {
-                throw new ArgumentException(
-                    "Exam không tồn tại.");
-            }
-
             // STUDENT
             var studentExists = await _context.Students
                 .AnyAsync(s => s.Id == dto.StudentId);
@@ -175,6 +165,41 @@ namespace EnglishCenter.API.Services
             {
                 throw new ArgumentException(
                     "Student không tồn tại.");
+            }
+
+            // EXAM
+            var exam = await _context.Exams
+                .FirstOrDefaultAsync(e => e.Id == dto.ExamId);
+
+            if (exam == null)
+            {
+                throw new ArgumentException(
+                    "Exam không tồn tại.");
+            }
+
+            if (!exam.CourseId.HasValue)
+            {
+                throw new ArgumentException(
+                    "Exam chưa thuộc khóa học.");
+            }
+
+            // ENROLLMENT
+            var enrollment = await _context.Enrollments
+                .FirstOrDefaultAsync(e =>
+                    e.StudentId == dto.StudentId &&
+                    e.CourseId == exam.CourseId.Value);
+
+            if (enrollment == null)
+            {
+                throw new ArgumentException(
+                    "Student chưa đăng ký khóa học.");
+            }
+
+            // PHẢI ĐÃ THANH TOÁN
+            if (enrollment.Status != "Active")
+            {
+                throw new ArgumentException(
+                    "Student chưa thanh toán hoặc chưa được kích hoạt khóa học.");
             }
 
             // SCORE
@@ -204,6 +229,7 @@ namespace EnglishCenter.API.Services
                     "Student đã có điểm cho bài thi này.");
             }
 
+            // CREATE GRADE
             var grade = new Grade
             {
                 ExamId = dto.ExamId,
@@ -225,7 +251,6 @@ namespace EnglishCenter.API.Services
                 Comment = grade.Comment
             };
         }
-
         public async Task<bool> UpdateAsync(
     int id,
     GradeUpdateDto dto)

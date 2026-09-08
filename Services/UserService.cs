@@ -28,8 +28,9 @@ namespace EnglishCenter.API.Services
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(u =>
-                    u.UserName.Contains(search) ||
-                    u.Role.Contains(search));
+      u.UserName.Contains(search) ||
+      u.Email.Contains(search) ||
+      u.Role.Contains(search));
             }
 
             // FILTER
@@ -92,6 +93,7 @@ namespace EnglishCenter.API.Services
                 {
                     Id = u.Id,
                     UserName = u.UserName,
+                    Email = u.Email,
                     Role = u.Role
                 }).ToList(),
 
@@ -116,48 +118,13 @@ namespace EnglishCenter.API.Services
             {
                 Id = user.Id,
                 UserName = user.UserName,
+                Email = user.Email,
                 Role = user.Role
             };
         }
 
         public async Task<UserDto> CreateAsync(UserCreateDto dto)
         {
-            // USERNAME
-            if (string.IsNullOrWhiteSpace(dto.UserName))
-            {
-                throw new ArgumentException(
-                    "Tên đăng nhập không được để trống.");
-            }
-
-            if (dto.UserName.Length < 3 || dto.UserName.Length > 50)
-            {
-                throw new ArgumentException(
-                    "Tên đăng nhập phải từ 3 đến 50 ký tự.");
-            }
-
-            // PASSWORD
-            if (string.IsNullOrWhiteSpace(dto.Password))
-            {
-                throw new ArgumentException(
-                    "Mật khẩu không được để trống.");
-            }
-
-            if (dto.Password.Length < 6)
-            {
-                throw new ArgumentException(
-                    "Mật khẩu phải có ít nhất 6 ký tự.");
-            }
-
-            // ROLE
-            if (dto.Role != "Student" &&
-                dto.Role != "Teacher" &&
-                dto.Role != "Admin")
-            {
-                throw new ArgumentException(
-                    "Role không hợp lệ.");
-            }
-
-            // CHECK USERNAME
             var existed = await _context.Users
                 .AnyAsync(u => u.UserName == dto.UserName);
 
@@ -167,10 +134,20 @@ namespace EnglishCenter.API.Services
                     "Tên đăng nhập đã tồn tại.");
             }
 
+            var emailExisted = await _context.Users
+                .AnyAsync(u => u.Email == dto.Email);
+
+            if (emailExisted)
+            {
+                throw new ArgumentException(
+                    "Email đã tồn tại.");
+            }
+
             var user = new User
             {
                 UserName = dto.UserName,
-                PasswordHash = dto.Password,
+                Email = dto.Email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 Role = dto.Role
             };
 
@@ -182,13 +159,15 @@ namespace EnglishCenter.API.Services
             {
                 Id = user.Id,
                 UserName = user.UserName,
+                Email = user.Email,
                 Role = user.Role
             };
         }
 
-        public async Task<bool> UpdateAsync(int id, UserUpdateDto dto)
+        public async Task<bool> UpdateAsync(
+       int id,
+       UserUpdateDto dto)
         {
-            // KIỂM TRA USER
             var user = await _context.Users
                 .FindAsync(id);
 
@@ -197,41 +176,6 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
-            // USERNAME
-            if (string.IsNullOrWhiteSpace(dto.UserName))
-            {
-                throw new ArgumentException(
-                    "Tên đăng nhập không được để trống.");
-            }
-
-            if (dto.UserName.Length < 3 || dto.UserName.Length > 50)
-            {
-                throw new ArgumentException(
-                    "Tên đăng nhập phải từ 3 đến 50 ký tự.");
-            }
-
-            // ROLE
-            if (dto.Role != "Student" &&
-                dto.Role != "Teacher" &&
-                dto.Role != "Admin")
-            {
-                throw new ArgumentException(
-                    "Role không hợp lệ.");
-            }
-
-            // PASSWORD
-            if (!string.IsNullOrWhiteSpace(dto.Password))
-            {
-                if (dto.Password.Length < 6)
-                {
-                    throw new ArgumentException(
-                        "Mật khẩu phải có ít nhất 6 ký tự.");
-                }
-
-                user.PasswordHash = dto.Password;
-            }
-
-            // CHECK USERNAME TRÙNG
             var existed = await _context.Users
                 .AnyAsync(u =>
                     u.Id != id &&
@@ -243,9 +187,26 @@ namespace EnglishCenter.API.Services
                     "Tên đăng nhập đã tồn tại.");
             }
 
-            // UPDATE
+            var emailExisted = await _context.Users
+                .AnyAsync(u =>
+                    u.Id != id &&
+                    u.Email == dto.Email);
+
+            if (emailExisted)
+            {
+                throw new ArgumentException(
+                    "Email đã tồn tại.");
+            }
+
             user.UserName = dto.UserName;
+            user.Email = dto.Email;
             user.Role = dto.Role;
+
+            if (!string.IsNullOrWhiteSpace(dto.Password))
+            {
+                user.PasswordHash =
+                    BCrypt.Net.BCrypt.HashPassword(dto.Password);
+            }
 
             await _context.SaveChangesAsync();
 

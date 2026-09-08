@@ -10,7 +10,7 @@
 
         public DateTime EnrollmentDate { get; set; }
 
-        public string Status { get; set; } = "Active";
+        public string Status { get; set; } = "Pending";
 
         public Student? Student { get; set; }
 

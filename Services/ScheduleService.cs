@@ -162,7 +162,17 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException(
                     "Course không tồn tại.");
             }
+            // KIỂM TRA HỌC SINH ĐÃ ĐĂNG KÝ + THANH TOÁN
+            var hasPaidStudent = await _context.Enrollments
+                .AnyAsync(e =>
+                    e.CourseId == dto.CourseId &&
+                    e.Status == "Active");
 
+            if (!hasPaidStudent)
+            {
+                throw new ArgumentException(
+                    "Chưa có học sinh đăng ký và thanh toán khóa học.");
+            }
             // TEACHER
             var teacherExists = await _context.Teachers
                 .AnyAsync(t => t.Id == dto.TeacherId);
@@ -217,6 +227,17 @@ namespace EnglishCenter.API.Services
             {
                 throw new ArgumentException(
                     "Phòng học đã được sử dụng trong khoảng thời gian này.");
+            }
+            var existed = await _context.Schedules
+      .AnyAsync(s =>
+          s.TeacherId == dto.TeacherId &&
+          dto.StartTime < s.EndTime &&
+          dto.EndTime > s.StartTime);
+
+            if (existed)
+            {
+                throw new ArgumentException(
+                    "Giáo viên đã có lịch trong khoảng thời gian này.");
             }
 
             var schedule = new Schedule
@@ -294,6 +315,7 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException(
                     "Tên phòng không được vượt quá 50 ký tự.");
             }
+
 
             // TEACHER TRÙNG LỊCH
             var teacherBusy = await _context.Schedules

@@ -109,7 +109,8 @@ namespace EnglishCenter.API.Services
         CourseName = c.CourseName,
         TuitionFee = c.TuitionFee,
         Duration = c.Duration,
-        Description = c.Description
+        Description = c.Description,
+        Status= c.Status
 
     }).ToList();
 
@@ -140,7 +141,8 @@ namespace EnglishCenter.API.Services
                 CourseName = course.CourseName,
                 TuitionFee = course.TuitionFee,
                 Description = course.Description,
-                Duration = course.Duration
+                Duration = course.Duration,
+                Status = course.Status
             };
         }
 
@@ -184,6 +186,18 @@ namespace EnglishCenter.API.Services
             var existed = await _context.Courses
                 .AnyAsync(c =>
                     c.CourseName == dto.CourseName);
+            var validStatuses = new[]
+{
+    "Pending",
+    "Active",
+    "Completed"
+};
+
+            if (!validStatuses.Contains(dto.Status))
+            {
+                throw new ArgumentException(
+                    "Trạng thái khóa học không hợp lệ.");
+            }
 
             if (existed)
             {
@@ -196,7 +210,8 @@ namespace EnglishCenter.API.Services
                 CourseName = dto.CourseName,
                 Description = dto.Description,
                 TuitionFee = dto.TuitionFee,
-                Duration = dto.Duration
+                Duration = dto.Duration,
+                Status= dto.Status
             };
 
             _context.Courses.Add(course);
@@ -207,9 +222,11 @@ namespace EnglishCenter.API.Services
             {
                 Id = course.Id,
                 CourseName = course.CourseName,
-               Duration = course.Duration,
+                CourseCode= course.CourseCode,
+                Duration = course.Duration,
                 TuitionFee = course.TuitionFee,
-                Description = course.Description
+                Description = course.Description,
+                Status= course.Status
 
             };
         }
@@ -274,6 +291,7 @@ namespace EnglishCenter.API.Services
             // UPDATE
             course.CourseName = dto.CourseName;
             course.Description = dto.Description;
+            course.CourseCode = dto.CourseCode;
             course.TuitionFee = dto.TuitionFee;
             course.Duration = dto.Duration;
 

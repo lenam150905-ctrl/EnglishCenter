@@ -225,7 +225,25 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException(
                     "Student chưa đăng ký khóa học này.");
             }
+            // CHECK GRADE
+            var grade = await _context.Grades
+                .Include(g => g.Exam)
+                .FirstOrDefaultAsync(g =>
+                    g.StudentId == dto.StudentId &&
+                    g.Exam.CourseId == dto.CourseId);
 
+            if (grade == null)
+            {
+                throw new ArgumentException(
+                    "Student chưa có điểm thi.");
+            }
+
+            // CHECK ĐẠT
+            if (grade.Score < 5)
+            {
+                throw new ArgumentException(
+                    "Student chưa đạt điểm để được cấp chứng chỉ.");
+            }
             // CHECK ĐÃ CÓ CERTIFICATE
             var existedCertificate = await _context.Certificates
                 .AnyAsync(c =>
@@ -345,7 +363,23 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException(
                     "Student chưa đăng ký khóa học này.");
             }
+            var grade = await _context.Grades
+    .Include(g => g.Exam)
+    .FirstOrDefaultAsync(g =>
+        g.StudentId == dto.StudentId &&
+        g.Exam.CourseId == dto.CourseId);
 
+            if (grade == null)
+            {
+                throw new ArgumentException(
+                    "Student chưa có điểm thi.");
+            }
+
+            if (grade.Score < 5)
+            {
+                throw new ArgumentException(
+                    "Student chưa đạt điểm để được cấp chứng chỉ.");
+            }
             // CHECK CERTIFICATE TRÙNG STUDENT + COURSE
             var existedCertificate = await _context.Certificates
                 .AnyAsync(c =>
@@ -358,6 +392,7 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException(
                     "Student đã có chứng chỉ cho khóa học này.");
             }
+
 
             // UPDATE
             certificate.StudentId = dto.StudentId;

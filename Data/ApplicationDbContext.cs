@@ -21,12 +21,22 @@ namespace EnglishCenter.API.Data
         public DbSet<Grade> Grades { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<Certificate> Certificates { get; set; }
-
+        public DbSet<PasswordResetOtp> PasswordResetOtps { get; set; }
+        public DbSet<LoginOtp> LoginOtps { get; set; }
         protected override void OnModelCreating(
             ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
+            modelBuilder.Entity<PasswordResetOtp>()
+    .HasOne(o => o.User)
+    .WithMany()
+    .HasForeignKey(o => o.UserId)
+    .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<LoginOtp>()
+    .HasOne(o => o.User)
+    .WithMany()
+    .HasForeignKey(o => o.UserId)
+    .OnDelete(DeleteBehavior.Cascade);
             // User - Teacher
             modelBuilder.Entity<Teacher>()
                 .HasOne(t => t.User)

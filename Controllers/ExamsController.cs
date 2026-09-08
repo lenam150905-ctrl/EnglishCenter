@@ -113,5 +113,32 @@ namespace EnglishCenter.API.Controllers
 
             return NoContent();
         }
+        // POST: api/Exams/1/start
+        // Chỉ Student
+        [HttpGet("{examId}/can-start")]
+        [Authorize(Roles = "Student")]
+        public async Task<IActionResult> CanStartExam(
+    int examId,
+    int studentId)
+        {
+            try
+            {
+                var result = await _examService
+                    .CanStartExamAsync(studentId, examId);
+
+                return Ok(new
+                {
+                    canStart = result
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    canStart = false,
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

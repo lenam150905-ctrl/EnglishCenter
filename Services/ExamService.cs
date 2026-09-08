@@ -317,5 +317,69 @@ namespace EnglishCenter.API.Services
 
             return true;
         }
+        public async Task<bool> CanStartExamAsync(
+    int studentId,
+    int examId)
+        {
+            // KIỂM TRA EXAM
+            var exam = await _context.Exams
+                .FirstOrDefaultAsync(e => e.Id == examId);
+
+            if (exam == null)
+            {
+                throw new ArgumentException(
+                    "Bài thi không tồn tại.");
+            }
+
+            // KIỂM TRA COURSE
+            if (!exam.CourseId.HasValue)
+            {
+                throw new ArgumentException(
+                    "Bài thi chưa thuộc khóa học.");
+            }
+
+
+            // KIỂM TRA ENROLLMENT
+            var enrollment = await _context.Enrollments
+                .FirstOrDefaultAsync(e =>
+                    e.StudentId == studentId &&
+                    e.CourseId == exam.CourseId.Value);
+
+            if (enrollment == null)
+            {
+                throw new ArgumentException(
+                    "Student chưa đăng ký khóa học này.");
+            }
+
+            // KIỂM TRA HÓA ĐƠN
+            var invoicePaid = await _context.Invoices
+                .AnyAsync(i =>
+                    i.EnrollmentId == enrollment.Id &&
+                    i.Status == "Paid");
+
+            if (!invoicePaid)
+            {
+                throw new ArgumentException(
+                    "Student chưa thanh toán khóa học.");
+            }
+            // KIỂM TRA COURSE ĐÃ HOÀN THÀNH
+            var course = await _context.Courses
+                .FirstOrDefaultAsync(c =>
+                    c.Id == exam.CourseId.Value);
+
+            if (course == null)
+            {
+                throw new ArgumentException(
+                    "Khóa học không tồn tại.");
+            }
+
+            if (course.Status != "Completed")
+            {
+                throw new ArgumentException(
+                    "Khóa học chưa hoàn thành.");
+            }
+
+            return true;
+        }
     }
 }
