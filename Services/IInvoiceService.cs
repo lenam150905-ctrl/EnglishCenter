@@ -26,5 +26,6 @@ namespace EnglishCenter.API.Services
             InvoiceUpdateDto dto);
 
         Task<bool> DeleteAsync(int id);
+        Task<bool> CancelAsync(int id);
     }
 }

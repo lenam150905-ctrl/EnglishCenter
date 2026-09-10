@@ -7,7 +7,7 @@
         public int UserId { get; set; }
 
         public string Otp { get; set; } = string.Empty;
-
+        public DateTime CreatedAt { get; set; }
         public DateTime ExpiredAt { get; set; }
 
         public bool IsVerified { get; set; } = false;

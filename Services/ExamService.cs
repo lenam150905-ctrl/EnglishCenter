@@ -11,14 +11,18 @@ namespace EnglishCenter.API.Services
         private readonly ApplicationDbContext _context;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly INotificationService _notificationService;
 
         public ExamService(
-            ApplicationDbContext context,
-            IAuditLogService auditLogService, IHttpContextAccessor httpContextAccessor)
+      ApplicationDbContext context,
+      IAuditLogService auditLogService,
+      IHttpContextAccessor httpContextAccessor,
+      INotificationService notificationService)
         {
             _context = context;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
+            _notificationService = notificationService;
         }
         private int? userid =>
 AuditContext.GetUserId(
@@ -236,7 +240,18 @@ AuditContext.GetUserId(
                 exam.Id,
                 $"Tạo bài thi {exam.ExamName}",
                 ipaddress);
-
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Tạo bài thi",
+                        Message = $"Bạn đã tạo bài thi {exam.ExamName}.",
+                        Type = "EXAM"
+                    });
+            }
+          
             return new ExamDto
             {
                 Id = exam.Id,
@@ -328,7 +343,17 @@ AuditContext.GetUserId(
                 exam.Id,
                 $"Cập nhật bài thi {exam.ExamName}",
                 ipaddress);
-
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Cập nhật bài thi",
+                        Message = $"Bạn đã cập nhật bài thi {exam.ExamName}.",
+                        Type = "EXAM"
+                    });
+            }
             return true;
         }
         public async Task<bool> DeleteAsync(int id)
@@ -354,6 +379,17 @@ AuditContext.GetUserId(
                 id,
                 $"Xóa bài thi {examName}",
                 ipaddress);
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Xóa bài thi",
+                        Message = $"Bạn đã xóa bài thi {examName}.",
+                        Type = "EXAM"
+                    });
+            }
 
             return true;
         }
@@ -418,7 +454,20 @@ AuditContext.GetUserId(
                 throw new ArgumentException(
                     "Khóa học chưa hoàn thành.");
             }
-
+           
+                if (enrollment.Student.UserId != userid)
+                {
+                    await _notificationService.CreateAsync(
+                        new NotificationCreateDto
+                        {
+                            UserId = enrollment.Student.UserId.Value,
+                            Title = "Bài thi đã bắt đầu",
+                            Message =
+                                $"Bài thi {exam.ExamName} đã bắt đầu. Hãy đến lớp đúng giờ để làm bài.",
+                            Type = "EXAM"
+                        });
+                }
+            
             return true;
         }
     }

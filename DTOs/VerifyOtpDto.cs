@@ -2,8 +2,7 @@
 {
     public class VerifyOtpDto
     {
-        public string UserName { get; set; } = string.Empty;
-
-        public string Otp { get; set; } = string.Empty;
+        public string Email { get; set; } = "";
+        public string Otp { get; set; } = "";
     }
 }

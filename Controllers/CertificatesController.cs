@@ -124,6 +124,7 @@ namespace EnglishCenter.API.Controllers
 
             return NoContent();
         }
+        [Authorize(Roles = "Admin,Teacher,Student")]
         [HttpPost("{id}/export-pdf")]
         public async Task<IActionResult> ExportPdf(int id)
         {

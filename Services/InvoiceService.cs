@@ -11,13 +11,17 @@ namespace EnglishCenter.API.Services
         private readonly ApplicationDbContext _context;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly INotificationService _notificationService;
 
         public InvoiceService(
-            ApplicationDbContext context,
-            IAuditLogService auditLogService, IHttpContextAccessor httpContextAccessor)
+    ApplicationDbContext context,
+    IAuditLogService auditLogService,
+    INotificationService notificationService,
+    IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _auditLogService = auditLogService;
+            _notificationService = notificationService;
             _httpContextAccessor = httpContextAccessor;
         }
         private int? userid =>
@@ -287,6 +291,40 @@ AuditContext.GetUserId(
                 invoice.Id,
                 $"Tạo hóa đơn cho Student ID {invoice.StudentId}, số tiền {invoice.Amount:0.00}, Status: {invoice.Status}",
                 ipaddress);
+            // LẤY USER ID CỦA STUDENT
+            var studentUserId = await _context.Students
+                .Where(s => s.Id == invoice.StudentId)
+                .Select(s => (int?)s.UserId)
+                .FirstOrDefaultAsync();
+
+            // THÔNG BÁO NGƯỜI THỰC HIỆN
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Tạo hóa đơn",
+                        Message =
+                            $"Bạn đã tạo hóa đơn {invoice.Id} với số tiền {invoice.Amount:0.00}.",
+                        Type = "INVOICE"
+                    });
+            }
+
+            // THÔNG BÁO STUDENT
+            if (studentUserId.HasValue &&
+                studentUserId.Value != userid.Value)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = studentUserId.Value,
+                        Title = "Có hóa đơn mới",
+                        Message =
+                            $"Bạn có hóa đơn mới #{invoice.Id} với số tiền {invoice.Amount:0.00}.",
+                        Type = "INVOICE"
+                    });
+            }
 
             return new InvoiceDto
             {
@@ -398,7 +436,40 @@ AuditContext.GetUserId(
                 invoice.Id,
                 $"Cập nhật hóa đơn ID {invoice.Id}, số tiền {invoice.Amount:0.00}, Status: {invoice.Status}",
                 ipaddress);
+            var studentUserId = await _context.Students
+    .Where(s => s.Id == invoice.StudentId)
+    .Select(s => (int?)s.UserId)
+    .FirstOrDefaultAsync();
 
+            // NGƯỜI THỰC HIỆN
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Cập nhật hóa đơn",
+                        Message =
+                            $"Bạn đã cập nhật hóa đơn #{invoice.Id}.",
+                        Type = "INVOICE"
+                    });
+            }
+
+            // STUDENT
+            if (studentUserId.HasValue &&
+                studentUserId.Value != userid.Value)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = studentUserId.Value,
+                        Title = "Hóa đơn được cập nhật",
+                        Message =
+                            $"Hóa đơn #{invoice.Id} của bạn đã được cập nhật. " +
+                            $"Số tiền: {invoice.Amount:0.00}, trạng thái: {invoice.Status}.",
+                        Type = "INVOICE"
+                    });
+            }
             return true;
         }
         public async Task<bool> DeleteAsync(int id)
@@ -426,6 +497,109 @@ AuditContext.GetUserId(
                 id,
                 $"Xóa hóa đơn ID {id}, số tiền {amount:0.00}, Status: {status}",
                 ipaddress);
+            var studentUserId = await _context.Students
+       .Where(s => s.Id == studentId)
+       .Select(s => (int?)s.UserId)
+       .FirstOrDefaultAsync();
+            // NGƯỜI THỰC HIỆN
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Xóa hóa đơn",
+                        Message =
+                            $"Bạn đã xóa hóa đơn #{id}.",
+                        Type = "INVOICE"
+                    });
+            }
+
+            // STUDENT
+            if (studentUserId.HasValue &&
+                studentUserId.Value != userid.Value)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = studentUserId.Value,
+                        Title = "Hóa đơn đã bị xóa",
+                        Message =
+                            $"Hóa đơn #{id} của bạn đã bị xóa.",
+                        Type = "INVOICE"
+                    });
+            }
+            return true;
+        }
+        public async Task<bool> CancelAsync(int id)
+        {
+            var invoice = await _context.Invoices
+                .FirstOrDefaultAsync(i => i.Id == id);
+
+            if (invoice == null)
+            {
+                return false;
+            }
+
+            // CHỈ HỦY HÓA ĐƠN CHƯA THANH TOÁN
+            if (invoice.Status != "Unpaid")
+            {
+                throw new ArgumentException(
+                    "Chỉ có thể hủy hóa đơn chưa thanh toán.");
+            }
+
+            var enrollmentId = invoice.EnrollmentId;
+
+            invoice.Status = "Cancelled";
+
+            await _context.SaveChangesAsync();
+
+            // AUDIT LOG
+            await _auditLogService.CreateAsync(
+                userid,
+                "CANCEL",
+                "Invoice",
+                invoice.Id,
+                $"Hủy hóa đơn {invoice.Id}",
+                ipaddress);
+
+            // THÔNG BÁO NGƯỜI THỰC HIỆN
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Hủy hóa đơn",
+                        Message =
+                            $"Bạn đã hủy hóa đơn {invoice.Id}.",
+                        Type = "INVOICE"
+                    });
+            }
+
+            // THÔNG BÁO STUDENT LIÊN QUAN
+            if (enrollmentId.HasValue)
+            {
+                var studentUserId =
+                    await _context.Enrollments
+                        .Where(e => e.Id == enrollmentId.Value)
+                        .Select(e => (int?)e.Student.UserId)
+                        .FirstOrDefaultAsync();
+
+                if (studentUserId.HasValue &&
+                    studentUserId.Value != userid.Value)
+                {
+                    await _notificationService.CreateAsync(
+                        new NotificationCreateDto
+                        {
+                            UserId = studentUserId.Value,
+                            Title = "Hóa đơn đã bị hủy",
+                            Message =
+                                $"Hóa đơn {invoice.Id} của bạn đã bị hủy.",
+                            Type = "INVOICE"
+                        });
+                }
+            }
 
             return true;
         }

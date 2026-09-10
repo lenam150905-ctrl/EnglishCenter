@@ -11,15 +11,18 @@ namespace EnglishCenter.API.Services
         private readonly ApplicationDbContext _context;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly INotificationService _notificationService;
 
         public UserService(
-            ApplicationDbContext context,
-            IAuditLogService auditLogService,
-            IHttpContextAccessor httpContextAccessor)
+    ApplicationDbContext context,
+    IAuditLogService auditLogService,
+    IHttpContextAccessor httpContextAccessor,
+    INotificationService notificationService)
         {
             _context = context;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
+            _notificationService = notificationService;
         }
         private int? userid =>
 AuditContext.GetUserId(
@@ -175,7 +178,39 @@ AuditContext.GetUserId(
     user.Id,
     $"Tạo tài khoản {user.UserName} - Email: {user.Email}, Role: {user.Role}",
     ipaddress);
+            // =========================
+            // NOTIFICATION
+            // =========================
 
+            // Người thực hiện
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Tạo tài khoản",
+                        Message =
+                            $"Bạn đã tạo tài khoản {user.UserName} " +
+                            $"với quyền {user.Role}.",
+                        Type = "USER"
+                    });
+            }
+
+            // User được tạo
+            if (user.Id != userid)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = user.Id,
+                        Title = "Tài khoản mới",
+                        Message =
+                            $"Tài khoản {user.UserName} đã được tạo cho bạn " +
+                            $"với quyền {user.Role}.",
+                        Type = "USER"
+                    });
+            }
             return new UserDto
             {
                 Id = user.Id,
@@ -238,7 +273,39 @@ AuditContext.GetUserId(
                 user.Id,
                 $"Cập nhật tài khoản {user.UserName} - Email: {user.Email}, Role: {user.Role}",
                 ipaddress);
+            // =========================
+            // NOTIFICATION
+            // =========================
 
+            // Người thực hiện
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Cập nhật tài khoản",
+                        Message =
+                            $"Bạn đã cập nhật tài khoản {user.UserName}.",
+                        Type = "USER"
+                    });
+            }
+
+            // User được cập nhật
+            if (user.Id != userid)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = user.Id,
+                        Title = "Tài khoản được cập nhật",
+                        Message =
+                            $"Thông tin tài khoản {user.UserName} " +
+                            $"của bạn đã được cập nhật. " +
+                            $"Quyền hiện tại: {user.Role}.",
+                        Type = "USER"
+                    });
+            }
             return true;
         }
 
@@ -267,7 +334,37 @@ AuditContext.GetUserId(
                 id,
                 $"Xóa tài khoản {userName} - Email: {email}, Role: {role}",
                 ipaddress);
+            // =========================
+            // NOTIFICATION
+            // =========================
 
+            // Người thực hiện
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Xóa tài khoản",
+                        Message =
+                            $"Bạn đã xóa tài khoản {userName}.",
+                        Type = "USER"
+                    });
+            }
+
+            // User bị xóa
+            if (user.Id != userid)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = user.Id,
+                        Title = "Tài khoản đã bị xóa",
+                        Message =
+                            $"Tài khoản {userName} của bạn đã bị xóa khỏi hệ thống.",
+                        Type = "USER"
+                    });
+            }
             return true;
         }
     }

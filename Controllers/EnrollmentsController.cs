@@ -139,5 +139,24 @@ namespace EnglishCenter.API.Controllers
                 message = "Khôi phục khóa học thành công."
             });
         }
+        [Authorize(Roles = "Admin,Student")]
+        [HttpPut("{id}/cancel")]
+        public async Task<IActionResult> Cancel(int id)
+        {
+            var result = await _enrollmentService.CancelAsync(id);
+
+            if (!result)
+            {
+                return NotFound(new
+                {
+                    message = "Không tìm thấy đăng ký khóa học."
+                });
+            }
+
+            return Ok(new
+            {
+                message = "Hủy đăng ký khóa học thành công."
+            });
+        }
     }
 }

@@ -6,7 +6,8 @@ namespace EnglishCenter.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles = "Admin,Teacher")]
+
     public class ReportController : ControllerBase
     {
         private readonly IReportService _reportService;

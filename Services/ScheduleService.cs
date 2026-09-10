@@ -1,4 +1,5 @@
-﻿using EnglishCenter.API.Data;
+﻿using DocumentFormat.OpenXml.Office2010.Excel;
+using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
@@ -11,15 +12,18 @@ namespace EnglishCenter.API.Services
         private readonly ApplicationDbContext _context;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly INotificationService _notificationService;
 
         public ScheduleService(
-            ApplicationDbContext context,
-            IAuditLogService auditLogService,
-            IHttpContextAccessor httpContextAccessor)
+     ApplicationDbContext context,
+     IAuditLogService auditLogService,
+     IHttpContextAccessor httpContextAccessor,
+     INotificationService notificationService)
         {
             _context = context;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
+            _notificationService = notificationService;
         }
         private int? userid =>
 AuditContext.GetUserId(
@@ -273,7 +277,70 @@ AuditContext.GetUserId(
     schedule.Id,
     $"Tạo lịch học Course ID {schedule.CourseId}, Teacher ID {schedule.TeacherId}, phòng {schedule.Room}",
     ipaddress);
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Tạo lịch học",
+                        Message =
+                            $"Bạn đã tạo lịch học cho khóa học " +
+                            $"#{schedule.CourseId}, phòng {schedule.Room}.",
+                        Type = "SCHEDULE"
+                    });
+            }
 
+            // LẤY USER ID CỦA TEACHER
+            var teacherUserId = await _context.Teachers
+                .Where(t => t.Id == schedule.TeacherId)
+                .Select(t => (int?)t.UserId)
+                .FirstOrDefaultAsync();
+
+            // THÔNG BÁO TEACHER
+            if (teacherUserId.HasValue &&
+                teacherUserId.Value != userid.Value)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = teacherUserId.Value,
+                        Title = "Lịch dạy mới",
+                        Message =
+                            $"Bạn có lịch dạy mới cho khóa học " +
+                            $"#{schedule.CourseId}, " +
+                            $"phòng {schedule.Room}. " +
+                            $"Thời gian: {schedule.StartTime:dd/MM/yyyy HH:mm} - " +
+                            $"{schedule.EndTime:HH:mm}.",
+                        Type = "SCHEDULE"
+                    });
+            }
+            var studentUserIds = await _context.Enrollments
+    .Where(e =>
+        e.CourseId == schedule.CourseId &&
+        e.Status == "Active")
+    .Select(e => e.Student.UserId)
+    .Distinct()
+    .ToListAsync();
+
+            foreach (var studentUserId in studentUserIds)
+            {
+                if (studentUserId != userid.Value)
+                {
+                    await _notificationService.CreateAsync(
+                        new NotificationCreateDto
+                        {
+                            UserId = studentUserId.Value,
+                            Title = "Lịch học mới",
+                            Message =
+                                $"Khóa học #{schedule.CourseId} có lịch học mới. " +
+                                $"Phòng: {schedule.Room}. " +
+                                $"Thời gian: {schedule.StartTime:dd/MM/yyyy HH:mm} - " +
+                                $"{schedule.EndTime:HH:mm}.",
+                            Type = "SCHEDULE"
+                        });
+                }
+            }
             return new ScheduleDto
             {
                 Id = schedule.Id,
@@ -390,8 +457,71 @@ AuditContext.GetUserId(
                 schedule.Id,
                 $"Cập nhật lịch học Course ID {schedule.CourseId}, Teacher ID {schedule.TeacherId}, phòng {schedule.Room}",
                 ipaddress);
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Cập nhật lịch học",
+                        Message =
+                            $"Bạn đã cập nhật lịch học cho khóa học " +
+                            $"#{schedule.CourseId}, phòng {schedule.Room}.",
+                        Type = "SCHEDULE"
+                    });
+            }
+            // LẤY USER ID TEACHER
+            var teacherUserId = await _context.Teachers
+                .Where(t => t.Id == schedule.TeacherId)
+                .Select(t => (int?)t.UserId)
+                .FirstOrDefaultAsync();
 
+            // THÔNG BÁO TEACHER
+            if (teacherUserId.HasValue &&
+                teacherUserId.Value != userid.Value)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = teacherUserId.Value,
+                        Title = "Lịch dạy được cập nhật",
+                        Message =
+                            $"Lịch dạy của bạn đã được cập nhật. " +
+                            $"Khóa học: #{schedule.CourseId}, " +
+                            $"phòng: {schedule.Room}, " +
+                            $"thời gian: {schedule.StartTime:dd/MM/yyyy HH:mm} - " +
+                            $"{schedule.EndTime:HH:mm}.",
+                        Type = "SCHEDULE"
+                    });
+            }
+            var studentUserIds = await _context.Enrollments
+    .Where(e =>
+        e.CourseId == schedule.CourseId &&
+        e.Status == "Active")
+    .Select(e => e.Student.UserId)
+    .Distinct()
+    .ToListAsync();
+
+            foreach (var studentUserId in studentUserIds)
+            {
+                if (studentUserId != userid.Value)
+                {
+                    await _notificationService.CreateAsync(
+                        new NotificationCreateDto
+                        {
+                            UserId = studentUserId.Value,
+                            Title = "Lịch học được cập nhật",
+                            Message =
+                                $"Lịch học khóa học #{schedule.CourseId} đã được cập nhật. " +
+                                $"Phòng: {schedule.Room}. " +
+                                $"Thời gian: {schedule.StartTime:dd/MM/yyyy HH:mm} - " +
+                                $"{schedule.EndTime:HH:mm}.",
+                            Type = "SCHEDULE"
+                        });
+                }
+            }
             return true;
+
         }
         public async Task<bool> DeleteAsync(int id)
         {
@@ -415,7 +545,64 @@ AuditContext.GetUserId(
                 id,
                 $"Xóa lịch học Course ID {courseId}, Teacher ID {teacherId}, phòng {room}",
                 ipaddress);
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Xóa lịch học",
+                        Message =
+                            $"Bạn đã xóa lịch học cho khóa học " +
+                            $"#{schedule.CourseId}, phòng {schedule.Room}.",
+                        Type = "SCHEDULE"
+                    });
+            }
+            var teacherUserId = await _context.Teachers
+    .Where(t => t.Id == teacherId)
+    .Select(t => (int?)t.UserId)
+    .FirstOrDefaultAsync();
 
+            var studentUserIds = await _context.Enrollments
+                .Where(e =>
+                    e.CourseId == courseId &&
+                    e.Status == "Active")
+                .Select(e => e.Student.UserId)
+                .Distinct()
+                .ToListAsync();
+            // THÔNG BÁO TEACHER
+            if (teacherUserId.HasValue &&
+                teacherUserId.Value != userid.Value)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = teacherUserId.Value,
+                        Title = "Lịch dạy đã bị xóa",
+                        Message =
+                            $"Lịch dạy của bạn cho khóa học #{courseId} " +
+                            $"tại phòng {room} đã bị xóa.",
+                        Type = "SCHEDULE"
+                    });
+            }
+
+            // THÔNG BÁO STUDENT
+            foreach (var studentUserId in studentUserIds)
+            {
+                if (studentUserId != userid.Value)
+                {
+                    await _notificationService.CreateAsync(
+                        new NotificationCreateDto
+                        {
+                            UserId = studentUserId.Value,
+                            Title = "Lịch học đã bị xóa",
+                            Message =
+                                $"Lịch học của khóa học #{courseId} " +
+                                $"tại phòng {room} đã bị xóa.",
+                            Type = "SCHEDULE"
+                        });
+                }
+            }
             return true;
         }
     }

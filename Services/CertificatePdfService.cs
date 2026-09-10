@@ -1,10 +1,11 @@
 ﻿using EnglishCenter.API.Data;
+using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Middleware;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using EnglishCenter.API.Middleware;
 
 namespace EnglishCenter.API.Services
 {
@@ -14,15 +15,19 @@ namespace EnglishCenter.API.Services
         private readonly IWebHostEnvironment _environment;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly INotificationService _notificationService;
         public CertificatePdfService(
       ApplicationDbContext context,
       IWebHostEnvironment environment,
-      IAuditLogService auditLogService, IHttpContextAccessor httpContextAccessor)
+      IAuditLogService auditLogService,
+      IHttpContextAccessor httpContextAccessor,
+      INotificationService notificationService)
         {
             _context = context;
             _environment = environment;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
+            _notificationService = notificationService;
         }
         private int? userid =>
 AuditContext.GetUserId(
@@ -180,7 +185,27 @@ AuditContext.GetUserId(
                 $"Xuất PDF chứng chỉ {certificate.CertificateCode}",
                 ipaddress);
 
-
+            await _notificationService.CreateAsync(
+    new NotificationCreateDto
+    {
+        UserId = userid.Value,
+        Title = "Chứng chỉ đã được cấp",
+        Message = $"Chứng chỉ {certificate.CertificateCode} của bạn đã được tạo thành công.",
+        Type = "CERTIFICATE"
+    });
+            var student = await _context.Students
+   .FirstOrDefaultAsync(s => s.Id == certificate.StudentId);
+            if (student != null)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = student.UserId.Value,
+                        Title = "Chứng chỉ được cập nhật",
+                        Message = $"Chứng chỉ {certificate.CertificateCode} của bạn đã được cấp.",
+                        Type = "CERTIFICATE"
+                    });
+            }
             return certificate.PdfFilePath;
         }
     }

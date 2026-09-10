@@ -13,14 +13,18 @@ namespace EnglishCenter.API.Services
         private readonly ApplicationDbContext _context;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly INotificationService _notificationService;
 
         public CourseService(
-            ApplicationDbContext context,
-            IAuditLogService auditLogService, IHttpContextAccessor httpContextAccessor)
+    ApplicationDbContext context,
+    IAuditLogService auditLogService,
+    IHttpContextAccessor httpContextAccessor,
+    INotificationService notificationService)
         {
             _context = context;
             _auditLogService = auditLogService;
-            _httpContextAccessor = httpContextAccessor; 
+            _httpContextAccessor = httpContextAccessor;
+            _notificationService = notificationService;
         }
 
         private int? userid =>
@@ -243,7 +247,18 @@ namespace EnglishCenter.API.Services
                 course.Id,
                 $"Tạo khóa học {course.CourseName}",
                 ipaddress);
-
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Tạo khóa học",
+                        Message =
+                            $"Bạn đã tạo khóa học {course.CourseName}.",
+                        Type = "COURSE"
+                    });
+            }
             return new CourseDto
             {
                 Id = course.Id,
@@ -331,7 +346,18 @@ namespace EnglishCenter.API.Services
                 course.Id,
                 $"Cập nhật khóa học {course.CourseName}",
                 ipaddress);
-
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Cập nhật khóa học",
+                        Message =
+                            $"Bạn đã cập nhật khóa học {course.CourseName}.",
+                        Type = "COURSE"
+                    });
+            }
             return true;
         }
 
@@ -359,7 +385,18 @@ namespace EnglishCenter.API.Services
                 id,
                 $"Xóa khóa học {courseName}",
                 ipaddress);
-
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Xóa khóa học",
+                        Message =
+                            $"Bạn đã xóa khóa học {courseName}.",
+                        Type = "COURSE"
+                    });
+            }
             return true;
         }
     }

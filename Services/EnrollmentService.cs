@@ -11,14 +11,17 @@ namespace EnglishCenter.API.Services
         private readonly ApplicationDbContext _context;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly INotificationService _notificationService;
         public EnrollmentService(
-     ApplicationDbContext context,
-     IAuditLogService auditLogService,
-     IHttpContextAccessor httpContextAccessor)
+        ApplicationDbContext context,
+        IAuditLogService auditLogService,
+        IHttpContextAccessor httpContextAccessor,
+        INotificationService notificationService)
         {
             _context = context;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
+            _notificationService = notificationService;
         }
         private int? userid =>
 AuditContext.GetUserId(
@@ -252,6 +255,35 @@ AuditContext.GetUserId(
             _context.Invoices.Add(invoice);
 
             await _context.SaveChangesAsync();
+            var student = await _context.Students
+    .FirstOrDefaultAsync(s => s.Id == dto.StudentId);
+            // NOTIFICATION CHO NGƯỜI THỰC HIỆN
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Đăng ký khóa học",
+                        Message =
+                            $"Bạn đã tạo đăng ký khóa học ID {dto.CourseId}.",
+                        Type = "ENROLLMENT"
+                    });
+            }
+
+            // NOTIFICATION CHO STUDENT
+            if (student.UserId != userid)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = student.UserId.Value,
+                        Title = "Đăng ký khóa học",
+                        Message =
+                            $"Bạn đã đăng ký khóa học ID {dto.CourseId}. Hóa đơn đang chờ thanh toán.",
+                        Type = "ENROLLMENT"
+                    });
+            }
 
             return new EnrollmentDto
             {
@@ -329,7 +361,34 @@ AuditContext.GetUserId(
     enrollment.Id,
     $"Cập nhật đăng ký khóa học ID {enrollment.CourseId}",
     ipaddress);
-
+            // NGƯỜI THỰC HIỆN
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Cập nhật đăng ký",
+                        Message =
+                            $"Bạn đã cập nhật đăng ký khóa học ID {enrollment.CourseId}.",
+                        Type = "ENROLLMENT"
+                    });
+            }
+            var student = await _context.Students
+    .FirstOrDefaultAsync(s => s.Id == dto.StudentId);
+            // STUDENT LIÊN QUAN
+            if (student.UserId != userid)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = student.UserId.Value,
+                        Title = "Đăng ký khóa học được cập nhật",
+                        Message =
+                            $"Thông tin đăng ký khóa học ID {enrollment.CourseId} của bạn đã được cập nhật.",
+                        Type = "ENROLLMENT"
+                    });
+            }
             return true;
         }
 
@@ -357,6 +416,106 @@ AuditContext.GetUserId(
                 id,
                 $"Xóa đăng ký khóa học ID {courseId}",
                 ipaddress);
+            // NOTIFICATION NGƯỜI THỰC HIỆN
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Xóa đăng ký khóa học",
+                        Message =
+                            $"Bạn đã xóa đăng ký khóa học ID {courseId}.",
+                        Type = "ENROLLMENT"
+                    });
+            }
+
+            var student = await _context.Students
+        .FirstOrDefaultAsync(s =>
+            s.Id == enrollment.StudentId);
+
+            // NOTIFICATION STUDENT
+            if (student != null &&
+                student.UserId != userid)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = student.UserId.Value,
+                        Title = "Đăng ký khóa học đã bị xóa",
+                        Message =
+                            $"Đăng ký khóa học ID {courseId} của bạn đã bị xóa.",
+                        Type = "ENROLLMENT"
+                    });
+            }
+
+            return true;
+        }
+        public async Task<bool> CancelAsync(int id)
+        {
+            var enrollment = await _context.Enrollments
+                .FirstOrDefaultAsync(e => e.Id == id);
+
+            if (enrollment == null)
+            {
+                return false;
+            }
+
+            if (enrollment.Status == "Cancelled")
+            {
+                throw new ArgumentException(
+                    "Đăng ký đã được hủy.");
+            }
+
+            if (enrollment.Status == "Completed")
+            {
+                throw new ArgumentException(
+                    "Khóa học đã hoàn thành, không thể hủy.");
+            }
+
+            var studentUserId = await _context.Students
+                .Where(s => s.Id == enrollment.StudentId)
+                .Select(s => (int?)s.UserId)
+                .FirstOrDefaultAsync();
+
+            enrollment.Status = "Cancelled";
+
+            await _context.SaveChangesAsync();
+
+            await _auditLogService.CreateAsync(
+                userid,
+                "CANCEL",
+                "Enrollment",
+                id,
+                $"Hủy đăng ký khóa học ID {enrollment.CourseId}",
+                ipaddress);
+
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Hủy đăng ký khóa học",
+                        Message =
+                            $"Bạn đã hủy đăng ký khóa học ID {enrollment.CourseId}.",
+                        Type = "ENROLLMENT"
+                    });
+            }
+
+            if (studentUserId.HasValue &&
+                studentUserId.Value != userid.Value)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = studentUserId.Value,
+                        Title = "Đăng ký khóa học đã bị hủy",
+                        Message =
+                            $"Đăng ký khóa học ID {enrollment.CourseId} của bạn đã bị hủy.",
+                        Type = "ENROLLMENT"
+                    });
+            }
 
             return true;
         }

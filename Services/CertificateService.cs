@@ -11,14 +11,18 @@ namespace EnglishCenter.API.Services
         private readonly ApplicationDbContext _context;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly INotificationService _notificationService;
 
         public CertificateService(
-            ApplicationDbContext context,
-            IAuditLogService auditLogService, IHttpContextAccessor httpContextAccessor)
+    ApplicationDbContext context,
+    IAuditLogService auditLogService,
+    IHttpContextAccessor httpContextAccessor,
+    INotificationService notificationService)
         {
             _context = context;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
+            _notificationService = notificationService;
         }
         private int? userid =>
 AuditContext.GetUserId(
@@ -283,7 +287,31 @@ AuditContext.GetUserId(
                 certificate.Id,
                 $"Cấp chứng chỉ {certificate.CertificateCode} cho Student ID {certificate.StudentId}",
                 ipaddress);
-
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Cập nhật chứng chỉ",
+                        Message =
+                            $"Bạn đã cập nhật chứng chỉ {certificate.CertificateCode}.",
+                        Type = "CERTIFICATE"
+                    });
+            }
+            var student = await _context.Students
+    .FirstOrDefaultAsync(s => s.Id == certificate.StudentId);
+            if (student != null)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = student.UserId.Value,
+                        Title = "Chứng chỉ được cập nhật",
+                        Message = $"Chứng chỉ {certificate.CertificateCode} của bạn đã được cập nhật.",
+                        Type = "CERTIFICATE"
+                    });
+            }
             return new CertificateDto
             {
                 Id = certificate.Id,
@@ -378,6 +406,7 @@ AuditContext.GetUserId(
                 throw new ArgumentException(
                     "Student chưa đăng ký khóa học này.");
             }
+
             var grade = await _context.Grades
     .Include(g => g.Exam)
     .FirstOrDefaultAsync(g =>
@@ -424,7 +453,31 @@ AuditContext.GetUserId(
                 certificate.Id,
                 $"Cập nhật chứng chỉ {certificate.CertificateCode}",
                 ipaddress);
-
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Cập nhật chứng chỉ",
+                        Message =
+                            $"Bạn đã cập nhật chứng chỉ {certificate.CertificateCode}.",
+                        Type = "CERTIFICATE"
+                    });
+            }
+            var student = await _context.Students
+    .FirstOrDefaultAsync(s => s.Id == certificate.StudentId);
+            if (student != null)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {   
+                        UserId = student.UserId.Value,
+                        Title = "Chứng chỉ được cập nhật",
+                        Message = $"Chứng chỉ {certificate.CertificateCode} của bạn đã được cập nhật.",
+                        Type = "CERTIFICATE"
+                    });
+            }
             return true;
         }
 
@@ -451,7 +504,31 @@ AuditContext.GetUserId(
                 id,
                 $"Xóa chứng chỉ {certificateCode}",
                 ipaddress);
-
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Đã xóa chứng chỉ",
+                        Message =
+                            $"Bạn đã xóa chứng chỉ {certificate.CertificateCode}.",
+                        Type = "CERTIFICATE"
+                    });
+            }
+            var student = await _context.Students
+    .FirstOrDefaultAsync(s => s.Id == certificate.StudentId);
+            if (student != null)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = student.UserId.Value,
+                        Title = "Chứng chỉ bị xóa",
+                        Message = $"Chứng chỉ {certificate.CertificateCode} của bạn đã bị xóa.",
+                        Type = "CERTIFICATE"
+                    });
+            }
             return true;
         }
     }

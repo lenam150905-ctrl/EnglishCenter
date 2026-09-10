@@ -24,6 +24,7 @@ namespace EnglishCenter.API.Data
         public DbSet<PasswordResetOtp> PasswordResetOtps { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<LoginOtp> LoginOtps { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
         protected override void OnModelCreating(
             ModelBuilder modelBuilder)
         {
@@ -121,6 +122,11 @@ namespace EnglishCenter.API.Data
                 .WithMany(s => s.Certificates)
                 .HasForeignKey(c => c.StudentId)
                 .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Notification>()
+    .HasOne(n => n.User)
+    .WithMany()
+    .HasForeignKey(n => n.UserId)
+    .OnDelete(DeleteBehavior.Cascade);
 
             // Course - Certificate
             modelBuilder.Entity<Certificate>()

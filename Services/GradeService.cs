@@ -11,15 +11,18 @@ namespace EnglishCenter.API.Services
         private readonly ApplicationDbContext _context;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly INotificationService _notificationService;
 
         public GradeService(
-            ApplicationDbContext context,
-            IAuditLogService auditLogService,
-            IHttpContextAccessor httpContextAccessor)
+      ApplicationDbContext context,
+      IAuditLogService auditLogService,
+      IHttpContextAccessor httpContextAccessor,
+      INotificationService notificationService)
         {
             _context = context;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
+            _notificationService = notificationService;
         }
         private int? userid =>
 AuditContext.GetUserId(
@@ -262,7 +265,40 @@ AuditContext.GetUserId(
     grade.Id,
     $"Chấm điểm {grade.Score:0.0} cho Student ID {grade.StudentId}, Exam ID {grade.ExamId}",
     ipaddress);
+            // LẤY USER ID CỦA STUDENT
+            var studentUserId = await _context.Students
+    .Where(s => s.Id == grade.StudentId)
+    .Select(s => (int?)s.UserId)
+    .FirstOrDefaultAsync();
 
+            // NOTIFICATION NGƯỜI CHẤM
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Chấm điểm bài thi",
+                        Message =
+                            $"Bạn đã chấm điểm {grade.Score:0.0} cho Student ID {grade.StudentId}.",
+                        Type = "GRADE"
+                    });
+            }
+
+            // NOTIFICATION STUDENT
+            if (studentUserId.HasValue &&
+                studentUserId.Value != userid.Value)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = studentUserId.Value,
+                        Title = "Bạn đã có điểm",
+                        Message =
+                            $"Bài thi của bạn đã được chấm với điểm {grade.Score:0.0}/10.",
+                        Type = "GRADE"
+                    });
+            }
             return new GradeDto
             {
                 Id = grade.Id,
@@ -367,6 +403,39 @@ AuditContext.GetUserId(
                 grade.Id,
                 $"Cập nhật điểm {grade.Score:0.0} cho Student ID {grade.StudentId}, Exam ID {grade.ExamId}",
                 ipaddress);
+            var studentUserId = await _context.Students
+    .Where(s => s.Id == grade.StudentId)
+    .Select(s => (int?)s.UserId)
+    .FirstOrDefaultAsync();
+
+            // THÔNG BÁO NGƯỜI THỰC HIỆN
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Cập nhật điểm",
+                        Message =
+                            $"Bạn đã cập nhật điểm {grade.Score:0.0} cho Student ID {grade.StudentId}.",
+                        Type = "GRADE"
+                    });
+            }
+
+            // THÔNG BÁO STUDENT
+            if (studentUserId.HasValue &&
+                studentUserId.Value != userid.Value)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = studentUserId.Value,
+                        Title = "Điểm đã được cập nhật",
+                        Message =
+                            $"Điểm bài thi của bạn đã được cập nhật thành {grade.Score:0.0}/10.",
+                        Type = "GRADE"
+                    });
+            }
 
             return true;
         }
@@ -396,7 +465,38 @@ AuditContext.GetUserId(
                 id,
                 $"Xóa điểm {score:0.0} của Student ID {studentId}, Exam ID {examId}",
                 ipaddress);
+            var studentUserId = await _context.Students
+    .Where(s => s.Id == studentId)
+    .Select(s => (int?)s.UserId)
+    .FirstOrDefaultAsync();
+            // THÔNG BÁO NGƯỜI THỰC HIỆN
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Xóa điểm",
+                        Message =
+                            $"Bạn đã xóa điểm {score:0.0} của Student ID {studentId}.",
+                        Type = "GRADE"
+                    });
+            }
 
+            // THÔNG BÁO STUDENT
+            if (studentUserId.HasValue &&
+                studentUserId.Value != userid.Value)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = studentUserId.Value,
+                        Title = "Điểm đã bị xóa",
+                        Message =
+                            $"Điểm {score:0.0}/10 của bạn đã bị xóa.",
+                        Type = "GRADE"
+                    });
+            }
             return true;
         }
     }

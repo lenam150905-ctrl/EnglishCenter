@@ -143,5 +143,35 @@ namespace EnglishCenter.API.Controllers
                 message = "Khôi phục khóa học thành công."
             });
         }
+        [HttpPut("{id}/cancel")]
+        [Authorize(Roles = "Admin,Student")]
+        public async Task<IActionResult> Cancel(int id)
+        {
+            try
+            {
+                var result =
+                    await _invoiceService.CancelAsync(id);
+
+                if (!result)
+                {
+                    return NotFound(new
+                    {
+                        message = "Hóa đơn không tồn tại."
+                    });
+                }
+
+                return Ok(new
+                {
+                    message = "Hủy hóa đơn thành công."
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

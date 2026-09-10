@@ -15,14 +15,18 @@ namespace EnglishCenter.API.Services
         private readonly ApplicationDbContext _context;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly INotificationService _notificationService;
 
         public StudentService(
-            ApplicationDbContext context,
-            IAuditLogService auditLogService, IHttpContextAccessor httpContextAccessor)
+       ApplicationDbContext context,
+       IAuditLogService auditLogService,
+       IHttpContextAccessor httpContextAccessor,
+       INotificationService notificationService)
         {
             _context = context;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
+            _notificationService = notificationService;
         }
         private int? userid =>
 AuditContext.GetUserId(
@@ -273,6 +277,7 @@ AuditContext.GetUserId(
 
             await _context.SaveChangesAsync();
 
+
             await _auditLogService.CreateAsync(
                 userid,
                 "CREATE",
@@ -280,7 +285,34 @@ AuditContext.GetUserId(
                 student.Id,
                 $"Tạo Student {student.FullName} - Email: {student.Email}",
                 ipaddress);
+            // THÔNG BÁO NGƯỜI THỰC HIỆN
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Tạo học sinh",
+                        Message =
+                            $"Bạn đã tạo học sinh {student.FullName}.",
+                        Type = "STUDENT"
+                    });
+            }
 
+            // THÔNG BÁO USER ĐƯỢC GÁN CHO STUDENT
+            if (student.UserId.HasValue &&
+                student.UserId.Value != userid.Value)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = student.UserId.Value,
+                        Title = "Tài khoản học sinh",
+                        Message =
+                            $"Tài khoản của bạn đã được gán cho học sinh {student.FullName}.",
+                        Type = "STUDENT"
+                    });
+            }
             return new StudentDto
             {
                 Id = student.Id,
@@ -410,7 +442,34 @@ AuditContext.GetUserId(
                 student.Id,
                 $"Cập nhật thông tin Student {student.FullName}",
                 ipaddress);
+            // THÔNG BÁO NGƯỜI THỰC HIỆN
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Cập nhật học sinh",
+                        Message =
+                            $"Bạn đã cập nhật thông tin học sinh {student.FullName}.",
+                        Type = "STUDENT"
+                    });
+            }
 
+            // THÔNG BÁO STUDENT
+            if (student.UserId.HasValue &&
+                student.UserId.Value != userid.Value)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = student.UserId.Value,
+                        Title = "Thông tin tài khoản được cập nhật",
+                        Message =
+                            $"Thông tin học sinh {student.FullName} của bạn đã được cập nhật.",
+                        Type = "STUDENT"
+                    });
+            }
             return true;
         }
 
@@ -439,7 +498,34 @@ AuditContext.GetUserId(
                 id,
                 $"Xóa Student {fullName} - Email: {email}",
                 ipaddress);
+            // THÔNG BÁO NGƯỜI THỰC HIỆN
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Xóa học sinh",
+                        Message =
+                            $"Bạn đã xóa học sinh {fullName}.",
+                        Type = "STUDENT"
+                    });
+            }
 
+            // THÔNG BÁO USER CỦA STUDENT
+            if (userId.HasValue &&
+                userId.Value != userid.Value)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userId.Value,
+                        Title = "Tài khoản học sinh đã bị xóa",
+                        Message =
+                            $"Thông tin học sinh {fullName} của bạn đã bị xóa.",
+                        Type = "STUDENT"
+                    });
+            }
             return true;
         }
         public async Task<ExcelImportResultDto> ImportExcelAsync(IFormFile file)
@@ -676,7 +762,20 @@ AuditContext.GetUserId(
    null,
     $"Import Excel Student: thành công {result.SuccessRows}/{result.TotalRows} dòng, lỗi {result.FailedRows} dòng.",
     ipaddress);
-
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Import học sinh",
+                        Message =
+                            $"Import Excel Student hoàn tất: " +
+                            $"thành công {result.SuccessRows}/{result.TotalRows} dòng, " +
+                            $"lỗi {result.FailedRows} dòng.",
+                        Type = "STUDENT"
+                    });
+            }
             return result;
         }
     }

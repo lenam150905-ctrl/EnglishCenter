@@ -1,4 +1,5 @@
 ﻿using EnglishCenter.API.Data;
+using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Services;
 using EnglishCenter.Services;
@@ -17,17 +18,20 @@ namespace EnglishCenter.API.Controllers
         private readonly IVNPayService _vnPayService;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly INotificationService _notificationService;
 
         public PaymentsController(
-    ApplicationDbContext context,
-    IVNPayService vnPayService,
-    IAuditLogService auditLogService,
-    IHttpContextAccessor httpContextAccessor)
+     ApplicationDbContext context,
+     IVNPayService vnPayService,
+     IAuditLogService auditLogService,
+     IHttpContextAccessor httpContextAccessor,
+     INotificationService notificationService)
         {
             _context = context;
             _vnPayService = vnPayService;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
+            _notificationService = notificationService;
         }
         private int? userid =>
 AuditContext.GetUserId(
@@ -87,7 +91,18 @@ AuditContext.GetUserId(
     invoice.Id,
     $"Tạo link thanh toán VNPay cho Invoice ID {invoice.Id}, số tiền {invoice.Amount:0.00}",
     ipaddress);
-
+            if (userid.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = userid.Value,
+                        Title = "Tạo thanh toán",
+                        Message =
+                            $"Bạn đã tạo link thanh toán cho hóa đơn #{invoice.Id}.",
+                        Type = "PAYMENT"
+                    });
+            }
             return Ok(new
             {
                 message = "Tạo link thanh toán thành công.",
@@ -159,6 +174,10 @@ AuditContext.GetUserId(
                     message = "Không tìm thấy hóa đơn."
                 });
             }
+            var studentUserId = await _context.Enrollments
+    .Where(e => e.Id == invoice.EnrollmentId)
+    .Select(e => (int?)e.Student.UserId)
+    .FirstOrDefaultAsync();
 
             // Thanh toán thành công
             if (responseCode == "00" &&
@@ -186,7 +205,20 @@ AuditContext.GetUserId(
     invoice.Id,
     $"Thanh toán VNPay thành công Invoice ID {invoice.Id}, số tiền {invoice.Amount:0.00}",
     ipaddress);
-
+         
+                if (studentUserId.HasValue)
+                {
+                    await _notificationService.CreateAsync(
+                        new NotificationCreateDto
+                        {
+                            UserId = studentUserId.Value,
+                            Title = "Thanh toán thành công",
+                            Message =
+                                $"Hóa đơn #{invoice.Id} đã được thanh toán thành công. " +
+                                $"Số tiền: {invoice.Amount:0.00}.",
+                            Type = "PAYMENT"
+                        });
+                }
                 return Ok(new
                 {
                     message = "Thanh toán thành công.",
@@ -201,7 +233,19 @@ AuditContext.GetUserId(
         invoice.Id,
         $"Thanh toán VNPay thất bại Invoice ID {invoice.Id}, ResponseCode: {responseCode}, TransactionStatus: {transactionStatus}",
         ipaddress);
-
+        
+            if (studentUserId.HasValue)
+            {
+                await _notificationService.CreateAsync(
+                    new NotificationCreateDto
+                    {
+                        UserId = studentUserId.Value,
+                        Title = "Thanh toán thất bại",
+                        Message =
+                            $"Thanh toán hóa đơn #{invoice.Id} không thành công.",
+                        Type = "PAYMENT"
+                    });
+            }
             return BadRequest(new
             {
                 message = "Thanh toán không thành công.",

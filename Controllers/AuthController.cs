@@ -68,8 +68,8 @@ namespace EnglishCenter.API.Controllers
 
             return Ok(new
             {
-                message = "Đã tạo mã OTP.",
-                otp = otp
+                message = "Mã OTP đã được gửi đến email."
+
             });
         }
         [HttpPost("verify-otp")]

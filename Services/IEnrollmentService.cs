@@ -24,5 +24,6 @@ namespace EnglishCenter.API.Services
             EnrollmentUpdateDto dto);
 
         Task<bool> DeleteAsync(int id);
+        Task<bool> CancelAsync(int id);
     }
 }

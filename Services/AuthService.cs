@@ -131,52 +131,51 @@ namespace EnglishCenter.API.Services
             return new JwtSecurityTokenHandler()
                 .WriteToken(token);
         }
-        public async Task<bool> ResetPasswordAsync(ResetPasswordDto dto)
+        public async Task<bool> ResetPasswordAsync(
+     ResetPasswordDto dto)
         {
-            // 1. Kiểm tra UserName
-            if (string.IsNullOrWhiteSpace(dto.UserName))
+            if (string.IsNullOrWhiteSpace(dto.Email))
             {
                 throw new ArgumentException(
-                    "Tên đăng nhập không được để trống.");
+                    "Email không được để trống.");
             }
 
-            // 2. Kiểm tra mật khẩu mới
             if (string.IsNullOrWhiteSpace(dto.NewPassword))
             {
                 throw new ArgumentException(
                     "Mật khẩu mới không được để trống.");
             }
 
-            // 3. Kiểm tra độ dài
             if (dto.NewPassword.Length < 6)
             {
                 throw new ArgumentException(
                     "Mật khẩu phải có ít nhất 6 ký tự.");
             }
 
-            // 4. Kiểm tra xác nhận mật khẩu
             if (dto.NewPassword != dto.ConfirmPassword)
             {
                 throw new ArgumentException(
                     "Mật khẩu xác nhận không khớp.");
             }
 
-            // 5. Tìm tài khoản
+            // Tìm User bằng Email
             var user = await _context.Users
                 .FirstOrDefaultAsync(u =>
-                    u.UserName == dto.UserName);
+                    u.Email == dto.Email);
 
             if (user == null)
             {
                 throw new ArgumentException(
-                    "Tài khoản không tồn tại.");
+                    "Email không tồn tại.");
             }
+
+            // Lấy OTP đã xác minh
             var resetOtp = await _context.PasswordResetOtps
-    .Where(o =>
-        o.UserId == user.Id &&
-        o.IsVerified)
-    .OrderByDescending(o => o.Id)
-    .FirstOrDefaultAsync();
+                .Where(o =>
+                    o.UserId == user.Id &&
+                    o.IsVerified)
+                .OrderByDescending(o => o.Id)
+                .FirstOrDefaultAsync();
 
             if (resetOtp == null)
             {
@@ -184,21 +183,26 @@ namespace EnglishCenter.API.Services
                     "Bạn chưa xác minh OTP.");
             }
 
+            // Kiểm tra hết hạn
             if (resetOtp.ExpiredAt <= DateTime.Now)
             {
                 throw new ArgumentException(
                     "Mã OTP đã hết hạn.");
             }
 
+            // Kiểm tra OTP
             if (resetOtp.Otp != dto.Otp)
             {
                 throw new ArgumentException(
                     "Mã OTP không chính xác.");
             }
-            // 6. Đổi mật khẩu
-            user.PasswordHash =
-      BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
 
+            // Đổi mật khẩu
+            user.PasswordHash =
+                BCrypt.Net.BCrypt.HashPassword(
+                    dto.NewPassword);
+
+            // OTP chỉ dùng một lần
             resetOtp.IsVerified = false;
 
             await _context.SaveChangesAsync();
@@ -206,24 +210,58 @@ namespace EnglishCenter.API.Services
             return true;
         }
         public async Task<string> ForgotPasswordAsync(
-    ForgotPasswordDto dto)
+      ForgotPasswordDto dto)
         {
-            if (string.IsNullOrWhiteSpace(dto.UserName))
+            if (string.IsNullOrWhiteSpace(dto.Email))
             {
                 throw new ArgumentException(
-                    "Tên đăng nhập không được để trống.");
+                    "Email không được để trống.");
             }
 
+            // Kiểm tra email
             var user = await _context.Users
                 .FirstOrDefaultAsync(u =>
-                    u.UserName == dto.UserName);
+                    u.Email == dto.Email);
 
             if (user == null)
             {
                 throw new ArgumentException(
-                    "Tài khoản không tồn tại.");
+                    "Email không tồn tại.");
             }
 
+            // Kiểm tra email
+            if (string.IsNullOrWhiteSpace(user.Email))
+            {
+                throw new ArgumentException(
+                    "Tài khoản chưa có email.");
+            }
+            var lastOtp = await _context.PasswordResetOtps
+    .Where(o => o.UserId == user.Id)
+    .OrderByDescending(o => o.Id)
+    .FirstOrDefaultAsync();
+            if (lastOtp != null)
+            {
+                var seconds =
+                    (DateTime.Now - lastOtp.CreatedAt).TotalSeconds;
+
+                if (seconds < 60)
+                {
+                    var remaining = 60 - (int)seconds;
+
+                    throw new ArgumentException(
+                        $"Vui lòng chờ {remaining} giây trước khi gửi OTP mới.");
+                }
+            }
+            var oldOtps = await _context.PasswordResetOtps
+    .Where(o =>
+        o.UserId == user.Id &&
+        !o.IsVerified)
+    .ToListAsync();
+
+            foreach (var oldOtp in oldOtps)
+            {
+                oldOtp.IsVerified = true;
+            }
             // OTP 6 số
             var otp = Random.Shared
                 .Next(100000, 1000000)
@@ -233,23 +271,34 @@ namespace EnglishCenter.API.Services
             {
                 UserId = user.Id,
                 Otp = otp,
+                CreatedAt = DateTime.Now,
                 ExpiredAt = DateTime.Now.AddMinutes(5),
                 IsVerified = false,
                 FailedAttempts = 0
             };
-
             _context.PasswordResetOtps.Add(resetOtp);
 
             await _context.SaveChangesAsync();
 
+            // Gửi OTP qua Email
+            await _emailService.SendEmailAsync(
+                user.Email,
+                "Mã OTP đặt lại mật khẩu - English Center",
+                $"Xin chào {user.UserName},\n\n" +
+                $"Mã OTP đặt lại mật khẩu của bạn là: {otp}\n\n" +
+                "Mã OTP có hiệu lực trong 5 phút.\n" +
+                "Bạn chỉ được nhập sai tối đa 5 lần.\n\n" +
+                "Nếu bạn không thực hiện yêu cầu này, hãy bỏ qua email.");
+
             return otp;
         }
-        public async Task<bool> VerifyOtpAsync(VerifyOtpDto dto)
+        public async Task<bool> VerifyOtpAsync(
+     VerifyOtpDto dto)
         {
-            if (string.IsNullOrWhiteSpace(dto.UserName))
+            if (string.IsNullOrWhiteSpace(dto.Email))
             {
                 throw new ArgumentException(
-                    "Tên đăng nhập không được để trống.");
+                    "Email không được để trống.");
             }
 
             if (string.IsNullOrWhiteSpace(dto.Otp))
@@ -267,12 +316,12 @@ namespace EnglishCenter.API.Services
 
             var user = await _context.Users
                 .FirstOrDefaultAsync(u =>
-                    u.UserName == dto.UserName);
+                    u.Email == dto.Email);
 
             if (user == null)
             {
                 throw new ArgumentException(
-                    "Tài khoản không tồn tại.");
+                    "Email không tồn tại.");
             }
 
             var resetOtp = await _context.PasswordResetOtps
@@ -288,18 +337,21 @@ namespace EnglishCenter.API.Services
                     "Không tìm thấy mã OTP.");
             }
 
-            if (resetOtp.ExpiredAt < DateTime.Now)
+            // HẾT HẠN
+            if (resetOtp.ExpiredAt <= DateTime.Now)
             {
                 throw new ArgumentException(
                     "Mã OTP đã hết hạn.");
             }
 
+            // GIỚI HẠN 5 LẦN
             if (resetOtp.FailedAttempts >= 5)
             {
                 throw new ArgumentException(
                     "Bạn đã nhập sai OTP quá 5 lần.");
             }
 
+            // SAI OTP
             if (resetOtp.Otp != dto.Otp)
             {
                 resetOtp.FailedAttempts++;
@@ -307,9 +359,11 @@ namespace EnglishCenter.API.Services
                 await _context.SaveChangesAsync();
 
                 throw new ArgumentException(
-                    $"Mã OTP không chính xác. Bạn còn {5 - resetOtp.FailedAttempts} lần thử.");
+                    $"Mã OTP không chính xác. " +
+                    $"Bạn còn {5 - resetOtp.FailedAttempts} lần thử.");
             }
 
+            // ĐÚNG OTP
             resetOtp.IsVerified = true;
 
             await _context.SaveChangesAsync();
@@ -339,6 +393,49 @@ namespace EnglishCenter.API.Services
                     "Tài khoản chưa có email.");
             }
 
+            // =========================
+            // KIỂM TRA 60 GIÂY
+            // =========================
+
+            var lastOtp = await _context.LoginOtps
+                .Where(o => o.UserId == user.Id)
+                .OrderByDescending(o => o.Id)
+                .FirstOrDefaultAsync();
+
+            if (lastOtp != null)
+            {
+                var seconds =
+                    (DateTime.Now - lastOtp.CreatedAt).TotalSeconds;
+
+                if (seconds < 60)
+                {
+                    var remaining =
+                        60 - (int)seconds;
+
+                    throw new ArgumentException(
+                        $"Vui lòng chờ {remaining} giây trước khi gửi OTP mới.");
+                }
+            }
+
+            // =========================
+            // VÔ HIỆU OTP CŨ
+            // =========================
+
+            var oldOtps = await _context.LoginOtps
+                .Where(o =>
+                    o.UserId == user.Id &&
+                    !o.IsVerified)
+                .ToListAsync();
+
+            foreach (var oldOtp in oldOtps)
+            {
+                oldOtp.IsVerified = true;
+            }
+
+            // =========================
+            // TẠO OTP MỚI
+            // =========================
+
             var otp = Random.Shared
                 .Next(100000, 1000000)
                 .ToString();
@@ -347,6 +444,7 @@ namespace EnglishCenter.API.Services
             {
                 UserId = user.Id,
                 Otp = otp,
+                CreatedAt = DateTime.Now,
                 ExpiredAt = DateTime.Now.AddMinutes(5),
                 IsVerified = false,
                 FailedAttempts = 0
@@ -356,32 +454,37 @@ namespace EnglishCenter.API.Services
 
             await _context.SaveChangesAsync();
 
+            // =========================
+            // GỬI EMAIL
+            // =========================
+
             await _emailService.SendEmailAsync(
                 user.Email,
                 "Mã xác minh đăng nhập - English Center",
-                $"Mã OTP của bạn là: {otp}\n\n" +
-                "Mã có hiệu lực trong 5 phút.");
+                $"Xin chào {user.UserName},\n\n" +
+                $"Mã OTP đăng nhập của bạn là: {otp}\n\n" +
+                "Mã có hiệu lực trong 5 phút.\n" +
+                "Bạn được nhập sai tối đa 5 lần.\n\n" +
+                "Nếu bạn không thực hiện đăng nhập, hãy bỏ qua email.");
 
             return true;
         }
         public async Task<LoginResultDto?> VerifyLoginOtpAsync(
-       VerifyLoginOtpDto dto)
+    VerifyLoginOtpDto dto)
         {
-            // 1. Kiểm tra UserName
             if (string.IsNullOrWhiteSpace(dto.UserName))
             {
                 throw new ArgumentException(
                     "Tên đăng nhập không được để trống.");
             }
 
-            // 2. Kiểm tra OTP
             if (string.IsNullOrWhiteSpace(dto.Otp))
             {
                 throw new ArgumentException(
                     "Mã OTP không được để trống.");
             }
 
-            // 3. OTP phải có 6 chữ số
+            // OTP phải 6 số
             if (dto.Otp.Length != 6 ||
                 !dto.Otp.All(char.IsDigit))
             {
@@ -389,7 +492,7 @@ namespace EnglishCenter.API.Services
                     "Mã OTP phải gồm 6 chữ số.");
             }
 
-            // 4. Tìm User
+            // Tìm User
             var user = await _context.Users
                 .FirstOrDefaultAsync(u =>
                     u.UserName == dto.UserName);
@@ -400,7 +503,7 @@ namespace EnglishCenter.API.Services
                     "Tài khoản không tồn tại.");
             }
 
-            // 5. Lấy OTP mới nhất
+            // OTP mới nhất chưa sử dụng
             var loginOtp = await _context.LoginOtps
                 .Where(o =>
                     o.UserId == user.Id &&
@@ -414,24 +517,53 @@ namespace EnglishCenter.API.Services
                     "Không tìm thấy mã OTP đăng nhập.");
             }
 
-            // 6. Kiểm tra hết hạn
+            // =========================
+            // HẾT HẠN 5 PHÚT
+            // =========================
+
             if (loginOtp.ExpiredAt <= DateTime.Now)
             {
+                // Vô hiệu hóa OTP hết hạn
+                loginOtp.IsVerified = true;
+
+                await _context.SaveChangesAsync();
+
                 throw new ArgumentException(
                     "Mã OTP đã hết hạn.");
             }
 
-            // 7. Giới hạn số lần sai
+            // =========================
+            // TỐI ĐA 5 LẦN
+            // =========================
+
             if (loginOtp.FailedAttempts >= 5)
             {
+                loginOtp.IsVerified = true;
+
+                await _context.SaveChangesAsync();
+
                 throw new ArgumentException(
                     "Bạn đã nhập sai OTP quá 5 lần.");
             }
 
-            // 8. Kiểm tra OTP
+            // =========================
+            // KIỂM TRA OTP
+            // =========================
+
             if (loginOtp.Otp != dto.Otp)
             {
                 loginOtp.FailedAttempts++;
+
+                // Sai lần thứ 5 → vô hiệu OTP
+                if (loginOtp.FailedAttempts >= 5)
+                {
+                    loginOtp.IsVerified = true;
+
+                    await _context.SaveChangesAsync();
+
+                    throw new ArgumentException(
+                        "Bạn đã nhập sai OTP quá 5 lần. Mã OTP đã bị vô hiệu hóa.");
+                }
 
                 await _context.SaveChangesAsync();
 
@@ -440,12 +572,18 @@ namespace EnglishCenter.API.Services
                     $"Bạn còn {5 - loginOtp.FailedAttempts} lần thử.");
             }
 
-            // 9. OTP đúng
+            // =========================
+            // OTP ĐÚNG
+            // =========================
+
             loginOtp.IsVerified = true;
 
             await _context.SaveChangesAsync();
 
-            // 10. Tạo JWT
+            // =========================
+            // TẠO JWT
+            // =========================
+
             var token = GenerateToken(user);
 
             var auth = new AuthResponseDto
