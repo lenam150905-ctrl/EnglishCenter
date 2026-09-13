@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác thực OTP - English Center</title>
+
+    <link rel="stylesheet" href="../css/login.css">
+</head>
+<body>
+
+    <div class="login-page">
+        <section class="login-card otp-card">
+        <div class="login-left">
+            <div class="brand">
+                <div class="brand-icon">E</div>
+                <span>English Center</span>
+            </div>
+
+            <div class="welcome-content">
+                <h1>Xác thực<br>tài khoản</h1>
+                <p>
+                    Nhập mã OTP được gửi đến email của bạn
+                    để hoàn tất đăng nhập.
+                </p>
+            </div>
+        </div>
+
+        <div class="login-right">
+            <div class="login-box">
+
+                <div class="login-header">
+                    <h2>Nhập mã OTP</h2>
+                    <p>
+                        Mã xác thực đã được gửi đến email
+                        liên kết với tài khoản.
+                    </p>
+                </div>
+
+                <form id="otpForm">
+
+                    <div class="form-group">
+                        <label for="otpInput">Mã OTP</label>
+
+                        <input
+                            type="text"
+                            id="otpInput"
+                            name="otp"
+                            maxlength="6"
+                            inputmode="numeric"
+                            pattern="[0-9]{6}"
+                            placeholder="Nhập mã OTP 6 số"
+                            autocomplete="one-time-code"
+                            required
+                        >
+                    </div>
+
+                    <div id="otpError" class="error-message"></div>
+
+                    <button
+                        type="submit"
+                        id="verifyOtpButton"
+                        class="login-button"
+                    >
+                        <span id="buttonText">Xác nhận OTP</span>
+                        <span id="buttonLoading" class="button-loading">
+                            Đang xác thực...
+                        </span>
+                    </button>
+
+                </form>
+
+                <div class="otp-footer">
+                    <p>
+                        Không nhận được mã?
+                        <button
+                            type="button"
+                            id="resendOtpButton"
+                            class="text-button"
+                        >
+                            Gửi lại OTP
+                        </button>
+                    </p>
+
+                    <p>
+                        <a href="../index.html">Quay lại đăng nhập</a>
+                    </p>
+                </div>
+
+            </div>
+        </div>
+        </section>
+    </div>
+
+    <script src="../js/verify-login-otp.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký - English Center</title>
+    <link rel="stylesheet" href="../css/login.css">
+</head>
+<body>
+    <main class="login-page">
+        <section class="login-card register-card">
+            <aside class="login-left">
+                <div class="brand"><div class="brand-icon">E</div><span>English Center</span></div>
+                <div class="welcome-content">
+                    <p class="small-title">START LEARNING</p>
+                    <h1>Bắt đầu hành trình<br>tiếng Anh</h1>
+                    <p>Tạo tài khoản để quản lý lớp học, lịch học và kết quả của bạn thật dễ dàng.</p>
+                </div>
+                <div class="login-decoration"><span></span><span></span><span></span></div>
+            </aside>
+            <section class="login-right">
+                <div class="login-box">
+                    <div class="login-header"><h2>Tạo tài khoản</h2><p>Điền thông tin bên dưới để bắt đầu.</p></div>
+                    <form id="registerForm">
+                        <div class="form-group"><label for="registerUserName">Tên đăng nhập</label><input id="registerUserName" type="text" autocomplete="username" placeholder="Ví dụ: nguyenvana" required></div>
+                        <div class="form-group"><label for="registerEmail">Email</label><input id="registerEmail" type="email" autocomplete="email" placeholder="name@example.com" required></div>
+                        <div class="form-group"><label for="registerPassword">Mật khẩu</label><input id="registerPassword" type="password" autocomplete="new-password" placeholder="Ít nhất 6 ký tự" required></div>
+                        <div class="form-group"><label for="registerConfirmPassword">Xác nhận mật khẩu</label><input id="registerConfirmPassword" type="password" autocomplete="new-password" placeholder="Nhập lại mật khẩu" required></div>
+                        <label class="agree-terms"><input id="agreeTerms" type="checkbox" required><span>Tôi đồng ý với điều khoản sử dụng.</span></label>
+                        <button id="registerButton" class="login-button" type="submit">Tạo tài khoản</button>
+                    </form>
+                    <p id="registerMessage" class="login-message" aria-live="polite"></p>
+                    <div class="login-footer"><span>Đã có tài khoản?</span><a href="../index.html">Đăng nhập</a></div>
+                </div>
+            </section>
+        </section>
+    </main>
+    <script src="../js/register.js"></script>
+</body>
+</html>
