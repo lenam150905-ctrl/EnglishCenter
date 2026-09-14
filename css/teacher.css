@@ -1,0 +1,5 @@
+.teacher-sidebar .brand-logo { background: linear-gradient(135deg, #d55b11, #f09b34); }
+.teacher-hero { padding: 28px; border-radius: 18px; color: #fff; background: linear-gradient(110deg, #bd4a0b, #e88122); }
+.teacher-hero h2 { margin: 8px 0; font-size: 27px; }.teacher-hero p { opacity: .9; line-height: 1.6; }
+.teacher-overview { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin:22px 0; }.teacher-overview article { background:#fff; border:1px solid #e7eaf0; border-radius:14px; padding:20px; }.teacher-overview span { color:#667085; font-size:13px; display:block; margin-bottom:8px; }.teacher-overview strong { font-size:28px; color:#1d2939; }
+@media(max-width:800px){.teacher-overview{grid-template-columns:1fr;}}

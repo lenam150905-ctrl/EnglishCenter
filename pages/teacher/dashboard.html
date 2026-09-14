@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Giáo viên | English Center</title>
+  <link rel="stylesheet" href="../../css/admin.css"><link rel="stylesheet" href="../../css/teacher.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar teacher-sidebar" id="teacherSidebar">
+    <div class="brand"><div class="brand-logo">EC</div><div class="brand-info"><h2>English Center</h2><p>TEACHER PORTAL</p></div></div>
+    <nav class="nav">
+      <p class="nav-title">TỔNG QUAN</p><a href="#dashboard" data-teacher-route="dashboard" class="nav-item active"><span class="nav-icon">⌂</span><span>Trang chủ</span></a>
+      <p class="nav-title">GIẢNG DẠY</p>
+      <a href="#students" data-teacher-route="students" class="nav-item"><span class="nav-icon">🎓</span><span>Học viên</span></a>
+      <a href="#courses" data-teacher-route="courses" class="nav-item"><span class="nav-icon">📚</span><span>Khóa học</span></a>
+      <a href="#schedules" data-teacher-route="schedules" class="nav-item"><span class="nav-icon">📅</span><span>Lịch học</span></a>
+      <a href="#exams" data-teacher-route="exams" class="nav-item"><span class="nav-icon">📝</span><span>Bài kiểm tra</span></a>
+      <a href="#grades" data-teacher-route="grades" class="nav-item"><span class="nav-icon">📊</span><span>Điểm số</span></a>
+      <a href="#certificates" data-teacher-route="certificates" class="nav-item"><span class="nav-icon">🏆</span><span>Chứng chỉ</span></a>
+      <p class="nav-title">TÀI KHOẢN</p><a href="#notifications" data-teacher-route="notifications" class="nav-item"><span class="nav-icon">🔔</span><span>Thông báo</span></a>
+    </nav>
+    <div class="sidebar-profile"><div class="profile-avatar" id="teacherAvatar">G</div><div class="profile-info"><strong id="teacherName">Giáo viên</strong><span>Giáo viên</span></div></div>
+  </aside>
+  <div class="sidebar-overlay" id="teacherOverlay"></div>
+  <main class="main"><header class="header"><div class="header-left"><button class="menu-button" id="teacherMenu">☰</button><div><h1 id="teacherTitle">Trang chủ</h1><p id="teacherDescription">Không gian giảng dạy của bạn</p></div></div><div class="header-right"><button class="logout-button" id="teacherLogout">Đăng xuất</button></div></header><div class="content" id="teacherContent"></div></main>
+</div>
+<script src="../../js/config.js"></script><script src="../../js/auth.js"></script><script src="../../js/api.js"></script><script src="../../js/toast.js"></script><script src="../../js/teacher/dashboard.js"></script>
+</body></html>

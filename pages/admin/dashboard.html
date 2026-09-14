@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Admin Dashboard | English Center</title>
+
+    <!-- Từ pages/admin lùi 2 cấp về thư mục gốc -->
+    <link
+        rel="stylesheet"
+        href="../../css/admin.css"
+    >
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- =========================
+         SIDEBAR
+    ========================== -->
+
+    <aside class="sidebar" id="sidebar">
+
+        <div class="brand">
+
+            <div class="brand-logo">
+                EC
+            </div>
+
+            <div class="brand-info">
+                <h2>English Center</h2>
+                <p>ADMINISTRATION</p>
+            </div>
+
+        </div>
+
+
+        <nav class="nav">
+
+            <p class="nav-title">
+                TỔNG QUAN
+            </p>
+
+            <a
+                href="#dashboard"
+                data-route="dashboard"
+                class="nav-item active"
+            >
+                <span class="nav-icon">⌂</span>
+                <span>Dashboard</span>
+            </a>
+
+
+            <p class="nav-title">
+                QUẢN LÝ
+            </p>
+
+            <a href="#users" data-route="users" class="nav-item">
+                <span class="nav-icon">👤</span>
+                <span>Người dùng</span>
+            </a>
+
+            <a href="#students" data-route="students" class="nav-item">
+                <span class="nav-icon">🎓</span>
+                <span>Học viên</span>
+            </a>
+
+            <a href="#teachers" data-route="teachers" class="nav-item">
+                <span class="nav-icon">👨‍🏫</span>
+                <span>Giáo viên</span>
+            </a>
+
+            <a href="#courses" data-route="courses" class="nav-item">
+                <span class="nav-icon">📚</span>
+                <span>Khóa học</span>
+            </a>
+
+            <a href="#schedules" data-route="schedules" class="nav-item">
+                <span class="nav-icon">📅</span>
+                <span>Lịch học</span>
+            </a>
+
+            <a href="#enrollments" data-route="enrollments" class="nav-item">
+                <span class="nav-icon">📝</span>
+                <span>Ghi danh</span>
+            </a>
+
+
+            <p class="nav-title">
+                HỌC TẬP
+            </p>
+
+            <a href="#exams" data-route="exams" class="nav-item">
+                <span class="nav-icon">📋</span>
+                <span>Bài kiểm tra</span>
+            </a>
+
+            <a href="#grades" data-route="grades" class="nav-item">
+                <span class="nav-icon">📊</span>
+                <span>Điểm số</span>
+            </a>
+
+
+            <p class="nav-title">
+                TÀI CHÍNH
+            </p>
+
+            <a href="#invoices" data-route="invoices" class="nav-item">
+                <span class="nav-icon">💳</span>
+                <span>Hóa đơn</span>
+            </a>
+
+            <a href="#certificates" data-route="certificates" class="nav-item">
+                <span class="nav-icon">🏆</span>
+                <span>Chứng chỉ</span>
+            </a>
+
+
+            <p class="nav-title">
+                HỆ THỐNG
+            </p>
+
+            <a href="#audit-logs" data-route="audit-logs" class="nav-item">
+                <span class="nav-icon">🕘</span>
+                <span>Nhật ký hệ thống</span>
+            </a>
+
+            <a href="#notifications" data-route="notifications" class="nav-item">
+                <span class="nav-icon">🔔</span>
+                <span>Thông báo</span>
+            </a>
+
+            <a href="#trash" data-route="trash" class="nav-item">
+                <span class="nav-icon">♻</span>
+                <span>Thùng rác</span>
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-profile">
+
+            <div
+                class="profile-avatar"
+                id="sidebarAvatar"
+            >
+                A
+            </div>
+
+            <div class="profile-info">
+
+                <strong id="sidebarUserName">
+                    Admin
+                </strong>
+
+                <span id="sidebarUserRole">
+                    Admin
+                </span>
+
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <!-- =========================
+         OVERLAY MOBILE
+    ========================== -->
+
+    <div
+        class="sidebar-overlay"
+        id="sidebarOverlay"
+    ></div>
+
+
+    <!-- =========================
+         MAIN
+    ========================== -->
+
+    <main class="main">
+
+        <!-- HEADER -->
+
+        <header class="header">
+
+            <div class="header-left">
+
+                <button
+                    type="button"
+                    class="menu-button"
+                    id="menuButton"
+                >
+                    ☰
+                </button>
+
+                <div>
+                    <h1>Dashboard</h1>
+
+                    <p>
+                        Tổng quan hệ thống English Center
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div class="header-right">
+
+                <div class="header-profile">
+
+                    <div
+                        class="header-avatar"
+                        id="headerAvatar"
+                    >
+                        A
+                    </div>
+
+                    <div class="header-profile-info">
+
+                        <strong id="headerUserName">
+                            Admin
+                        </strong>
+
+                        <span id="headerRole">
+                            Admin
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    id="logoutButton"
+                    class="logout-button"
+                >
+                    Đăng xuất
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <!-- =========================
+             CONTENT
+        ========================== -->
+
+        <div class="content" id="adminContent">
+
+            <!-- WELCOME -->
+
+            <section class="welcome">
+
+                <div class="welcome-content">
+
+                    <span class="welcome-label">
+                        ENGLISH CENTER
+                    </span>
+
+                    <h2>
+                        Xin chào,
+                        <span id="welcomeUserName">
+                            Admin
+                        </span>
+                        👋
+                    </h2>
+
+                    <p>
+                        Chào mừng bạn quay trở lại.
+                        Theo dõi và quản lý toàn bộ hoạt động
+                        của trung tâm tại đây.
+                    </p>
+
+                </div>
+
+
+                <div class="welcome-logo">
+                    EC
+                </div>
+
+            </section>
+
+
+            <!-- TITLE -->
+
+            <div class="section-header">
+
+                <div>
+                    <h2>Tổng quan</h2>
+
+                    <p>
+                        Thống kê dữ liệu hiện tại của hệ thống
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="refresh-button"
+                    id="refreshButton"
+                >
+                    ↻ Làm mới
+                </button>
+
+            </div>
+
+
+            <!-- =========================
+                 STATISTICS
+            ========================== -->
+
+            <section class="stats-grid">
+
+                <article class="stat-card">
+
+                    <div class="stat-icon">
+                        🎓
+                    </div>
+
+                    <div class="stat-info">
+                        <span>Học viên</span>
+
+                        <strong id="studentCount">
+                            —
+                        </strong>
+
+                        <small>
+                            Tổng số học viên
+                        </small>
+                    </div>
+
+                </article>
+
+
+                <article class="stat-card">
+
+                    <div class="stat-icon">
+                        📚
+                    </div>
+
+                    <div class="stat-info">
+                        <span>Khóa học</span>
+
+                        <strong id="courseCount">
+                            —
+                        </strong>
+
+                        <small>
+                            Tổng số khóa học
+                        </small>
+                    </div>
+
+                </article>
+
+
+                <article class="stat-card">
+
+                    <div class="stat-icon">
+                        📝
+                    </div>
+
+                    <div class="stat-info">
+                        <span>Ghi danh</span>
+
+                        <strong id="enrollmentCount">
+                            —
+                        </strong>
+
+                        <small>
+                            Tổng lượt ghi danh
+                        </small>
+                    </div>
+
+                </article>
+
+
+                <article class="stat-card">
+
+                    <div class="stat-icon">
+                        📋
+                    </div>
+
+                    <div class="stat-info">
+                        <span>Bài kiểm tra</span>
+
+                        <strong id="examCount">
+                            —
+                        </strong>
+
+                        <small>
+                            Tổng số bài kiểm tra
+                        </small>
+                    </div>
+
+                </article>
+
+
+                <article class="stat-card">
+
+                    <div class="stat-icon">
+                        📊
+                    </div>
+
+                    <div class="stat-info">
+                        <span>Điểm số</span>
+
+                        <strong id="gradeCount">
+                            —
+                        </strong>
+
+                        <small>
+                            Tổng số bản ghi điểm
+                        </small>
+                    </div>
+
+                </article>
+
+
+                <article class="stat-card">
+
+                    <div class="stat-icon">
+                        🏆
+                    </div>
+
+                    <div class="stat-info">
+                        <span>Chứng chỉ</span>
+
+                        <strong id="certificateCount">
+                            —
+                        </strong>
+
+                        <small>
+                            Tổng số chứng chỉ
+                        </small>
+                    </div>
+
+                </article>
+
+            </section>
+
+
+            <!-- =========================
+                 BOTTOM
+            ========================== -->
+
+            <section class="bottom-grid">
+
+                <!-- QUICK ACTION -->
+
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+                            <h3>Truy cập nhanh</h3>
+
+                            <p>
+                                Các chức năng quản lý thường dùng
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="quick-grid">
+
+                        <a
+                            href="#users"
+                            data-route="users"
+                            class="quick-item"
+                        >
+                            <div class="quick-icon">
+                                👤
+                            </div>
+
+                            <div>
+                                <strong>
+                                    Người dùng
+                                </strong>
+
+                                <span>
+                                    Tài khoản và phân quyền
+                                </span>
+                            </div>
+                        </a>
+
+
+                        <a
+                            href="#students"
+                            data-route="students"
+                            class="quick-item"
+                        >
+                            <div class="quick-icon">
+                                🎓
+                            </div>
+
+                            <div>
+                                <strong>
+                                    Học viên
+                                </strong>
+
+                                <span>
+                                    Quản lý hồ sơ học viên
+                                </span>
+                            </div>
+                        </a>
+
+
+                        <a
+                            href="#courses"
+                            data-route="courses"
+                            class="quick-item"
+                        >
+                            <div class="quick-icon">
+                                📚
+                            </div>
+
+                            <div>
+                                <strong>
+                                    Khóa học
+                                </strong>
+
+                                <span>
+                                    Quản lý khóa học
+                                </span>
+                            </div>
+                        </a>
+
+
+                        <a
+                            href="#enrollments"
+                            data-route="enrollments"
+                            class="quick-item"
+                        >
+                            <div class="quick-icon">
+                                📝
+                            </div>
+
+                            <div>
+                                <strong>
+                                    Ghi danh
+                                </strong>
+
+                                <span>
+                                    Quản lý đăng ký khóa học
+                                </span>
+                            </div>
+                        </a>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ACCOUNT -->
+
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+                            <h3>Phiên đăng nhập</h3>
+
+                            <p>
+                                Thông tin tài khoản hiện tại
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="account-list">
+
+                        <div class="account-row">
+                            <span>Tài khoản</span>
+
+                            <strong id="systemUserName">
+                                —
+                            </strong>
+                        </div>
+
+
+                        <div class="account-row">
+                            <span>Vai trò</span>
+
+                            <strong id="systemRole">
+                                —
+                            </strong>
+                        </div>
+
+
+                        <div class="account-row">
+                            <span>Trạng thái</span>
+
+                            <strong class="online">
+                                ● Đang hoạt động
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- =========================
+     JAVASCRIPT
+========================== -->
+
+<script src="../../js/config.js"></script>
+<script src="../../js/auth.js"></script>
+<script src="../../js/api.js"></script>
+<script src="../../js/toast.js"></script>
+<script src="../../js/admin/dashboard.js"></script>
+<script src="../../js/admin/admin-router.js"></script>
+
+</body>
+</html>

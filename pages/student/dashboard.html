@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Học viên | English Center</title>
+    <link rel="stylesheet" href="../../css/admin.css">
+    <link rel="stylesheet" href="../../css/student.css">
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar student-sidebar" id="studentSidebar">
+        <div class="brand"><div class="brand-logo">EC</div><div class="brand-info"><h2>English Center</h2><p>STUDENT PORTAL</p></div></div>
+        <nav class="nav">
+            <p class="nav-title">TỔNG QUAN</p>
+            <a class="nav-item active" href="#dashboard" data-student-route="dashboard"><span class="nav-icon">⌂</span><span>Trang chủ</span></a>
+            <p class="nav-title">HỌC TẬP</p>
+            <a class="nav-item" href="#courses" data-student-route="courses"><span class="nav-icon">📚</span><span>Khóa học</span></a>
+            <a class="nav-item" href="#schedules" data-student-route="schedules"><span class="nav-icon">📅</span><span>Lịch học</span></a>
+            <a class="nav-item" href="#exams" data-student-route="exams"><span class="nav-icon">📝</span><span>Bài kiểm tra</span></a>
+            <a class="nav-item" href="#grades" data-student-route="grades"><span class="nav-icon">📊</span><span>Điểm số của tôi</span></a>
+            <a class="nav-item" href="#certificates" data-student-route="certificates"><span class="nav-icon">🏆</span><span>Chứng chỉ</span></a>
+            <a class="nav-item" href="#invoices" data-student-route="invoices"><span class="nav-icon">💳</span><span>Hóa đơn & thanh toán</span></a>
+            <p class="nav-title">TÀI KHOẢN</p>
+            <a class="nav-item" href="#notifications" data-student-route="notifications"><span class="nav-icon">🔔</span><span>Thông báo</span></a>
+            <a class="nav-item" href="#profile" data-student-route="profile"><span class="nav-icon">⚙</span><span>Hồ sơ của tôi</span></a>
+        </nav>
+        <div class="sidebar-profile"><div class="profile-avatar" id="studentSidebarAvatar">H</div><div class="profile-info"><strong id="studentSidebarName">Học viên</strong><span>Học viên</span></div></div>
+    </aside>
+    <div class="sidebar-overlay" id="studentOverlay"></div>
+    <main class="main">
+        <header class="header">
+            <div class="header-left"><button type="button" class="menu-button" id="studentMenuButton">☰</button><div><h1 id="studentPageTitle">Trang chủ</h1><p id="studentPageDescription">Không gian học tập của bạn</p></div></div>
+            <div class="header-right"><div class="header-profile"><div class="header-avatar" id="studentHeaderAvatar">H</div><div class="header-profile-info"><strong id="studentHeaderName">Học viên</strong><span>Học viên</span></div></div><button type="button" class="logout-button" id="studentLogoutButton">Đăng xuất</button></div>
+        </header>
+        <div class="content" id="studentContent"></div>
+    </main>
+</div>
+<script src="../../js/config.js"></script>
+<script src="../../js/auth.js"></script>
+<script src="../../js/api.js"></script>
+<script src="../../js/toast.js"></script>
+<script src="../../js/student/dashboard.js"></script>
+</body>
+</html>

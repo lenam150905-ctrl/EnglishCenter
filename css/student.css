@@ -1,0 +1,13 @@
+.student-sidebar .brand-logo { background: linear-gradient(135deg, #0e8a72, #18b891); }
+.student-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 24px 0; }
+.student-stat { padding: 21px; border-radius: 15px; background: #fff; border: 1px solid #e7eaf0; box-shadow: 0 5px 18px rgba(26,45,78,.05); }
+.student-stat span { display: block; color: #667085; font-size: 13px; margin-bottom: 9px; }
+.student-stat strong { color: #172033; font-size: 29px; }
+.student-hero { padding: 28px; border-radius: 18px; color: #fff; background: linear-gradient(110deg, #06775f, #14a889); }
+.student-hero .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .11em; opacity: .82; }
+.student-hero h2 { margin: 9px 0; font-size: 27px; }
+.student-hero p { max-width: 590px; color: rgba(255,255,255,.9); line-height: 1.6; }
+.student-course-title { font-weight: 700; color: #1d2939; }
+.student-note { margin-top: 16px; padding: 13px 15px; border-left: 3px solid #159879; border-radius: 8px; color: #475467; background: #effcf7; font-size: 13px; line-height: 1.55; }
+.student-form { max-width: 620px; }
+@media (max-width: 850px) { .student-card-grid { grid-template-columns: 1fr; } }

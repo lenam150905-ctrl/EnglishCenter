@@ -20,7 +20,10 @@ async function apiRequest(endpoint, options = {}) {
         };
 
         // Chỉ thêm Content-Type khi có body
-        if (options.body) {
+        if (
+            options.body &&
+            !(options.body instanceof FormData)
+        ) {
             headers["Content-Type"] =
                 headers["Content-Type"] ||
                 "application/json";
@@ -55,6 +58,15 @@ async function apiRequest(endpoint, options = {}) {
 
         // Token hết hạn / không hợp lệ
         if (response.status === 401) {
+            // Endpoint đăng nhập cũng trả 401 khi sai thông tin; không báo
+            // nhầm là phiên hết hạn và không xóa dữ liệu đăng nhập ở đây.
+            if (endpoint.toLowerCase().startsWith("/auth/")) {
+                throw new Error(
+                    data?.message ||
+                    "Tên đăng nhập hoặc mật khẩu không đúng."
+                );
+            }
+
             clearAuthData();
 
             throw new Error(
@@ -144,4 +156,24 @@ function apiDelete(endpoint) {
     return apiRequest(endpoint, {
         method: "DELETE"
     });
+}
+
+async function apiDownload(endpoint, fileName) {
+    const response = await fetch(`${CONFIG.API_BASE_URL}${endpoint}`, {
+        method: "GET",
+        headers: getAccessToken() ? { "Authorization": `Bearer ${getAccessToken()}` } : {}
+    });
+    if (!response.ok) {
+        let data = null;
+        try { data = await response.json(); } catch (_) { }
+        throw new Error(data?.message || "Không thể tải tệp PDF.");
+    }
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName || "chung-chi.pdf";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
 }

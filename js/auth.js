@@ -214,8 +214,9 @@ function redirectToDashboard() {
             break;
 
         default:
+            clearAuthData();
             window.location.href =
-                "/pages/dashboard.html";
+                "/index.html";
             break;
     }
 }

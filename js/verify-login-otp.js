@@ -1,177 +1,322 @@
-const API_BASE_URL = "https://localhost:7207/api";
+// =========================
+// LẤY PHẦN TỬ HTML
+// =========================
 
-const otpForm = document.getElementById("otpForm");
-const otpInput = document.getElementById("otpInput");
-const otpError = document.getElementById("otpError");
+const otpForm =
+    document.getElementById("otpForm");
 
-const verifyOtpButton = document.getElementById("verifyOtpButton");
-const buttonText = document.getElementById("buttonText");
-const buttonLoading = document.getElementById("buttonLoading");
+const otpInput =
+    document.getElementById("otpInput");
 
-const resendOtpButton = document.getElementById("resendOtpButton");
+const otpError =
+    document.getElementById("otpError");
 
-otpInput.addEventListener("input", function () {
-    this.value = this.value.replace(/\D/g, "").slice(0, 6);
-});
+const verifyOtpButton =
+    document.getElementById("verifyOtpButton");
+
+const buttonText =
+    document.getElementById("buttonText");
+
+const buttonLoading =
+    document.getElementById("buttonLoading");
+
+const resendOtpButton =
+    document.getElementById("resendOtpButton");
+
+
+// =========================
+// THÔNG TIN LOGIN ĐANG CHỜ OTP
+// =========================
 
 const pendingLoginUserName =
-    sessionStorage.getItem("pendingLoginUserName");
+    sessionStorage.getItem(
+        "pendingLoginUserName"
+    );
+
+const pendingRememberMe =
+    sessionStorage.getItem(
+        "pendingRememberMe"
+    ) === "true";
+
+
+// Nếu không có username đang chờ OTP
+// thì quay về Login
 
 if (!pendingLoginUserName) {
-    window.location.href = "../index.html";
+
+    window.location.href =
+        "../index.html";
 }
+
+
+// =========================
+// CHỈ CHO NHẬP 6 CHỮ SỐ
+// =========================
+
+otpInput.addEventListener(
+    "input",
+    function () {
+
+        this.value =
+            this.value
+                .replace(/\D/g, "")
+                .slice(0, 6);
+    }
+);
+
+
+// =========================
+// HIỂN THỊ LỖI
+// =========================
 
 function showOtpError(message) {
-    otpError.textContent = message;
-    otpError.style.display = "block";
+
+    otpError.textContent =
+        message;
+
+    otpError.style.display =
+        "block";
 }
+
 
 function hideOtpError() {
-    otpError.textContent = "";
-    otpError.style.display = "none";
-}
 
-function setLoading(isLoading) {
-    verifyOtpButton.disabled = isLoading;
-
-    if (isLoading) {
-        buttonText.style.display = "none";
-        buttonLoading.style.display = "inline";
-    } else {
-        buttonText.style.display = "inline";
-        buttonLoading.style.display = "none";
-    }
-}
-
-function saveLoginData(data, token) {
-    const auth = data.auth || data.Auth || {};
-
-    const userName =
-        data.userName ||
-        data.UserName ||
-        auth.userName ||
-        auth.UserName ||
-        pendingLoginUserName;
-
-    const role =
-        data.role ||
-        data.Role ||
-        auth.role ||
-        auth.Role ||
+    otpError.textContent =
         "";
 
-    localStorage.setItem("accessToken", token);
-    localStorage.setItem("userName", userName);
-    localStorage.setItem("role", role);
-
-    localStorage.setItem("currentUser", JSON.stringify({
-        userName: userName,
-        role: role
-    }));
+    otpError.style.display =
+        "none";
 }
 
-otpForm.addEventListener("submit", async function (event) {
-    event.preventDefault();
 
-    const otp = otpInput.value.trim();
+// =========================
+// LOADING
+// =========================
 
-    if (otp === "") {
-        showOtpError("Vui lòng nhập mã OTP.");
-        return;
+function setOtpLoading(isLoading) {
+
+    verifyOtpButton.disabled =
+        isLoading;
+
+
+    if (isLoading) {
+
+        buttonText.style.display =
+            "none";
+
+        buttonLoading.style.display =
+            "inline";
+
+    } else {
+
+        buttonText.style.display =
+            "inline";
+
+        buttonLoading.style.display =
+            "none";
     }
+}
 
-    if (!/^\d{6}$/.test(otp)) {
-        showOtpError("Mã OTP phải gồm 6 chữ số.");
-        return;
-    }
 
-    hideOtpError();
-    setLoading(true);
+// =========================
+// XÁC THỰC OTP
+// =========================
 
-    try {
-        const response = await fetch(
-            `${API_BASE_URL}/Auth/verify-login-otp`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    userName: pendingLoginUserName,
-                    otp: otp
-                })
-            }
-        );
+otpForm.addEventListener(
+    "submit",
+    async function (event) {
 
-        const data = await response.json();
+        event.preventDefault();
 
-        if (!response.ok) {
+
+        const otp =
+            otpInput.value.trim();
+
+
+        // =========================
+        // VALIDATE
+        // =========================
+
+        if (otp === "") {
+
             showOtpError(
-                data.message || "Mã OTP không đúng hoặc đã hết hạn."
+                "Vui lòng nhập mã OTP."
             );
+
             return;
         }
 
-        const auth = data.auth || data.Auth || {};
 
-        const token =
-            auth.token ||
-            auth.Token ||
-            data.token ||
-            data.Token ||
-            data.accessToken ||
-            data.AccessToken;
+        if (!/^\d{6}$/.test(otp)) {
 
-        if (!token) {
-            showOtpError("Xác thực OTP thành công nhưng không nhận được token.");
+            showOtpError(
+                "Mã OTP phải gồm 6 chữ số."
+            );
+
             return;
         }
 
-        saveLoginData(data, token);
 
-        sessionStorage.removeItem("pendingLoginUserName");
+        hideOtpError();
 
-        window.location.href = "dashboard.html";
+        setOtpLoading(true);
 
-    } catch (error) {
-        console.error("Verify OTP error:", error);
-        showOtpError("Không thể kết nối đến máy chủ.");
-    } finally {
-        setLoading(false);
-    }
-});
 
-resendOtpButton.addEventListener("click", async function () {
-    if (!pendingLoginUserName) {
-        showOtpError("Không tìm thấy thông tin tài khoản.");
-        return;
-    }
+        try {
 
-    try {
-        const response = await fetch(
-            `${API_BASE_URL}/Auth/send-login-otp`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    userName: pendingLoginUserName
-                })
+            // =========================
+            // GỌI API
+            // =========================
+
+            const data =
+                await apiPost(
+                    "/Auth/verify-login-otp",
+                    {
+                        userName:
+                            pendingLoginUserName,
+
+                        otp: otp
+                    }
+                );
+
+
+            // =========================
+            // LẤY TOKEN
+            // =========================
+
+            const auth =
+                data.auth ||
+                data.Auth ||
+                {};
+
+
+            const token =
+                auth.token ||
+                auth.Token ||
+                data.token ||
+                data.Token ||
+                data.accessToken ||
+                data.AccessToken;
+
+
+            if (!token) {
+
+                showOtpError(
+                    "Xác thực OTP thành công nhưng không nhận được token."
+                );
+
+                return;
             }
-        );
 
-        const data = await response.json();
 
-        if (!response.ok) {
-            showOtpError(data.message || "Không thể gửi lại mã OTP.");
+            // =========================
+            // LƯU AUTH
+            // =========================
+
+            saveAuthData(
+                data,
+                token,
+                pendingRememberMe
+            );
+
+
+            // =========================
+            // XÓA DỮ LIỆU TẠM
+            // =========================
+
+            sessionStorage.removeItem(
+                "pendingLoginUserName"
+            );
+
+            sessionStorage.removeItem(
+                "pendingRememberMe"
+            );
+
+
+            // =========================
+            // ĐI DASHBOARD THEO ROLE
+            // =========================
+
+            redirectToDashboard();
+
+        } catch (error) {
+
+            console.error(
+                "Verify OTP error:",
+                error
+            );
+
+
+            showOtpError(
+                error.message ||
+                "Không thể xác thực mã OTP."
+            );
+
+        } finally {
+
+            setOtpLoading(false);
+        }
+    }
+);
+
+
+// =========================
+// GỬI LẠI OTP
+// =========================
+
+resendOtpButton.addEventListener(
+    "click",
+    async function () {
+
+        if (!pendingLoginUserName) {
+
+            showOtpError(
+                "Không tìm thấy thông tin tài khoản."
+            );
+
             return;
         }
 
-        alert("Mã OTP mới đã được gửi đến email của bạn.");
 
-    } catch (error) {
-        console.error("Resend OTP error:", error);
-        showOtpError("Không thể kết nối đến máy chủ.");
+        resendOtpButton.disabled =
+            true;
+
+
+        try {
+
+            await apiPost(
+                "/Auth/send-login-otp",
+                {
+                    userName:
+                        pendingLoginUserName
+                }
+            );
+
+
+            hideOtpError();
+
+
+            alert(
+                "Mã OTP mới đã được gửi đến email của bạn."
+            );
+
+        } catch (error) {
+
+            console.error(
+                "Resend OTP error:",
+                error
+            );
+
+
+            showOtpError(
+                error.message ||
+                "Không thể gửi lại mã OTP."
+            );
+
+        } finally {
+
+            resendOtpButton.disabled =
+                false;
+        }
     }
-});
+);

@@ -1,19 +1,30 @@
-const API_BASE_URL = "https://localhost:7207/api";
-
 // =========================
 // Lấy phần tử HTML
 // =========================
 
-const loginForm = document.getElementById("loginForm");
+const loginForm =
+    document.getElementById("loginForm");
 
-const loginInput = document.getElementById("loginInput");
-const passwordInput = document.getElementById("password");
-const rememberMeInput = document.getElementById("rememberMe");
+const loginInput =
+    document.getElementById("loginInput");
 
-const loginButton = document.getElementById("loginButton");
-const loginButtonText = document.getElementById("loginButtonText");
-const loginLoading = document.getElementById("loginLoading");
-const loginMessage = document.getElementById("loginMessage");
+const passwordInput =
+    document.getElementById("password");
+
+const rememberMeInput =
+    document.getElementById("rememberMe");
+
+const loginButton =
+    document.getElementById("loginButton");
+
+const loginButtonText =
+    document.getElementById("loginButtonText");
+
+const loginLoading =
+    document.getElementById("loginLoading");
+
+const loginMessage =
+    document.getElementById("loginMessage");
 
 const togglePasswordButton =
     document.getElementById("togglePassword");
@@ -31,69 +42,39 @@ const registerLink =
 
 function showMessage(message, type = "error") {
     loginMessage.textContent = message;
-    loginMessage.className = `login-message ${type}`;
+
+    loginMessage.className =
+        `login-message ${type}`;
 }
 
 function showError(message) {
     showMessage(message, "error");
 }
 
-function hideError() {
+function hideMessage() {
     loginMessage.textContent = "";
     loginMessage.className = "login-message";
 }
 
 
 // =========================
-// Trạng thái loading
+// Loading
 // =========================
 
 function setLoading(isLoading) {
     loginButton.disabled = isLoading;
 
     if (isLoading) {
-        loginButtonText.textContent = "Đang đăng nhập...";
+        loginButtonText.textContent =
+            "Đang đăng nhập...";
+
         loginLoading.classList.remove("hidden");
     } else {
-        loginButtonText.textContent = "Đăng nhập";
+        loginButtonText.textContent =
+            "Đăng nhập";
+
         loginLoading.classList.add("hidden");
     }
-}
-
-
-// =========================
-// Lưu dữ liệu đăng nhập
-// =========================
-
-function saveLoginData(data, token, rememberMe) {
-    const storage = rememberMe
-        ? localStorage
-        : sessionStorage;
-
-    const auth = data.auth || data.Auth || {};
-
-    const userName =
-        data.userName ||
-        data.UserName ||
-        auth.userName ||
-        auth.UserName ||
-        "";
-
-    const role =
-        data.role ||
-        data.Role ||
-        auth.role ||
-        auth.Role ||
-        "";
-
-    storage.setItem("accessToken", token);
-    storage.setItem("userName", userName);
-    storage.setItem("role", role);
-
-    storage.setItem("currentUser", JSON.stringify({
-        userName: userName,
-        role: role
-    }));
 }
 
 
@@ -101,114 +82,159 @@ function saveLoginData(data, token, rememberMe) {
 // Xử lý đăng nhập
 // =========================
 
-loginForm.addEventListener("submit", async function (event) {
-    event.preventDefault();
+loginForm.addEventListener(
+    "submit",
+    async function (event) {
 
-    const loginValue = loginInput.value.trim();
-    const password = passwordInput.value;
+        event.preventDefault();
 
-    if (loginValue === "" || password === "") {
-        showError("Vui lòng nhập đầy đủ thông tin đăng nhập.");
-        return;
-    }
+        const loginValue =
+            loginInput.value.trim();
 
-    setLoading(true);
-    hideError();
+        const password =
+            passwordInput.value;
 
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 15000);
-
-    try {
-        // Tránh để giao diện ở trạng thái loading vô hạn khi API/SSL bị treo.
-        const response = await fetch(`${API_BASE_URL}/Auth/login`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            signal: controller.signal,
-            body: JSON.stringify({
-                userName: loginValue,
-                password: password
-            })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            showError(data.message || "Tên đăng nhập hoặc mật khẩu không đúng.");
-            return;
-        }
-
-        /*
-         * Bước 1:
-         * API yêu cầu xác thực OTP
-         */
-        const requiresTwoFactor =
-            data.requiresTwoFactor === true ||
-            data.RequiresTwoFactor === true;
-
-        if (requiresTwoFactor) {
-            sessionStorage.setItem(
-                "pendingLoginUserName",
-                data.userName || data.UserName || loginValue
+        if (
+            loginValue === "" ||
+            password === ""
+        ) {
+            showError(
+                "Vui lòng nhập đầy đủ thông tin đăng nhập."
             );
 
-            window.location.href = "pages/verify-login-otp.html";
             return;
         }
 
-        /*
-         * Trường hợp API không yêu cầu OTP
-         * thì mới lấy token trực tiếp
-         */
-        const auth = data.auth || data.Auth || {};
+        setLoading(true);
+        hideMessage();
 
-        const token =
-            auth.token ||
-            auth.Token ||
-            data.token ||
-            data.Token ||
-            data.accessToken ||
-            data.AccessToken;
+        try {
 
-        if (!token) {
-            showError("Đăng nhập thành công nhưng không nhận được token.");
-            return;
+            const data = await apiPost(
+                "/Auth/login",
+                {
+                    userName: loginValue,
+                    password: password
+                }
+            );
+
+            // =========================
+            // Kiểm tra OTP
+            // =========================
+
+            const requiresTwoFactor =
+                data?.requiresTwoFactor === true ||
+                data?.RequiresTwoFactor === true;
+
+            if (requiresTwoFactor) {
+
+                sessionStorage.setItem(
+                    "pendingLoginUserName",
+                    data.userName ||
+                    data.UserName ||
+                    loginValue
+                );
+
+                /*
+                 * Quan trọng:
+                 * Lưu trạng thái rememberMe
+                 * để sau khi xác thực OTP biết
+                 * nên dùng localStorage hay sessionStorage.
+                 */
+                sessionStorage.setItem(
+                    "pendingRememberMe",
+                    rememberMeInput.checked
+                        ? "true"
+                        : "false"
+                );
+
+                window.location.href =
+                    "pages/verify-login-otp.html";
+
+                return;
+            }
+
+            // =========================
+            // Lấy token
+            // =========================
+
+            const auth =
+                data.auth ||
+                data.Auth ||
+                {};
+
+            const token =
+                auth.token ||
+                auth.Token ||
+                data.token ||
+                data.Token ||
+                data.accessToken ||
+                data.AccessToken;
+
+            if (!token) {
+                showError(
+                    "Đăng nhập thành công nhưng không nhận được token."
+                );
+
+                return;
+            }
+
+            // =========================
+            // Lưu Auth
+            // =========================
+
+            saveAuthData(
+                data,
+                token,
+                rememberMeInput.checked
+            );
+
+            // =========================
+            // Chuyển Dashboard
+            // =========================
+
+            redirectToDashboard();
+
+        } catch (error) {
+
+            console.error(
+                "Login error:",
+                error
+            );
+
+            showError(
+                error.message ||
+                "Không thể kết nối đến máy chủ."
+            );
+
+        } finally {
+
+            setLoading(false);
         }
-
-        saveLoginData(data, token, rememberMeInput.checked);
-
-        window.location.href = "pages/dashboard.html";
-
-    } catch (error) {
-        console.error("Login error:", error);
-        showError(
-            error.name === "AbortError"
-                ? "Máy chủ phản hồi quá lâu. Vui lòng thử lại."
-                : "Không thể kết nối đến máy chủ."
-        );
-    } finally {
-        window.clearTimeout(timeoutId);
-        setLoading(false);
     }
-});
+);
 
 
 // =========================
-// Hiện/ẩn mật khẩu
+// Hiện / ẩn mật khẩu
 // =========================
 
 togglePasswordButton.addEventListener(
     "click",
     function () {
+
         const isPassword =
             passwordInput.type === "password";
 
         passwordInput.type =
-            isPassword ? "text" : "password";
+            isPassword
+                ? "text"
+                : "password";
 
         togglePasswordButton.textContent =
-            isPassword ? "🙈" : "👁";
+            isPassword
+                ? "🙈"
+                : "👁";
     }
 );
 
@@ -220,6 +246,7 @@ togglePasswordButton.addEventListener(
 forgotPasswordLink.addEventListener(
     "click",
     function (event) {
+
         event.preventDefault();
 
         window.location.href =
@@ -229,12 +256,13 @@ forgotPasswordLink.addEventListener(
 
 
 // =========================
-// Đăng ký tài khoản
+// Đăng ký
 // =========================
 
 registerLink.addEventListener(
     "click",
     function (event) {
+
         event.preventDefault();
 
         window.location.href =
