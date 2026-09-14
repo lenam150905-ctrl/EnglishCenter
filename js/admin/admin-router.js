@@ -148,12 +148,12 @@
             var payload = Object.fromEntries(new FormData(event.target).entries());
             view.fields.forEach(function (item) { if (item[2] === "number" || item[2] === "lookup") payload[item[0]] = payload[item[0]] === "" ? null : Number(payload[item[0]]); });
             if (name === "users" && record && !payload.password) delete payload.password;
-            try { await apiRequest(view.endpoint + (record ? "/" + record.id : ""), { method: record ? "PUT" : "POST", body: JSON.stringify(payload) }); close(); reload(); }
+            try { await apiRequest(view.endpoint + (record ? "/" + record.id : ""), { method: record ? "PUT" : "POST", body: JSON.stringify(payload) }); close(); alert(record ? "Cập nhật thành công." : "Thêm mới thành công."); reload(); }
             catch (error) { alert(error.message); }
         };
     }
     async function remove(view, id, reload) { if (!confirm("Bạn có chắc muốn xóa bản ghi này?")) return; try { await apiDelete(view.endpoint + "/" + id); reload(); } catch (error) { alert(error.message); } }
-    async function action(endpoint, id, operation, method, reload) { if (operation === "cancel" && !confirm("Bạn có chắc muốn hủy?")) return; try { await apiRequest(endpoint + "/" + id + "/" + operation, { method: method }); reload(); } catch (error) { alert(error.message); } }
+    async function action(endpoint, id, operation, method, reload) { if (operation === "cancel" && !confirm("Bạn có chắc muốn hủy?")) return; try { await apiRequest(endpoint + "/" + id + "/" + operation, { method: method }); alert("Thao tác thành công."); reload(); } catch (error) { alert(error.message); } }
     async function readAllNotifications(reload) { try { await apiPut("/Notifications/read-all", {}); reload(); } catch (error) { alert(error.message); } }
     async function deleteNotification(id, reload) { if (!confirm("Bạn có chắc muốn xóa thông báo này?")) return; try { await apiDelete("/Notifications/" + id); reload(); } catch (error) { alert(error.message); } }
     async function restoreDeleted(entity, id, reload) { if (!confirm("Khôi phục bản ghi này?")) return; try { await apiPut("/Trash/" + encodeURIComponent(entity) + "/" + id + "/restore", {}); reload(); } catch (error) { alert(error.message); } }

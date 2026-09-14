@@ -130,11 +130,13 @@ function apiPost(endpoint, body) {
 // PUT
 // =========================
 
-function apiPut(endpoint, body) {
-    return apiRequest(endpoint, {
+async function apiPut(endpoint, body) {
+    const result = await apiRequest(endpoint, {
         method: "PUT",
         body: JSON.stringify(body)
     });
+    if (window.showToast) window.showToast(endpoint.includes("/restore") ? "Khôi phục thành công." : "Cập nhật thành công.", "success");
+    return result;
 }
 
 // =========================
@@ -152,10 +154,12 @@ function apiPatch(endpoint, body) {
 // DELETE
 // =========================
 
-function apiDelete(endpoint) {
-    return apiRequest(endpoint, {
+async function apiDelete(endpoint) {
+    const result = await apiRequest(endpoint, {
         method: "DELETE"
     });
+    if (window.showToast) window.showToast("Xóa thành công.", "success");
+    return result;
 }
 
 async function apiDownload(endpoint, fileName) {

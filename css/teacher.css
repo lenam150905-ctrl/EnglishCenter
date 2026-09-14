@@ -2,4 +2,5 @@
 .teacher-hero { padding: 28px; border-radius: 18px; color: #fff; background: linear-gradient(110deg, #bd4a0b, #e88122); }
 .teacher-hero h2 { margin: 8px 0; font-size: 27px; }.teacher-hero p { opacity: .9; line-height: 1.6; }
 .teacher-overview { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin:22px 0; }.teacher-overview article { background:#fff; border:1px solid #e7eaf0; border-radius:14px; padding:20px; }.teacher-overview span { color:#667085; font-size:13px; display:block; margin-bottom:8px; }.teacher-overview strong { font-size:28px; color:#1d2939; }
+.teacher-quick { padding: 22px; border: 1px solid #e7eaf0; border-radius: 14px; background: #fff; }.teacher-quick h2 { margin: 0 0 15px; font-size: 18px; color: #1d2939; }.teacher-quick div { display: flex; flex-wrap: wrap; gap: 10px; }.teacher-quick button { border: 0; border-radius: 9px; padding: 11px 14px; cursor: pointer; background: #fff1e8; color: #a6440c; font: inherit; font-weight: 650; }.teacher-quick button:hover { background: #ffe3d0; }
 @media(max-width:800px){.teacher-overview{grid-template-columns:1fr;}}
