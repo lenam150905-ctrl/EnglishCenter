@@ -17,4 +17,18 @@
     }
     window.showToast = showToast;
     window.alert = function (message) { showToast(message, /lỗi|không thể|không có quyền|hết hạn/i.test(String(message)) ? "error" : "success"); };
+    window.appConfirm = function (message, title) {
+        return new Promise(function (resolve) {
+            var modal = document.createElement("div");
+            modal.className = "app-confirm-backdrop";
+            modal.innerHTML = '<div class="app-confirm" role="dialog" aria-modal="true"><div class="confirm-icon">!</div><h3></h3><p></p><div><button type="button" class="secondary-button" data-cancel>Hủy</button><button type="button" class="table-button danger" data-accept>Xác nhận</button></div></div>';
+            modal.querySelector("h3").textContent = title || "Xác nhận thao tác";
+            modal.querySelector("p").textContent = message || "Bạn có chắc muốn tiếp tục?";
+            function close(value) { modal.remove(); resolve(value); }
+            modal.querySelector("[data-cancel]").onclick = function () { close(false); };
+            modal.querySelector("[data-accept]").onclick = function () { close(true); };
+            modal.onclick = function (event) { if (event.target === modal) close(false); };
+            document.body.appendChild(modal);
+        });
+    };
 })();

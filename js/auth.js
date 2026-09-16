@@ -140,7 +140,10 @@ function clearAuthData() {
 // Logout
 // =========================
 
-function logout() {
+async function logout() {
+    if (window.appConfirm && !(await window.appConfirm("Bạn có chắc muốn đăng xuất?", "Đăng xuất"))) {
+        return;
+    }
     clearAuthData();
 
     window.location.href = "/index.html";

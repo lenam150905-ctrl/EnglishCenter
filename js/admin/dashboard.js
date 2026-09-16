@@ -400,21 +400,7 @@ function initLogout() {
 
     logoutButton.addEventListener(
         "click",
-        function () {
-
-            const confirmed =
-                window.confirm(
-                    "Bạn có chắc muốn đăng xuất?"
-                );
-
-
-            if (!confirmed) {
-                return;
-            }
-
-
-            logout();
-        }
+        function () { logout(); }
     );
 }
 

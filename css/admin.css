@@ -1289,6 +1289,7 @@ button {
 
 /* Thông báo gọn thay cho hộp alert của trình duyệt. */
 .toast-host { position: fixed; z-index: 200; top: 96px; right: 22px; display: grid; gap: 10px; width: min(360px, calc(100vw - 32px)); }
+.portal-footer { margin: 0 28px 24px; padding: 16px 20px; text-align: center; color: #667085; font-size: 13px; background: #fff; border: 1px solid #e7eaf0; border-radius: 12px; }.portal-footer a { color: #2457c5; font-weight: 650; text-decoration: none; }.portal-footer a:hover { text-decoration: underline; }
 .app-toast { display: flex; align-items: center; gap: 10px; padding: 13px 14px; color: #15325a; background: #fff; border: 1px solid #dce6f7; border-radius: 11px; box-shadow: 0 13px 28px rgba(20, 43, 81, .18); animation: toastIn .2s ease-out; }
 .app-toast.success { border-left: 4px solid #22a06b; }
 .app-toast.error { border-left: 4px solid #d64444; }
@@ -1298,3 +1299,4 @@ button {
 .toast-close { border: 0; background: transparent; color: #667085; font-size: 21px; cursor: pointer; }
 .app-toast.leaving { opacity: 0; transform: translateX(12px); transition: .18s ease; }
 @keyframes toastIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+.app-confirm-backdrop { position: fixed; z-index: 300; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(16,24,40,.48); }.app-confirm { width: min(390px,100%); padding: 26px; text-align: center; background: #fff; border-radius: 16px; box-shadow: 0 22px 52px rgba(16,24,40,.25); }.confirm-icon { display: grid; place-items: center; width: 42px; height: 42px; margin: 0 auto 12px; border-radius: 50%; color: #b42318; background: #fff0f0; font-size: 22px; font-weight: 800; }.app-confirm h3 { margin: 0; color: #1d2939; }.app-confirm p { margin: 9px 0 20px; color: #667085; line-height: 1.5; }.app-confirm > div:last-child { display: flex; justify-content: center; gap: 10px; }

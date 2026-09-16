@@ -152,11 +152,11 @@
             catch (error) { alert(error.message); }
         };
     }
-    async function remove(view, id, reload) { if (!confirm("Bạn có chắc muốn xóa bản ghi này?")) return; try { await apiDelete(view.endpoint + "/" + id); reload(); } catch (error) { alert(error.message); } }
-    async function action(endpoint, id, operation, method, reload) { if (operation === "cancel" && !confirm("Bạn có chắc muốn hủy?")) return; try { await apiRequest(endpoint + "/" + id + "/" + operation, { method: method }); alert("Thao tác thành công."); reload(); } catch (error) { alert(error.message); } }
+    async function remove(view, id, reload) { if (!(await appConfirm("Bạn có chắc muốn xóa bản ghi này?", "Xóa dữ liệu"))) return; try { await apiDelete(view.endpoint + "/" + id); reload(); } catch (error) { alert(error.message); } }
+    async function action(endpoint, id, operation, method, reload) { if (operation === "cancel" && !(await appConfirm("Bạn có chắc muốn hủy?", "Hủy thao tác"))) return; try { await apiRequest(endpoint + "/" + id + "/" + operation, { method: method }); alert("Thao tác thành công."); reload(); } catch (error) { alert(error.message); } }
     async function readAllNotifications(reload) { try { await apiPut("/Notifications/read-all", {}); reload(); } catch (error) { alert(error.message); } }
-    async function deleteNotification(id, reload) { if (!confirm("Bạn có chắc muốn xóa thông báo này?")) return; try { await apiDelete("/Notifications/" + id); reload(); } catch (error) { alert(error.message); } }
-    async function restoreDeleted(entity, id, reload) { if (!confirm("Khôi phục bản ghi này?")) return; try { await apiPut("/Trash/" + encodeURIComponent(entity) + "/" + id + "/restore", {}); reload(); } catch (error) { alert(error.message); } }
+    async function deleteNotification(id, reload) { if (!(await appConfirm("Bạn có chắc muốn xóa thông báo này?", "Xóa thông báo"))) return; try { await apiDelete("/Notifications/" + id); reload(); } catch (error) { alert(error.message); } }
+    async function restoreDeleted(entity, id, reload) { if (!(await appConfirm("Khôi phục bản ghi này?", "Khôi phục dữ liệu"))) return; try { await apiPut("/Trash/" + encodeURIComponent(entity) + "/" + id + "/restore", {}); reload(); } catch (error) { alert(error.message); } }
     async function pay(id) { try { var result = await apiPost("/Payments/create-vnpay/" + id, {}); var url = result && (result.paymentUrl || result.url); if (url) window.open(url, "_blank", "noopener"); else alert("Đã tạo yêu cầu thanh toán."); } catch (error) { alert(error.message); } }
     async function importStudents(file, reload) { if (!file) return; var form = new FormData(); form.append("file", file); try { await apiRequest("/Students/import-excel", { method: "POST", body: form }); alert("File đã được đưa vào hàng đợi nhập."); reload(); } catch (error) { alert(error.message); } }
     function render(name) {

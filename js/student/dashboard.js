@@ -59,7 +59,11 @@
             readAllButton.type = "button";
             readAllButton.className = "secondary-button";
             readAllButton.textContent = "✓ Đã đọc tất cả";
-            document.getElementById("studentRefresh").before(readAllButton);
+            var refreshButton = document.getElementById("studentRefresh");
+            var actions = document.createElement("div");
+            actions.className = "page-actions";
+            refreshButton.parentNode.insertBefore(actions, refreshButton);
+            actions.append(readAllButton, refreshButton);
             readAllButton.onclick = function () { readAll(reload); };
         }
         var timer, page = 1;
@@ -113,7 +117,7 @@
     async function payInvoice(id) { try { var result = await apiPost("/Payments/create-vnpay/" + id, {}); var url = result && (result.paymentUrl || result.url); if (!url) throw new Error("Không nhận được liên kết thanh toán."); window.location.assign(url); } catch (error) { alert(error.message); } }
     async function markRead(id, reload) { try { await apiPut("/Notifications/" + id + "/read", {}); reload(); } catch (error) { alert(error.message); } }
     async function readAll(reload) { try { await apiPut("/Notifications/read-all", {}); reload(); } catch (error) { alert(error.message); } }
-    async function deleteNotification(id, reload) { if (!confirm("Bạn có chắc muốn xóa thông báo này?")) return; try { await apiDelete("/Notifications/" + id); reload(); } catch (error) { alert(error.message); } }
+    async function deleteNotification(id, reload) { if (!(await appConfirm("Bạn có chắc muốn xóa thông báo này?", "Xóa thông báo"))) return; try { await apiDelete("/Notifications/" + id); reload(); } catch (error) { alert(error.message); } }
     async function profilePage() {
         setHeader("Hồ sơ của tôi", "Cập nhật thông tin dùng cho các thao tác học tập");
         content.innerHTML = '<section class="admin-page student-form"><div class="section-header"><div><h2>Hồ sơ học viên</h2><p>Đang tải thông tin hồ sơ…</p></div></div></section>';
