@@ -67,10 +67,8 @@ async function apiRequest(endpoint, options = {}) {
                 );
             }
 
-            clearAuthData();
-
             throw new Error(
-                "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+                "Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại nếu lỗi tiếp diễn."
             );
         }
 

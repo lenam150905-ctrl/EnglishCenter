@@ -223,3 +223,13 @@ function redirectToDashboard() {
             break;
     }
 }
+
+// VNPay có thể trả kết quả ở tab/cửa sổ khác; sessionStorage không được
+// chia sẻ giữa các tab. Sao chép phiên hiện tại để trang kết quả quay về
+// đúng dashboard sau thanh toán hoặc hủy thanh toán.
+function preserveAuthForPaymentReturn() {
+    ["accessToken", "userName", "role", "currentUser"].forEach(function (key) {
+        const value = localStorage.getItem(key) || sessionStorage.getItem(key);
+        if (value) localStorage.setItem(key, value);
+    });
+}

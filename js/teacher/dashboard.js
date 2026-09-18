@@ -8,6 +8,7 @@
     exams: make("Bài kiểm tra", "/Exams", [["examName","Tên bài"],["examType","Loại"],["courseName","Khóa học"],["examDate","Ngày thi"]], [["examName","Tên bài kiểm tra","text"],["examType","Loại bài","text"],["examDate","Ngày thi","datetime-local"],["courseId","Khóa học","lookup","courses"]]),
     grades: make("Điểm số", "/Grades", [["studentName","Học viên"],["examName","Bài kiểm tra"],["score","Điểm"],["comment","Nhận xét"]], [["studentId","Học viên","lookup","students"],["examId","Bài kiểm tra","lookup","exams"],["score","Điểm (0–10)","number"],["comment","Nhận xét","textarea"]]),
     certificates: make("Chứng chỉ", "/Certificates", [["certificateCode","Mã chứng chỉ"],["studentName","Học viên"],["courseName","Khóa học"],["issueDate","Ngày cấp"]], [["studentId","Học viên","lookup","students"],["courseId","Khóa học","lookup","courses"],["certificateCode","Mã chứng chỉ","text"],["issueDate","Ngày cấp","date"],["pdfFilePath","Đường dẫn PDF","text"]]),
+    invoices: make("Hóa đơn", "/Invoices", [["studentName","Học viên"],["courseName","Khóa học"],["amount","Số tiền"],["invoiceDate","Ngày lập"],["status","Trạng thái"]], [], {readOnly:true}),
     notifications: make("Thông báo", "/Notifications", [["title","Tiêu đề"],["message","Nội dung"],["isRead","Trạng thái"],["createdAt","Thời gian"]], [], {notifications:true})
   };
   function make(title, endpoint, columns, fields, options) { options=options||{}; options.title=title; options.endpoint=endpoint; options.columns=columns; options.fields=fields; return options; }

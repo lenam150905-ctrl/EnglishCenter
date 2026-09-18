@@ -114,7 +114,7 @@
         try { var result = await apiGet("/Exams/" + examId + "/can-start"); alert(result.canStart ? "Bạn đủ điều kiện bắt đầu bài kiểm tra." : (result.message || "Bạn chưa đủ điều kiện.")); } catch (error) { alert(error.message); }
     }
     async function exportPdf(id) { try { await apiDownload("/Certificates/" + id + "/download", "chung-chi-" + id + ".pdf"); alert("Đã tải chứng chỉ PDF."); } catch (error) { alert(error.message); } }
-    async function payInvoice(id) { try { var result = await apiPost("/Payments/create-vnpay/" + id, {}); var url = result && (result.paymentUrl || result.url); if (!url) throw new Error("Không nhận được liên kết thanh toán."); window.location.assign(url); } catch (error) { alert(error.message); } }
+    async function payInvoice(id) { try { preserveAuthForPaymentReturn(); var result = await apiPost("/Payments/create-vnpay/" + id, {}); var url = result && (result.paymentUrl || result.url); if (!url) throw new Error("Không nhận được liên kết thanh toán."); window.location.assign(url); } catch (error) { alert(error.message); } }
     async function markRead(id, reload) { try { await apiPut("/Notifications/" + id + "/read", {}); reload(); } catch (error) { alert(error.message); } }
     async function readAll(reload) { try { await apiPut("/Notifications/read-all", {}); reload(); } catch (error) { alert(error.message); } }
     async function deleteNotification(id, reload) { if (!(await appConfirm("Bạn có chắc muốn xóa thông báo này?", "Xóa thông báo"))) return; try { await apiDelete("/Notifications/" + id); reload(); } catch (error) { alert(error.message); } }
