@@ -1,4 +1,4 @@
-﻿namespace EnglishCenter.API.DTOs
+namespace EnglishCenter.API.DTOs
 {
     public class TeacherDto
     {
@@ -13,5 +13,7 @@
         public string Specialization { get; set; } = string.Empty;
 
         public int? UserId { get; set; }
+
+        public string? UserName { get; set; }
     }
 }

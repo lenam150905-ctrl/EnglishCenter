@@ -13,12 +13,14 @@ namespace EnglishCenter.API.Controllers
     {
         private readonly IExamService _examService;
         private readonly ISoftDeleteService _softDeleteService;
+        private readonly EnglishCenter.Application.Abstractions.Persistence.IStudentRepository _studentRepository;
 
         public ExamsController(
-            IExamService examService, ISoftDeleteService softDeleteService)
+            IExamService examService, ISoftDeleteService softDeleteService, EnglishCenter.Application.Abstractions.Persistence.IStudentRepository studentRepository)
         {
             _examService = examService;
             _softDeleteService = softDeleteService;
+            _studentRepository = studentRepository;
         }
 
         // GET: api/Exams
@@ -100,9 +102,9 @@ namespace EnglishCenter.API.Controllers
         }
 
         // DELETE: api/Exams/1
-        // Chỉ Admin
+        // Admin + Teacher
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult>
             DeleteExam(int id)
         {
@@ -120,14 +122,23 @@ namespace EnglishCenter.API.Controllers
         // Chỉ Student
         [HttpGet("{examId}/can-start")]
         [Authorize(Roles = "Student")]
-        public async Task<IActionResult> CanStartExam(
-    int examId,
-    int studentId)
+        public async Task<IActionResult> CanStartExam(int examId)
         {
             try
             {
-                var result = await _examService
-                    .CanStartExamAsync(studentId, examId);
+                var userId = EnglishCenter.API.Middleware.AuditContext.GetUserId(HttpContext);
+                if (!userId.HasValue)
+                {
+                    return Unauthorized(new { canStart = false, message = "Phiên đăng nhập không hợp lệ." });
+                }
+
+                var student = await _studentRepository.GetByUserIdAsync(userId.Value);
+                if (student == null)
+                {
+                    return BadRequest(new { canStart = false, message = "Tài khoản chưa được gắn với hồ sơ học viên." });
+                }
+
+                var result = await _examService.CanStartExamAsync(student.Id, examId);
 
                 return Ok(new
                 {

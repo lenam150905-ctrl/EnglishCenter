@@ -9,7 +9,8 @@ namespace EnglishCenter.API.Services
 
         Task<List<NotificationDto>> GetByUserIdAsync(
             int userId);
-
+        Task<NotificationDto> CreateForUserAsync(
+    NotificationCreateDto dto);
         Task<bool> MarkAsReadAsync(
             int id,
             int userId);

@@ -95,9 +95,9 @@ namespace EnglishCenter.API.Controllers
         }
 
         // DELETE: api/courses/5
-        // Chỉ Admin được xóa
+        // Admin + Teacher được xóa
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult> DeleteCourse(int id)
         {
             var result = await _courseService.DeleteAsync(id);

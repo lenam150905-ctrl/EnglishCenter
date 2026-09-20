@@ -1,168 +1,70 @@
-﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
-using Microsoft.EntityFrameworkCore;
+using EnglishCenter.Application.Abstractions.Persistence;
 
 namespace EnglishCenter.API.Services
 {
     public class InvoiceService : IInvoiceService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IInvoiceRepository _invoiceRepository;
+        private readonly IStudentRepository _studentRepository;
+        private readonly IEnrollmentRepository _enrollmentRepository;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly INotificationService _notificationService;
 
         public InvoiceService(
-    ApplicationDbContext context,
-    IAuditLogService auditLogService,
-    INotificationService notificationService,
-    IHttpContextAccessor httpContextAccessor)
+            IInvoiceRepository invoiceRepository,
+            IStudentRepository studentRepository,
+            IEnrollmentRepository enrollmentRepository,
+            IAuditLogService auditLogService,
+            INotificationService notificationService,
+            IHttpContextAccessor httpContextAccessor)
         {
-            _context = context;
+            _invoiceRepository = invoiceRepository;
+            _studentRepository = studentRepository;
+            _enrollmentRepository = enrollmentRepository;
             _auditLogService = auditLogService;
             _notificationService = notificationService;
             _httpContextAccessor = httpContextAccessor;
         }
-        private int? userid =>
-AuditContext.GetUserId(
- _httpContextAccessor.HttpContext!);
 
-        private string? ipaddress =>
-            AuditContext.GetIPAddress(
-                _httpContextAccessor.HttpContext!);
+        private int? userid => AuditContext.GetUserId(_httpContextAccessor.HttpContext!);
+        private string? ipaddress => AuditContext.GetIPAddress(_httpContextAccessor.HttpContext!);
+
         public async Task<PagedResultDto<InvoiceDto>> GetAllAsync(
-     string? search,
-     int? studentId,
-     int? enrollmentId,
-     string? status,
-     decimal? minAmount,
-     decimal? maxAmount,
-     string? sortBy,
-     bool sortDesc,
-     int page,
-     int pageSize)
+            string? search,
+            int? studentId,
+            int? enrollmentId,
+            string? status,
+            decimal? minAmount,
+            decimal? maxAmount,
+            string? sortBy,
+            bool sortDesc,
+            int page,
+            int pageSize)
         {
-            var query = _context.Invoices
-     .Include(i => i.Student)
-     .Include(i => i.Enrollment)
-         .ThenInclude(e => e.Course)
-     .AsQueryable();
+            var (invoices, totalItems) = await _invoiceRepository.GetAllAsync(
+                search, studentId, enrollmentId, status, minAmount, maxAmount, sortBy, sortDesc, page, pageSize);
 
-            // SEARCH
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                query = query.Where(i =>
-                    i.Student.FullName.Contains(search) ||
-                    i.Student.Email.Contains(search) ||
-                    i.Status.Contains(search) ||
-                   ( i.Enrollment != null &&
-                     i.Enrollment.Course.CourseName.Contains(search)));
-            }
-
-            // FILTER
-            if (studentId.HasValue)
-            {
-                query = query.Where(i =>
-                    i.StudentId == studentId.Value);
-            }
-
-            if (enrollmentId.HasValue)
-            {
-                query = query.Where(i =>
-                    i.EnrollmentId == enrollmentId.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(status))
-            {
-                query = query.Where(i =>
-                    i.Status == status);
-            }
-
-            if (minAmount.HasValue)
-            {
-                query = query.Where(i =>
-                    i.Amount >= minAmount.Value);
-            }
-
-            if (maxAmount.HasValue)
-            {
-                query = query.Where(i =>
-                    i.Amount <= maxAmount.Value);
-            }
-
-            // SORT
-            if (!string.IsNullOrWhiteSpace(sortBy))
-            {
-                switch (sortBy.ToLower())
-                {
-                    case "id":
-                        query = sortDesc
-                            ? query.OrderByDescending(i => i.Id)
-                            : query.OrderBy(i => i.Id);
-                        break;
-
-                    case "amount":
-                        query = sortDesc
-                            ? query.OrderByDescending(i => i.Amount)
-                            : query.OrderBy(i => i.Amount);
-                        break;
-
-                    case "invoicedate":
-                        query = sortDesc
-                            ? query.OrderByDescending(i => i.InvoiceDate)
-                            : query.OrderBy(i => i.InvoiceDate);
-                        break;
-
-                    case "status":
-                        query = sortDesc
-                            ? query.OrderByDescending(i => i.Status)
-                            : query.OrderBy(i => i.Status);
-                        break;
-                }
-            }
-            else
-            {
-                query = query.OrderBy(i => i.Id);
-            }
-
-            // PAGINATION
-            if (page < 1)
-            {
-                page = 1;
-            }
-
-            if (pageSize < 1)
-            {
-                pageSize = 20;
-            }
-
-            var totalItems = await query.CountAsync();
-
-            var totalPages = (int)Math.Ceiling(
-                (double)totalItems / pageSize);
-
-            var invoices = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            // DTO
-            var data = invoices.Select(i => new InvoiceDto
-            {
-                Id = i.Id,
-                StudentId = i.StudentId,
-                StudentName = i.Student.FullName,
-                EnrollmentId = i.EnrollmentId,
-                Amount = i.Amount,
-                CourseName = i.Enrollment?.Course?.CourseName,
-                InvoiceDate = i.InvoiceDate,
-                Status = i.Status
-            }).ToList();
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? 20 : pageSize;
+            var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
             return new PagedResultDto<InvoiceDto>
             {
-                Data = data,
+                Data = invoices.Select(i => new InvoiceDto
+                {
+                    Id = i.Id,
+                    StudentId = i.StudentId,
+                    StudentName = i.Student?.FullName ?? string.Empty,
+                    EnrollmentId = i.EnrollmentId,
+                    CourseName = i.Enrollment?.Course?.CourseName,
+                    Amount = i.Amount,
+                    InvoiceDate = i.InvoiceDate,
+                    Status = i.Status
+                }).ToList(),
                 Page = page,
                 PageSize = pageSize,
                 TotalItems = totalItems,
@@ -172,12 +74,7 @@ AuditContext.GetUserId(
 
         public async Task<InvoiceDto?> GetByIdAsync(int id)
         {
-            var invoice = await _context.Invoices
-                .Include(i => i.Student)
-                .Include(i => i.Enrollment)
-                    .ThenInclude(e => e.Course)
-                .FirstOrDefaultAsync(i => i.Id == id);
-
+            var invoice = await _invoiceRepository.GetByIdAsync(id);
             if (invoice == null)
             {
                 return null;
@@ -186,89 +83,57 @@ AuditContext.GetUserId(
             return new InvoiceDto
             {
                 Id = invoice.Id,
-
                 StudentId = invoice.StudentId,
                 StudentName = invoice.Student?.FullName ?? string.Empty,
-
                 EnrollmentId = invoice.EnrollmentId,
                 CourseName = invoice.Enrollment?.Course?.CourseName,
-
                 Amount = invoice.Amount,
                 InvoiceDate = invoice.InvoiceDate,
                 Status = invoice.Status
             };
         }
 
-        public async Task<InvoiceDto> CreateAsync(
-     InvoiceCreateDto dto)
+        public async Task<InvoiceDto> CreateAsync(InvoiceCreateDto dto)
         {
-            // STUDENT
-            var studentExists = await _context.Students
-                .AnyAsync(s => s.Id == dto.StudentId);
-
-            if (!studentExists)
+            var student = await _studentRepository.GetByIdAsync(dto.StudentId);
+            if (student == null)
             {
-                throw new ArgumentException(
-                    "Student không tồn tại.");
+                throw new ArgumentException("Student không tồn tại.");
             }
 
-            // ENROLLMENT
             if (dto.EnrollmentId.HasValue)
             {
-                var enrollment = await _context.Enrollments
-                    .FirstOrDefaultAsync(e =>
-                        e.Id == dto.EnrollmentId.Value);
-
+                var enrollment = await _enrollmentRepository.GetByIdAsync(dto.EnrollmentId.Value);
                 if (enrollment == null)
                 {
-                    throw new ArgumentException(
-                        "Enrollment không tồn tại.");
+                    throw new ArgumentException("Enrollment không tồn tại.");
                 }
 
-                // KIỂM TRA ENROLLMENT THUỘC STUDENT
                 if (enrollment.StudentId != dto.StudentId)
                 {
-                    throw new ArgumentException(
-                        "Enrollment không thuộc Student này.");
+                    throw new ArgumentException("Enrollment không thuộc Student này.");
                 }
-            }
 
-            // AMOUNT
-            if (dto.Amount <= 0)
-            {
-                throw new ArgumentException(
-                    "Số tiền phải lớn hơn 0.");
-            }
-
-            // INVOICE DATE
-            if (dto.InvoiceDate > DateTime.Now)
-            {
-                throw new ArgumentException(
-                    "Ngày lập hóa đơn không được lớn hơn ngày hiện tại.");
-            }
-
-            // STATUS
-            if (dto.Status != "Unpaid" &&
-                dto.Status != "Paid" &&
-                dto.Status != "Cancelled")
-            {
-                throw new ArgumentException(
-                    "Status không hợp lệ.");
-            }
-
-            // CHECK INVOICE TRÙNG ENROLLMENT
-            if (dto.EnrollmentId.HasValue)
-            {
-                var existed = await _context.Invoices
-                    .AnyAsync(i =>
-                        i.EnrollmentId == dto.EnrollmentId.Value &&
-                        i.Status != "Cancelled");
-
+                var existed = await _invoiceRepository.ExistsByEnrollmentAsync(dto.EnrollmentId.Value);
                 if (existed)
                 {
-                    throw new ArgumentException(
-                        "Enrollment này đã có hóa đơn.");
+                    throw new ArgumentException("Enrollment này đã có hóa đơn.");
                 }
+            }
+
+            if (dto.Amount <= 0)
+            {
+                throw new ArgumentException("Số tiền phải lớn hơn 0.");
+            }
+
+            if (dto.InvoiceDate > DateTime.Now)
+            {
+                throw new ArgumentException("Ngày lập hóa đơn không được lớn hơn ngày hiện tại.");
+            }
+
+            if (dto.Status != "Unpaid" && dto.Status != "Paid" && dto.Status != "Cancelled")
+            {
+                throw new ArgumentException("Status không hợp lệ.");
             }
 
             var invoice = new Invoice
@@ -280,9 +145,7 @@ AuditContext.GetUserId(
                 Status = dto.Status
             };
 
-            _context.Invoices.Add(invoice);
-
-            await _context.SaveChangesAsync();
+            await _invoiceRepository.CreateAsync(invoice);
 
             await _auditLogService.CreateAsync(
                 userid,
@@ -291,45 +154,34 @@ AuditContext.GetUserId(
                 invoice.Id,
                 $"Tạo hóa đơn cho Student ID {invoice.StudentId}, số tiền {invoice.Amount:0.00}, Status: {invoice.Status}",
                 ipaddress);
-            // LẤY USER ID CỦA STUDENT
-            var studentUserId = await _context.Students
-                .Where(s => s.Id == invoice.StudentId)
-                .Select(s => (int?)s.UserId)
-                .FirstOrDefaultAsync();
 
-            // THÔNG BÁO NGƯỜI THỰC HIỆN
             if (userid.HasValue)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = userid.Value,
-                        Title = "Tạo hóa đơn",
-                        Message =
-                            $"Bạn đã tạo hóa đơn {invoice.Id} với số tiền {invoice.Amount:0.00}.",
-                        Type = "INVOICE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = userid.Value,
+                    Title = "Tạo hóa đơn",
+                    Message = $"Bạn đã tạo hóa đơn {invoice.Id} với số tiền {invoice.Amount:0.00}.",
+                    Type = "INVOICE"
+                });
             }
 
-            // THÔNG BÁO STUDENT
-            if (studentUserId.HasValue &&
-                studentUserId.Value != userid.Value)
+            if (student.UserId.HasValue && student.UserId != userid)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = studentUserId.Value,
-                        Title = "Có hóa đơn mới",
-                        Message =
-                            $"Bạn có hóa đơn mới #{invoice.Id} với số tiền {invoice.Amount:0.00}.",
-                        Type = "INVOICE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = student.UserId.Value,
+                    Title = "Có hóa đơn mới",
+                    Message = $"Bạn có hóa đơn mới #{invoice.Id} với số tiền {invoice.Amount:0.00}.",
+                    Type = "INVOICE"
+                });
             }
 
             return new InvoiceDto
             {
                 Id = invoice.Id,
                 StudentId = invoice.StudentId,
+                StudentName = student.FullName,
                 EnrollmentId = invoice.EnrollmentId,
                 Amount = invoice.Amount,
                 InvoiceDate = invoice.InvoiceDate,
@@ -337,97 +189,61 @@ AuditContext.GetUserId(
             };
         }
 
-        public async Task<bool> UpdateAsync(
-      int id,
-      InvoiceUpdateDto dto)
+        public async Task<bool> UpdateAsync(int id, InvoiceUpdateDto dto)
         {
-            // KIỂM TRA INVOICE
-            var invoice = await _context.Invoices
-                .FindAsync(id);
-
+            var invoice = await _invoiceRepository.GetByIdAsync(id);
             if (invoice == null)
             {
                 return false;
             }
 
-            // STUDENT
-            var studentExists = await _context.Students
-                .AnyAsync(s => s.Id == dto.StudentId);
-
-            if (!studentExists)
+            var student = await _studentRepository.GetByIdAsync(dto.StudentId);
+            if (student == null)
             {
-                throw new ArgumentException(
-                    "Student không tồn tại.");
+                throw new ArgumentException("Student không tồn tại.");
             }
 
-            // ENROLLMENT
             if (dto.EnrollmentId.HasValue)
             {
-                var enrollment = await _context.Enrollments
-                    .FirstOrDefaultAsync(e =>
-                        e.Id == dto.EnrollmentId.Value);
-
+                var enrollment = await _enrollmentRepository.GetByIdAsync(dto.EnrollmentId.Value);
                 if (enrollment == null)
                 {
-                    throw new ArgumentException(
-                        "Enrollment không tồn tại.");
+                    throw new ArgumentException("Enrollment không tồn tại.");
                 }
 
-                // ENROLLMENT THUỘC ĐÚNG STUDENT
                 if (enrollment.StudentId != dto.StudentId)
                 {
-                    throw new ArgumentException(
-                        "Enrollment không thuộc Student này.");
+                    throw new ArgumentException("Enrollment không thuộc Student này.");
                 }
             }
 
-            // AMOUNT
             if (dto.Amount <= 0)
             {
-                throw new ArgumentException(
-                    "Số tiền phải lớn hơn 0.");
+                throw new ArgumentException("Số tiền phải lớn hơn 0.");
             }
 
-            // INVOICE DATE
             if (dto.InvoiceDate > DateTime.Now)
             {
-                throw new ArgumentException(
-                    "Ngày lập hóa đơn không được lớn hơn ngày hiện tại.");
+                throw new ArgumentException("Ngày lập hóa đơn không được lớn hơn ngày hiện tại.");
             }
 
-            // STATUS
-            if (dto.Status != "Unpaid" &&
-                dto.Status != "Paid" &&
-                dto.Status != "Cancelled")
+            if (dto.Status != "Unpaid" && dto.Status != "Paid" && dto.Status != "Cancelled")
             {
-                throw new ArgumentException(
-                    "Status không hợp lệ.");
+                throw new ArgumentException("Status không hợp lệ.");
             }
 
-            // CHECK INVOICE TRÙNG
-            if (dto.EnrollmentId.HasValue)
-            {
-                var existed = await _context.Invoices
-                    .AnyAsync(i =>
-                        i.Id != id &&
-                        i.EnrollmentId == dto.EnrollmentId.Value &&
-                        i.Status != "Cancelled");
-
-                if (existed)
-                {
-                    throw new ArgumentException(
-                        "Enrollment này đã có hóa đơn.");
-                }
-            }
-
-            // UPDATE
             invoice.StudentId = dto.StudentId;
             invoice.EnrollmentId = dto.EnrollmentId;
             invoice.Amount = dto.Amount;
             invoice.InvoiceDate = dto.InvoiceDate;
             invoice.Status = dto.Status;
 
-            await _context.SaveChangesAsync();
+            await _invoiceRepository.UpdateAsync(invoice);
+
+            if (dto.Status == "Paid" && dto.EnrollmentId.HasValue)
+            {
+                await _enrollmentRepository.UpdateStatusAsync(dto.EnrollmentId.Value, "Active");
+            }
 
             await _auditLogService.CreateAsync(
                 userid,
@@ -436,47 +252,35 @@ AuditContext.GetUserId(
                 invoice.Id,
                 $"Cập nhật hóa đơn ID {invoice.Id}, số tiền {invoice.Amount:0.00}, Status: {invoice.Status}",
                 ipaddress);
-            var studentUserId = await _context.Students
-    .Where(s => s.Id == invoice.StudentId)
-    .Select(s => (int?)s.UserId)
-    .FirstOrDefaultAsync();
 
-            // NGƯỜI THỰC HIỆN
             if (userid.HasValue)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = userid.Value,
-                        Title = "Cập nhật hóa đơn",
-                        Message =
-                            $"Bạn đã cập nhật hóa đơn #{invoice.Id}.",
-                        Type = "INVOICE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = userid.Value,
+                    Title = "Cập nhật hóa đơn",
+                    Message = $"Bạn đã cập nhật hóa đơn #{invoice.Id}.",
+                    Type = "INVOICE"
+                });
             }
 
-            // STUDENT
-            if (studentUserId.HasValue &&
-                studentUserId.Value != userid.Value)
+            if (student.UserId.HasValue && student.UserId != userid)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = studentUserId.Value,
-                        Title = "Hóa đơn được cập nhật",
-                        Message =
-                            $"Hóa đơn #{invoice.Id} của bạn đã được cập nhật. " +
-                            $"Số tiền: {invoice.Amount:0.00}, trạng thái: {invoice.Status}.",
-                        Type = "INVOICE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = student.UserId.Value,
+                    Title = "Hóa đơn được cập nhật",
+                    Message = $"Hóa đơn #{invoice.Id} của bạn đã được cập nhật sang trạng thái: {invoice.Status}.",
+                    Type = "INVOICE"
+                });
             }
+
             return true;
         }
+
         public async Task<bool> DeleteAsync(int id)
         {
-            var invoice = await _context.Invoices
-                .FindAsync(id);
-
+            var invoice = await _invoiceRepository.GetByIdAsync(id);
             if (invoice == null)
             {
                 return false;
@@ -484,121 +288,84 @@ AuditContext.GetUserId(
 
             var studentId = invoice.StudentId;
             var amount = invoice.Amount;
-            var status = invoice.Status;
+            var studentUserId = invoice.Student?.UserId;
 
-            invoice.IsDeleted = true;
-
-            await _context.SaveChangesAsync();
+            await _invoiceRepository.SoftDeleteAsync(id);
 
             await _auditLogService.CreateAsync(
                 userid,
                 "DELETE",
                 "Invoice",
                 id,
-                $"Xóa hóa đơn ID {id}, số tiền {amount:0.00}, Status: {status}",
+                $"Xóa hóa đơn ID {id} của Student ID {studentId}, số tiền {amount:0.00}",
                 ipaddress);
-            var studentUserId = await _context.Students
-       .Where(s => s.Id == studentId)
-       .Select(s => (int?)s.UserId)
-       .FirstOrDefaultAsync();
-            // NGƯỜI THỰC HIỆN
+
             if (userid.HasValue)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = userid.Value,
-                        Title = "Xóa hóa đơn",
-                        Message =
-                            $"Bạn đã xóa hóa đơn #{id}.",
-                        Type = "INVOICE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = userid.Value,
+                    Title = "Xóa hóa đơn",
+                    Message = $"Bạn đã xóa hóa đơn #{id}.",
+                    Type = "INVOICE"
+                });
             }
 
-            // STUDENT
-            if (studentUserId.HasValue &&
-                studentUserId.Value != userid.Value)
+            if (studentUserId.HasValue && studentUserId.Value != userid)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = studentUserId.Value,
-                        Title = "Hóa đơn đã bị xóa",
-                        Message =
-                            $"Hóa đơn #{id} của bạn đã bị xóa.",
-                        Type = "INVOICE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = studentUserId.Value,
+                    Title = "Hóa đơn đã bị xóa",
+                    Message = $"Hóa đơn #{id} của bạn đã bị xóa.",
+                    Type = "INVOICE"
+                });
             }
+
             return true;
         }
+
         public async Task<bool> CancelAsync(int id)
         {
-            var invoice = await _context.Invoices
-                .FirstOrDefaultAsync(i => i.Id == id);
+            var invoice = await _invoiceRepository.GetByIdAsync(id);
+            if (invoice == null) return false;
 
-            if (invoice == null)
-            {
-                return false;
-            }
+            if (invoice.Status == "Cancelled")
+                throw new ArgumentException("Hóa đơn đã được hủy.");
+            if (invoice.Status == "Paid")
+                throw new ArgumentException("Hóa đơn đã thanh toán, không thể hủy.");
 
-            // CHỈ HỦY HÓA ĐƠN CHƯA THANH TOÁN
-            if (invoice.Status != "Unpaid")
-            {
-                throw new ArgumentException(
-                    "Chỉ có thể hủy hóa đơn chưa thanh toán.");
-            }
+            var studentUserId = invoice.Student?.UserId;
+            await _invoiceRepository.UpdateStatusAsync(id, "Cancelled");
 
-            var enrollmentId = invoice.EnrollmentId;
-
-            invoice.Status = "Cancelled";
-
-            await _context.SaveChangesAsync();
-
-            // AUDIT LOG
             await _auditLogService.CreateAsync(
                 userid,
                 "CANCEL",
                 "Invoice",
-                invoice.Id,
-                $"Hủy hóa đơn {invoice.Id}",
+                id,
+                $"Hủy hóa đơn #{id} của Student ID {invoice.StudentId}, số tiền {invoice.Amount:0.00}",
                 ipaddress);
 
-            // THÔNG BÁO NGƯỜI THỰC HIỆN
             if (userid.HasValue)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = userid.Value,
-                        Title = "Hủy hóa đơn",
-                        Message =
-                            $"Bạn đã hủy hóa đơn {invoice.Id}.",
-                        Type = "INVOICE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = userid.Value,
+                    Title = "Hủy hóa đơn",
+                    Message = $"Bạn đã hủy hóa đơn #{id}.",
+                    Type = "INVOICE"
+                });
             }
 
-            // THÔNG BÁO STUDENT LIÊN QUAN
-            if (enrollmentId.HasValue)
+            if (studentUserId.HasValue && studentUserId.Value != userid)
             {
-                var studentUserId =
-                    await _context.Enrollments
-                        .Where(e => e.Id == enrollmentId.Value)
-                        .Select(e => (int?)e.Student.UserId)
-                        .FirstOrDefaultAsync();
-
-                if (studentUserId.HasValue &&
-                    studentUserId.Value != userid.Value)
+                await _notificationService.CreateAsync(new NotificationCreateDto
                 {
-                    await _notificationService.CreateAsync(
-                        new NotificationCreateDto
-                        {
-                            UserId = studentUserId.Value,
-                            Title = "Hóa đơn đã bị hủy",
-                            Message =
-                                $"Hóa đơn {invoice.Id} của bạn đã bị hủy.",
-                            Type = "INVOICE"
-                        });
-                }
+                    UserId = studentUserId.Value,
+                    Title = "Hóa đơn đã bị hủy",
+                    Message = $"Hóa đơn #{id} của bạn đã bị hủy.",
+                    Type = "INVOICE"
+                });
             }
 
             return true;

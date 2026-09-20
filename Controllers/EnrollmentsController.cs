@@ -13,12 +13,15 @@ namespace EnglishCenter.API.Controllers
     {
         private readonly IEnrollmentService _enrollmentService;
         private readonly ISoftDeleteService _softDeleteService;
+        private readonly EnglishCenter.Application.Abstractions.Persistence.IStudentRepository _studentRepository;
 
         public EnrollmentsController(
-            IEnrollmentService enrollmentService, ISoftDeleteService softDeleteService)
+            IEnrollmentService enrollmentService, ISoftDeleteService softDeleteService,
+            EnglishCenter.Application.Abstractions.Persistence.IStudentRepository studentRepository)
         {
             _enrollmentService = enrollmentService;
             _softDeleteService = softDeleteService;
+            _studentRepository = studentRepository;
         }
 
         // GET: api/Enrollments
@@ -73,6 +76,19 @@ namespace EnglishCenter.API.Controllers
         public async Task<ActionResult<EnrollmentDto>> CreateEnrollment(
             EnrollmentCreateDto dto)
         {
+            if (User.IsInRole("Student"))
+            {
+                var userId = EnglishCenter.API.Middleware.AuditContext.GetUserId(HttpContext);
+                var student = userId.HasValue
+                    ? await _studentRepository.GetByUserIdAsync(userId.Value)
+                    : null;
+                if (student == null)
+                {
+                    return BadRequest(new { message = "Tài khoản chưa có hồ sơ học viên." });
+                }
+                dto.StudentId = student.Id;
+            }
+
             var enrollment =
                 await _enrollmentService.CreateAsync(dto);
 

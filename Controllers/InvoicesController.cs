@@ -1,6 +1,7 @@
 ﻿using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Models;
 using EnglishCenter.API.Services;
+using EnglishCenter.Application.Abstractions.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,18 +14,49 @@ namespace EnglishCenter.API.Controllers
     {
         private readonly IInvoiceService _invoiceService;
         private readonly ISoftDeleteService _softDeleteService;
+        private readonly IStudentRepository _studentRepository;
 
         public InvoicesController(
-            IInvoiceService invoiceService, ISoftDeleteService softDeleteService)
+            IInvoiceService invoiceService,
+            ISoftDeleteService softDeleteService,
+            IStudentRepository studentRepository)
         {
             _invoiceService = invoiceService;
             _softDeleteService = softDeleteService;
+            _studentRepository = studentRepository;
+        }
+
+        [HttpGet("mine")]
+        [Authorize(Roles = "Student")]
+        public async Task<ActionResult<PagedResultDto<InvoiceDto>>> GetMyInvoices(
+            string? search,
+            string? status,
+            int page = 1,
+            int pageSize = 20)
+        {
+            var userIdText = User.FindFirst("UserId")?.Value
+                ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(userIdText, out var userId))
+            {
+                return Unauthorized(new { message = "Không xác định được tài khoản học viên." });
+            }
+
+            var student = await _studentRepository.GetByUserIdAsync(userId);
+            if (student == null)
+            {
+                return NotFound(new { message = "Tài khoản chưa liên kết với hồ sơ học viên." });
+            }
+
+            return Ok(await _invoiceService.GetAllAsync(
+                search, student.Id, null, status, null, null,
+                "invoiceDate", true, page, pageSize));
         }
 
         // GET: api/Invoices
-        // Chỉ Admin
+        // Admin + Teacher được xem danh sách hóa đơn
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<PagedResultDto<InvoiceDto>>> GetInvoices(
     string? search,
     int? studentId,
@@ -53,9 +85,9 @@ namespace EnglishCenter.API.Controllers
         }
 
         // GET: api/Invoices/1
-        // Chỉ Admin
+        // Admin + Teacher được xem chi tiết hóa đơn
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<InvoiceDto>>
             GetInvoice(int id)
         {

@@ -1,17 +1,16 @@
-﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Models;
-using Microsoft.EntityFrameworkCore;
+using EnglishCenter.Application.Abstractions.Persistence;
 
 namespace EnglishCenter.API.Services
 {
     public class AuditLogService : IAuditLogService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IAuditLogRepository _auditLogRepository;
 
-        public AuditLogService(ApplicationDbContext context)
+        public AuditLogService(IAuditLogRepository auditLogRepository)
         {
-            _context = context;
+            _auditLogRepository = auditLogRepository;
         }
 
         public async Task<AuditLogDto> CreateAsync(
@@ -33,9 +32,7 @@ namespace EnglishCenter.API.Services
                 IpAddress = ipAddress
             };
 
-            _context.AuditLogs.Add(auditLog);
-
-            await _context.SaveChangesAsync();
+            await _auditLogRepository.CreateAsync(auditLog);
 
             return new AuditLogDto
             {
@@ -52,20 +49,19 @@ namespace EnglishCenter.API.Services
 
         public async Task<List<AuditLogDto>> GetAllAsync()
         {
-            return await _context.AuditLogs
-                .OrderByDescending(x => x.CreatedAt)
-                .Select(x => new AuditLogDto
-                {
-                    Id = x.Id,
-                    UserId = x.UserId,
-                    Action = x.Action,
-                    EntityName = x.EntityName,
-                    EntityId = x.EntityId,
-                    Description = x.Description,
-                    CreatedAt = x.CreatedAt,
-                    IpAddress = x.IpAddress
-                })
-                .ToListAsync();
+            var logs = await _auditLogRepository.GetAllAsync();
+
+            return logs.Select(x => new AuditLogDto
+            {
+                Id = x.Id,
+                UserId = x.UserId,
+                Action = x.Action,
+                EntityName = x.EntityName,
+                EntityId = x.EntityId,
+                Description = x.Description,
+                CreatedAt = x.CreatedAt,
+                IpAddress = x.IpAddress
+            }).ToList();
         }
     }
 }

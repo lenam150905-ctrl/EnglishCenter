@@ -13,12 +13,27 @@ namespace EnglishCenter.API.Controllers
     {
         private readonly IGradeService _gradeService;
         private readonly ISoftDeleteService _softDeleteService;
+        private readonly EnglishCenter.Application.Abstractions.Persistence.IStudentRepository _studentRepository;
 
         public GradesController(
-            IGradeService gradeService, ISoftDeleteService softDeleteService)
+            IGradeService gradeService, ISoftDeleteService softDeleteService,
+            EnglishCenter.Application.Abstractions.Persistence.IStudentRepository studentRepository)
         {
             _gradeService = gradeService;
             _softDeleteService = softDeleteService;
+            _studentRepository = studentRepository;
+        }
+
+        [HttpGet("mine")]
+        [Authorize(Roles = "Student")]
+        public async Task<IActionResult> GetMyGrades(
+            string? search, int? examId, decimal? minScore, decimal? maxScore,
+            string? sortBy, bool sortDesc = false, int page = 1, int pageSize = 20)
+        {
+            var userId = EnglishCenter.API.Middleware.AuditContext.GetUserId(HttpContext);
+            var student = userId.HasValue ? await _studentRepository.GetByUserIdAsync(userId.Value) : null;
+            if (student == null) return Unauthorized(new { message = "Không xác định được hồ sơ học viên." });
+            return Ok(await _gradeService.GetAllAsync(search, examId, student.Id, minScore, maxScore, sortBy, sortDesc, page, pageSize));
         }
 
         // GET: api/Grades
@@ -105,9 +120,9 @@ namespace EnglishCenter.API.Controllers
         }
 
         // DELETE: api/Grades/1
-        // Chỉ Admin
+        // Admin + Teacher
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult>
             DeleteGrade(int id)
         {

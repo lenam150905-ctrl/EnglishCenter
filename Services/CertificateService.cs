@@ -1,138 +1,73 @@
-﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
-using Microsoft.EntityFrameworkCore;
+using EnglishCenter.Application.Abstractions.Persistence;
 
 namespace EnglishCenter.API.Services
 {
     public class CertificateService : ICertificateService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ICertificateRepository _certificateRepository;
+        private readonly IStudentRepository _studentRepository;
+        private readonly ICourseRepository _courseRepository;
+        private readonly IGradeRepository _gradeRepository;
+        private readonly IEnrollmentRepository _enrollmentRepository;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly INotificationService _notificationService;
 
         public CertificateService(
-    ApplicationDbContext context,
-    IAuditLogService auditLogService,
-    IHttpContextAccessor httpContextAccessor,
-    INotificationService notificationService)
+            ICertificateRepository certificateRepository,
+            IStudentRepository studentRepository,
+            ICourseRepository courseRepository,
+            IGradeRepository gradeRepository,
+            IEnrollmentRepository enrollmentRepository,
+            IAuditLogService auditLogService,
+            IHttpContextAccessor httpContextAccessor,
+            INotificationService notificationService)
         {
-            _context = context;
+            _certificateRepository = certificateRepository;
+            _studentRepository = studentRepository;
+            _courseRepository = courseRepository;
+            _gradeRepository = gradeRepository;
+            _enrollmentRepository = enrollmentRepository;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
             _notificationService = notificationService;
         }
-        private int? userid =>
-AuditContext.GetUserId(
- _httpContextAccessor.HttpContext!);
 
-        private string? ipaddress =>
-            AuditContext.GetIPAddress(
-                _httpContextAccessor.HttpContext!);
+        private int? userid => AuditContext.GetUserId(_httpContextAccessor.HttpContext!);
+        private string? ipaddress => AuditContext.GetIPAddress(_httpContextAccessor.HttpContext!);
+
         public async Task<PagedResultDto<CertificateDto>> GetAllAsync(
-    string? search,
-    int? studentId,
-    int? courseId,
-    string? sortBy,
-    bool sortDesc,
-    int page,
-    int pageSize)
+            string? search,
+            int? studentId,
+            int? courseId,
+            string? sortBy,
+            bool sortDesc,
+            int page,
+            int pageSize)
         {
-            var query = _context.Certificates
-                .Include(c => c.Student)
-                .Include(c => c.Course)
-                .AsQueryable();
+            var (certificates, totalItems) = await _certificateRepository.GetAllAsync(
+                search, studentId, courseId, sortBy, sortDesc, page, pageSize);
 
-            // SEARCH
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                query = query.Where(c =>
-                    c.CertificateCode.Contains(search) ||
-                    c.Student.FullName.Contains(search) ||
-                    c.Course.CourseName.Contains(search));
-            }
-
-            // FILTER
-            if (studentId.HasValue)
-            {
-                query = query.Where(c =>
-                    c.StudentId == studentId.Value);
-            }
-
-            if (courseId.HasValue)
-            {
-                query = query.Where(c =>
-                    c.CourseId == courseId.Value);
-            }
-
-            // SORT
-            if (!string.IsNullOrWhiteSpace(sortBy))
-            {
-                switch (sortBy.ToLower())
-                {
-                    case "id":
-                        query = sortDesc
-                            ? query.OrderByDescending(c => c.Id)
-                            : query.OrderBy(c => c.Id);
-                        break;
-
-                    case "certificatecode":
-                        query = sortDesc
-                            ? query.OrderByDescending(c => c.CertificateCode)
-                            : query.OrderBy(c => c.CertificateCode);
-                        break;
-
-                    case "issuedate":
-                        query = sortDesc
-                            ? query.OrderByDescending(c => c.IssueDate)
-                            : query.OrderBy(c => c.IssueDate);
-                        break;
-                }
-            }
-            else
-            {
-                query = query.OrderBy(c => c.Id);
-            }
-
-            // PAGINATION
-            if (page < 1)
-            {
-                page = 1;
-            }
-
-            if (pageSize < 1)
-            {
-                pageSize = 20;
-            }
-
-            var totalItems = await query.CountAsync();
-
-            var totalPages = (int)Math.Ceiling(
-                (double)totalItems / pageSize);
-
-            var certificates = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            // DTO
-            var data = certificates.Select(c => new CertificateDto
-            {
-                Id = c.Id,
-                StudentId = c.StudentId,
-                StudentName = c.Student.FullName,
-                CourseId = c.CourseId,
-                CourseName = c.Course.CourseName,
-                CertificateCode = c.CertificateCode,
-                IssueDate = c.IssueDate,
-                PdfFilePath = c.PdfFilePath
-            }).ToList();
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? 20 : pageSize;
+            var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
             return new PagedResultDto<CertificateDto>
             {
-                Data = data,
+                Data = certificates.Select(c => new CertificateDto
+                {
+                    Id = c.Id,
+                    StudentId = c.StudentId,
+                    StudentName = c.Student?.FullName ?? string.Empty,
+                    CourseId = c.CourseId,
+                    CourseName = c.Course?.CourseName ?? string.Empty,
+                    CertificateCode = c.CertificateCode,
+                    IssueDate = c.IssueDate,
+                    PdfFilePath = c.PdfFilePath
+                }).ToList(),
                 Page = page,
                 PageSize = pageSize,
                 TotalItems = totalItems,
@@ -142,11 +77,7 @@ AuditContext.GetUserId(
 
         public async Task<CertificateDto?> GetByIdAsync(int id)
         {
-            var certificate = await _context.Certificates
-                .Include(c => c.Student)
-                .Include(c => c.Course)
-                .FirstOrDefaultAsync(c => c.Id == id);
-
+            var certificate = await _certificateRepository.GetByIdAsync(id);
             if (certificate == null)
             {
                 return null;
@@ -155,116 +86,72 @@ AuditContext.GetUserId(
             return new CertificateDto
             {
                 Id = certificate.Id,
-
                 StudentId = certificate.StudentId,
-                StudentName =
-                    certificate.Student?.FullName ?? string.Empty,
-
+                StudentName = certificate.Student?.FullName ?? string.Empty,
                 CourseId = certificate.CourseId,
-                CourseName =
-                    certificate.Course?.CourseName ?? string.Empty,
-
+                CourseName = certificate.Course?.CourseName ?? string.Empty,
                 CertificateCode = certificate.CertificateCode,
                 IssueDate = certificate.IssueDate,
                 PdfFilePath = certificate.PdfFilePath
             };
         }
 
-        public async Task<CertificateDto> CreateAsync(
-    CertificateCreateDto dto)
+        public async Task<CertificateDto> CreateAsync(CertificateCreateDto dto)
         {
-            // STUDENT
-            var studentExists = await _context.Students
-                .AnyAsync(s => s.Id == dto.StudentId);
-
-            if (!studentExists)
+            var student = await _studentRepository.GetByIdAsync(dto.StudentId);
+            if (student == null)
             {
-                throw new ArgumentException(
-                    "Student không tồn tại.");
+                throw new ArgumentException("Student không tồn tại.");
             }
 
-            // COURSE
-            var courseExists = await _context.Courses
-                .AnyAsync(c => c.Id == dto.CourseId);
-
+            var courseExists = await _courseRepository.ExistsAsync(dto.CourseId);
             if (!courseExists)
             {
-                throw new ArgumentException(
-                    "Course không tồn tại.");
+                throw new ArgumentException("Course không tồn tại.");
             }
 
-            // CERTIFICATE CODE
             if (string.IsNullOrWhiteSpace(dto.CertificateCode))
             {
-                throw new ArgumentException(
-                    "Mã chứng chỉ không được để trống.");
+                throw new ArgumentException("Mã chứng chỉ không được để trống.");
             }
 
             if (dto.CertificateCode.Length > 50)
             {
-                throw new ArgumentException(
-                    "Mã chứng chỉ không được vượt quá 50 ký tự.");
+                throw new ArgumentException("Mã chứng chỉ không được vượt quá 50 ký tự.");
             }
 
-            // CHECK CODE TRÙNG
-            var existedCode = await _context.Certificates
-                .AnyAsync(c =>
-                    c.CertificateCode == dto.CertificateCode);
-
+            var existedCode = await _certificateRepository.ExistsByCodeAsync(dto.CertificateCode);
             if (existedCode)
             {
-                throw new ArgumentException(
-                    "Mã chứng chỉ đã tồn tại.");
+                throw new ArgumentException("Mã chứng chỉ đã tồn tại.");
             }
 
-            // ISSUE DATE
             if (dto.IssueDate > DateTime.Now)
             {
-                throw new ArgumentException(
-                    "Ngày cấp không được lớn hơn ngày hiện tại.");
+                throw new ArgumentException("Ngày cấp không được lớn hơn ngày hiện tại.");
             }
 
-          
-            // CHECK STUDENT ĐÃ HỌC COURSE
-            var enrollmentExists = await _context.Enrollments
-                .AnyAsync(e =>
-                    e.StudentId == dto.StudentId &&
-                    e.CourseId == dto.CourseId);
-
+            var enrollmentExists = await _enrollmentRepository.ExistsAsync(dto.StudentId, dto.CourseId);
             if (!enrollmentExists)
             {
-                throw new ArgumentException(
-                    "Student chưa đăng ký khóa học này.");
+                throw new ArgumentException("Student chưa đăng ký khóa học này.");
             }
-            // CHECK GRADE
-            var grade = await _context.Grades
-                .Include(g => g.Exam)
-                .FirstOrDefaultAsync(g =>
-                    g.StudentId == dto.StudentId &&
-                    g.Exam.CourseId == dto.CourseId);
 
+            var grade = await _gradeRepository.GetByStudentAndCourseAsync(dto.StudentId, dto.CourseId);
             if (grade == null)
             {
-                throw new ArgumentException(
-                    "Student chưa có điểm thi.");
+                throw new ArgumentException("Student chưa có điểm thi.");
             }
 
-            // CHECK ĐẠT
             if (grade.Score < 5)
             {
-                throw new ArgumentException(
-                    "Student chưa đạt điểm để được cấp chứng chỉ.");
+                throw new ArgumentException("Student chưa đạt điểm để được cấp chứng chỉ.");
             }
-            // CHECK ĐÃ CÓ CERTIFICATE
-            var existedCertificate = await _context.Certificates
-                .AnyAsync(c =>
-                    c.StudentId == dto.StudentId &&
-                    c.CourseId == dto.CourseId);
 
+            var existedCertificate = await _certificateRepository.ExistsAsync(dto.StudentId, dto.CourseId);
             if (existedCertificate)
             {
-                throw new ArgumentException(
-                    "Student đã có chứng chỉ cho khóa học này.");
+                throw new ArgumentException("Student đã có chứng chỉ cho khóa học này.");
             }
 
             var certificate = new Certificate
@@ -276,9 +163,7 @@ AuditContext.GetUserId(
                 PdfFilePath = dto.PdfFilePath ?? string.Empty
             };
 
-            _context.Certificates.Add(certificate);
-
-            await _context.SaveChangesAsync();
+            await _certificateRepository.CreateAsync(certificate);
 
             await _auditLogService.CreateAsync(
                 userid,
@@ -287,35 +172,34 @@ AuditContext.GetUserId(
                 certificate.Id,
                 $"Cấp chứng chỉ {certificate.CertificateCode} cho Student ID {certificate.StudentId}",
                 ipaddress);
+
             if (userid.HasValue)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = userid.Value,
-                        Title = "Cập nhật chứng chỉ",
-                        Message =
-                            $"Bạn đã cập nhật chứng chỉ {certificate.CertificateCode}.",
-                        Type = "CERTIFICATE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = userid.Value,
+                    Title = "Cấp chứng chỉ",
+                    Message = $"Bạn đã cấp chứng chỉ {certificate.CertificateCode}.",
+                    Type = "CERTIFICATE"
+                });
             }
-            var student = await _context.Students
-    .FirstOrDefaultAsync(s => s.Id == certificate.StudentId);
-            if (student != null)
+
+            if (student.UserId.HasValue && student.UserId != userid)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = student.UserId.Value,
-                        Title = "Chứng chỉ được cập nhật",
-                        Message = $"Chứng chỉ {certificate.CertificateCode} của bạn đã được cập nhật.",
-                        Type = "CERTIFICATE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = student.UserId.Value,
+                    Title = "Bạn được cấp chứng chỉ mới",
+                    Message = $"Chứng chỉ {certificate.CertificateCode} của bạn đã được cấp.",
+                    Type = "CERTIFICATE"
+                });
             }
+
             return new CertificateDto
             {
                 Id = certificate.Id,
                 StudentId = certificate.StudentId,
+                StudentName = student.FullName,
                 CourseId = certificate.CourseId,
                 CertificateCode = certificate.CertificateCode,
                 IssueDate = certificate.IssueDate,
@@ -323,212 +207,135 @@ AuditContext.GetUserId(
             };
         }
 
-        public async Task<bool> UpdateAsync(
-     int id,
-     CertificateUpdateDto dto)
+        public async Task<bool> UpdateAsync(int id, CertificateUpdateDto dto)
         {
-            // KIỂM TRA CERTIFICATE
-            var certificate = await _context.Certificates
-                .FindAsync(id);
-
+            var certificate = await _certificateRepository.GetByIdAsync(id);
             if (certificate == null)
             {
                 return false;
             }
 
-            // STUDENT
-            var studentExists = await _context.Students
-                .AnyAsync(s => s.Id == dto.StudentId);
-
-            if (!studentExists)
+            var student = await _studentRepository.GetByIdAsync(dto.StudentId);
+            if (student == null)
             {
-                throw new ArgumentException(
-                    "Student không tồn tại.");
+                throw new ArgumentException("Student không tồn tại.");
             }
 
-            // COURSE
-            var courseExists = await _context.Courses
-                .AnyAsync(c => c.Id == dto.CourseId);
-
+            var courseExists = await _courseRepository.ExistsAsync(dto.CourseId);
             if (!courseExists)
             {
-                throw new ArgumentException(
-                    "Course không tồn tại.");
+                throw new ArgumentException("Course không tồn tại.");
             }
 
-            // CERTIFICATE CODE
             if (string.IsNullOrWhiteSpace(dto.CertificateCode))
             {
-                throw new ArgumentException(
-                    "Mã chứng chỉ không được để trống.");
+                throw new ArgumentException("Mã chứng chỉ không được để trống.");
             }
 
             if (dto.CertificateCode.Length > 50)
             {
-                throw new ArgumentException(
-                    "Mã chứng chỉ không được vượt quá 50 ký tự.");
+                throw new ArgumentException("Mã chứng chỉ không được vượt quá 50 ký tự.");
             }
 
-            // CHECK CODE TRÙNG
-            var existedCode = await _context.Certificates
-                .AnyAsync(c =>
-                    c.Id != id &&
-                    c.CertificateCode == dto.CertificateCode);
-
+            var existedCode = await _certificateRepository.ExistsByCodeAsync(dto.CertificateCode, id);
             if (existedCode)
             {
-                throw new ArgumentException(
-                    "Mã chứng chỉ đã tồn tại.");
+                throw new ArgumentException("Mã chứng chỉ đã tồn tại.");
             }
 
-            // ISSUE DATE
             if (dto.IssueDate > DateTime.Now)
             {
-                throw new ArgumentException(
-                    "Ngày cấp không được lớn hơn ngày hiện tại.");
+                throw new ArgumentException("Ngày cấp không được lớn hơn ngày hiện tại.");
             }
 
-            // PDF
-            if (string.IsNullOrWhiteSpace(dto.PdfFilePath))
-            {
-                throw new ArgumentException(
-                    "Đường dẫn file PDF không được để trống.");
-            }
-
-            // CHECK STUDENT ĐÃ ĐĂNG KÝ COURSE
-            var enrollmentExists = await _context.Enrollments
-                .AnyAsync(e =>
-                    e.StudentId == dto.StudentId &&
-                    e.CourseId == dto.CourseId);
-
-            if (!enrollmentExists)
-            {
-                throw new ArgumentException(
-                    "Student chưa đăng ký khóa học này.");
-            }
-
-            var grade = await _context.Grades
-    .Include(g => g.Exam)
-    .FirstOrDefaultAsync(g =>
-        g.StudentId == dto.StudentId &&
-        g.Exam.CourseId == dto.CourseId);
-
-            if (grade == null)
-            {
-                throw new ArgumentException(
-                    "Student chưa có điểm thi.");
-            }
-
-            if (grade.Score < 5)
-            {
-                throw new ArgumentException(
-                    "Student chưa đạt điểm để được cấp chứng chỉ.");
-            }
-            // CHECK CERTIFICATE TRÙNG STUDENT + COURSE
-            var existedCertificate = await _context.Certificates
-                .AnyAsync(c =>
-                    c.Id != id &&
-                    c.StudentId == dto.StudentId &&
-                    c.CourseId == dto.CourseId);
-
-            if (existedCertificate)
-            {
-                throw new ArgumentException(
-                    "Student đã có chứng chỉ cho khóa học này.");
-            }
-
-
-            // UPDATE
             certificate.StudentId = dto.StudentId;
             certificate.CourseId = dto.CourseId;
             certificate.CertificateCode = dto.CertificateCode;
             certificate.IssueDate = dto.IssueDate;
-            certificate.PdfFilePath = dto.PdfFilePath;
-            await _context.SaveChangesAsync();
+            if (!string.IsNullOrWhiteSpace(dto.PdfFilePath))
+            {
+                certificate.PdfFilePath = dto.PdfFilePath;
+            }
+
+            await _certificateRepository.UpdateAsync(certificate);
 
             await _auditLogService.CreateAsync(
                 userid,
                 "UPDATE",
                 "Certificate",
                 certificate.Id,
-                $"Cập nhật chứng chỉ {certificate.CertificateCode}",
+                $"Cập nhật chứng chỉ {certificate.CertificateCode} cho Student ID {certificate.StudentId}",
                 ipaddress);
+
             if (userid.HasValue)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = userid.Value,
-                        Title = "Cập nhật chứng chỉ",
-                        Message =
-                            $"Bạn đã cập nhật chứng chỉ {certificate.CertificateCode}.",
-                        Type = "CERTIFICATE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = userid.Value,
+                    Title = "Cập nhật chứng chỉ",
+                    Message = $"Bạn đã cập nhật chứng chỉ {certificate.CertificateCode}.",
+                    Type = "CERTIFICATE"
+                });
             }
-            var student = await _context.Students
-    .FirstOrDefaultAsync(s => s.Id == certificate.StudentId);
-            if (student != null)
+
+            if (student.UserId.HasValue && student.UserId != userid)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {   
-                        UserId = student.UserId.Value,
-                        Title = "Chứng chỉ được cập nhật",
-                        Message = $"Chứng chỉ {certificate.CertificateCode} của bạn đã được cập nhật.",
-                        Type = "CERTIFICATE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = student.UserId.Value,
+                    Title = "Chứng chỉ được cập nhật",
+                    Message = $"Chứng chỉ {certificate.CertificateCode} của bạn đã được cập nhật.",
+                    Type = "CERTIFICATE"
+                });
             }
+
             return true;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var certificate = await _context.Certificates
-                .FindAsync(id);
-
+            var certificate = await _certificateRepository.GetByIdAsync(id);
             if (certificate == null)
             {
                 return false;
             }
 
-            var certificateCode = certificate.CertificateCode;
+            var code = certificate.CertificateCode;
+            var studentId = certificate.StudentId;
+            var studentUserId = certificate.Student?.UserId;
 
-            certificate.IsDeleted = true;
-
-            await _context.SaveChangesAsync();
+            await _certificateRepository.SoftDeleteAsync(id);
 
             await _auditLogService.CreateAsync(
-               userid,
+                userid,
                 "DELETE",
                 "Certificate",
                 id,
-                $"Xóa chứng chỉ {certificateCode}",
+                $"Xóa chứng chỉ {code} của Student ID {studentId}",
                 ipaddress);
+
             if (userid.HasValue)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = userid.Value,
-                        Title = "Đã xóa chứng chỉ",
-                        Message =
-                            $"Bạn đã xóa chứng chỉ {certificate.CertificateCode}.",
-                        Type = "CERTIFICATE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = userid.Value,
+                    Title = "Xóa chứng chỉ",
+                    Message = $"Bạn đã xóa chứng chỉ {code}.",
+                    Type = "CERTIFICATE"
+                });
             }
-            var student = await _context.Students
-    .FirstOrDefaultAsync(s => s.Id == certificate.StudentId);
-            if (student != null)
+
+            if (studentUserId.HasValue && studentUserId.Value != userid)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = student.UserId.Value,
-                        Title = "Chứng chỉ bị xóa",
-                        Message = $"Chứng chỉ {certificate.CertificateCode} của bạn đã bị xóa.",
-                        Type = "CERTIFICATE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = studentUserId.Value,
+                    Title = "Chứng chỉ đã bị xóa",
+                    Message = $"Chứng chỉ {code} của bạn đã bị xóa khỏi hệ thống.",
+                    Type = "CERTIFICATE"
+                });
             }
+
             return true;
         }
     }

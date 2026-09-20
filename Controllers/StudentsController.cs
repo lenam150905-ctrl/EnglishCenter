@@ -1,4 +1,6 @@
 ﻿using EnglishCenter.API.DTOs;
+using EnglishCenter.API.Jobs;
+using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
 using EnglishCenter.API.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -13,12 +15,34 @@ namespace EnglishCenter.API.Controllers
     {
         private readonly IStudentService _studentService;
         private readonly ISoftDeleteService _softDeleteService;
+        private readonly IBackgroundJobQueue _queue;
+        private readonly IServiceScopeFactory _scopeFactory;
+        private readonly EnglishCenter.Application.Abstractions.Persistence.IStudentRepository _studentRepository;
 
         public StudentsController(
-            IStudentService studentService, ISoftDeleteService softDeleteService)
+            IStudentService studentService, ISoftDeleteService softDeleteService, IBackgroundJobQueue queue,
+    IServiceScopeFactory scopeFactory,
+    EnglishCenter.Application.Abstractions.Persistence.IStudentRepository studentRepository)
         {
             _studentService = studentService;
             _softDeleteService = softDeleteService;
+            _queue = queue;
+            _scopeFactory = scopeFactory;
+            _studentRepository = studentRepository;
+        }
+
+        [HttpGet("me")]
+        [Authorize(Roles = "Student")]
+        public async Task<IActionResult> GetMyProfile()
+        {
+            var userId = AuditContext.GetUserId(HttpContext);
+            var student = userId.HasValue
+                ? await _studentRepository.GetByUserIdAsync(userId.Value)
+                : null;
+
+            return student == null
+                ? NotFound(new { message = "Tài khoản chưa có hồ sơ học viên." })
+                : Ok(new { student.Id, student.FullName, student.Email, student.Phone, student.Address });
         }
 
         // GET: api/Students
@@ -117,32 +141,107 @@ namespace EnglishCenter.API.Controllers
 
             return NoContent();
         }
-        [HttpPost("import-excel")]
         [Authorize(Roles = "Admin,Teacher")]
-        public async Task<IActionResult> ImportExcel(IFormFile file)
+        [HttpPost("import-excel")]
+        public async Task<IActionResult> ImportExcel(
+     IFormFile file)
         {
-            var result = await _studentService.ImportExcelAsync(file);
-
-            return Ok(result);
-        }
-        [HttpPut("{id}/restore")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Restore(int id)
-        {
-            var result =
-                await _softDeleteService.RestoreAsync<Course>(id);
-
-            if (!result)
+            if (file == null || file.Length == 0)
             {
-                return NotFound(new
+                return BadRequest(new
                 {
-                    message = "Không tìm thấy khóa học đã bị xóa."
+                    message = "Vui lòng chọn file Excel."
                 });
             }
 
-            return Ok(new
+            var userId =
+                AuditContext.GetUserId(HttpContext);
+
+            if (!userId.HasValue)
             {
-                message = "Khôi phục khóa học thành công."
+                return Unauthorized();
+            }
+
+            // ==========================================
+            // KIỂM TRA FILE NGAY LẬP TỨC
+            // ==========================================
+
+            var validation =
+                await _studentService
+                    .ValidateImportExcelAsync(file);
+
+            // ==========================================
+            // CÓ LỖI → TRẢ LỖI NGAY
+            // KHÔNG ĐƯA VÀO QUEUE
+            // ==========================================
+
+            if (validation.Errors.Count > 0)
+            {
+                return BadRequest(new
+                {
+                    message =
+                        "File Excel có lỗi, chưa đưa vào hàng đợi.",
+
+                    successRows =
+                        validation.SuccessRows,
+
+                    errorRows =
+                        validation.Errors.Count,
+
+                    errors =
+                        validation.Errors
+                });
+            }
+
+            // ==========================================
+            // FILE HỢP LỆ → LƯU FILE TẠM
+            // ==========================================
+
+            var ipAddress =
+                HttpContext.Connection.RemoteIpAddress?
+                    .ToString();
+
+            var folder = Path.Combine(
+                Path.GetTempPath(),
+                "EnglishCenter",
+                "StudentImport");
+
+            Directory.CreateDirectory(folder);
+
+            var fileName =
+                $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
+
+            var filePath =
+                Path.Combine(folder, fileName);
+
+            await using (var stream =
+                new FileStream(
+                    filePath,
+                    FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            // ==========================================
+            // ĐƯA VÀO BACKGROUND JOB
+            // ==========================================
+
+            var job =
+                new ImportStudentJob(
+                    _scopeFactory,
+                    filePath,
+                    userId.Value,
+                    ipAddress);
+
+            _queue.Enqueue(job);
+
+            return Accepted(new
+            {
+                message =
+                    "File hợp lệ và đã được đưa vào hàng đợi.",
+
+                successRows =
+                    validation.SuccessRows
             });
         }
     }

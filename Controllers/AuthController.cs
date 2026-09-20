@@ -24,8 +24,10 @@ namespace EnglishCenter.API.Controllers
 
             if (!result)
             {
-                return BadRequest(
-                    "Tên tài khoản đã tồn tại.");
+                return BadRequest(new
+                {
+                    message = "Tên đăng nhập đã tồn tại. Vui lòng chọn tên khác."
+                });
             }
 
             return Ok(new

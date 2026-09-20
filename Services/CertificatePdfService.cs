@@ -1,8 +1,5 @@
-﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
-using EnglishCenter.API.Middleware;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
+using EnglishCenter.Application.Abstractions.Persistence;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -11,87 +8,59 @@ namespace EnglishCenter.API.Services
 {
     public class CertificatePdfService : ICertificatePdfService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ICertificateRepository _certificateRepository;
+        private readonly IGradeRepository _gradeRepository;
         private readonly IWebHostEnvironment _environment;
         private readonly IAuditLogService _auditLogService;
-        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly INotificationService _notificationService;
+
         public CertificatePdfService(
-      ApplicationDbContext context,
-      IWebHostEnvironment environment,
-      IAuditLogService auditLogService,
-      IHttpContextAccessor httpContextAccessor,
-      INotificationService notificationService)
+            ICertificateRepository certificateRepository,
+            IGradeRepository gradeRepository,
+            IWebHostEnvironment environment,
+            IAuditLogService auditLogService,
+            INotificationService notificationService)
         {
-            _context = context;
+            _certificateRepository = certificateRepository;
+            _gradeRepository = gradeRepository;
             _environment = environment;
             _auditLogService = auditLogService;
-            _httpContextAccessor = httpContextAccessor;
             _notificationService = notificationService;
         }
-        private int? userid =>
-AuditContext.GetUserId(
- _httpContextAccessor.HttpContext!);
 
-        private string? ipaddress =>
-            AuditContext.GetIPAddress(
-                _httpContextAccessor.HttpContext!);
         public async Task<string> GenerateCertificatePdfAsync(
-            int certificateId)
+            int certificateId,
+            int? userId,
+            string? ipAddress)
         {
-            var certificate = await _context.Certificates
-                .Include(c => c.Student)
-                .Include(c => c.Course)
-                .FirstOrDefaultAsync(c => c.Id == certificateId);
-
+            var certificate = await _certificateRepository.GetByIdAsync(certificateId);
             if (certificate == null)
             {
-                throw new ArgumentException(
-                    "Certificate không tồn tại.");
+                throw new ArgumentException("Certificate không tồn tại.");
             }
 
-            // LẤY GRADE
-            var grade = await _context.Grades
-                .Include(g => g.Exam)
-                .FirstOrDefaultAsync(g =>
-                    g.StudentId == certificate.StudentId &&
-                    g.Exam.CourseId == certificate.CourseId);
-
+            var grade = await _gradeRepository.GetByStudentAndCourseAsync(certificate.StudentId, certificate.CourseId);
             if (grade == null)
             {
-                throw new ArgumentException(
-                    "Student chưa có điểm.");
+                throw new ArgumentException("Student chưa có điểm.");
             }
 
-            // THƯ MỤC PDF
-            var folder = Path.Combine(
-                _environment.WebRootPath,
-                "certificates");
-
+            var folder = Path.Combine(_environment.WebRootPath, "certificates");
             if (!Directory.Exists(folder))
             {
                 Directory.CreateDirectory(folder);
             }
 
-            var fileName =
-                $"{certificate.CertificateCode}.pdf";
+            var fileName = $"{certificate.CertificateCode}.pdf";
+            var filePath = Path.Combine(folder, fileName);
 
-            var filePath = Path.Combine(
-                folder,
-                fileName);
-
-            // TẠO PDF
-            // TẠO PDF
             var pdfBytes = Document.Create(container =>
             {
                 container.Page(page =>
                 {
                     page.Size(PageSizes.A4.Landscape());
-
                     page.Margin(35);
-
-                    page.DefaultTextStyle(
-                        x => x.FontFamily("Arial"));
+                    page.DefaultTextStyle(x => x.FontFamily("Arial"));
 
                     page.Content()
                         .Border(5)
@@ -101,111 +70,91 @@ AuditContext.GetUserId(
                         {
                             column.Spacing(15);
 
-                            column.Item()
-                                .AlignCenter()
-                                .Text("ENGLISH CENTER")
-                                .FontSize(24)
-                                .Bold();
+                            column.Item().AlignCenter().Text("ENGLISH CENTER")
+                                .FontSize(26)
+                                .Bold()
+                                .FontColor("#1A365D");
 
-                            column.Item()
-                                .AlignCenter()
-                                .Text("CERTIFICATE")
-                                .FontSize(36)
-                                .Bold();
+                            column.Item().AlignCenter().Text("CERTIFICATE OF COMPLETION")
+                                .FontSize(22)
+                                .Bold()
+                                .FontColor("#D4AF37");
 
-                            column.Item()
-                                .AlignCenter()
-                                .Text("OF ACHIEVEMENT")
-                                .FontSize(18);
+                            column.Item().AlignCenter().Text("This is to certify that")
+                                .FontSize(14)
+                                .Italic();
 
-                            column.Item()
-                                .PaddingTop(15)
-                                .AlignCenter()
-                                .Text("This certificate is proudly presented to")
+                            column.Item().AlignCenter().Text(certificate.Student?.FullName ?? string.Empty)
+                                .FontSize(28)
+                                .Bold()
+                                .FontColor("#2B6CB0");
+
+                            column.Item().AlignCenter().Text($"has successfully completed the course")
                                 .FontSize(14);
 
-                            column.Item()
-                                .AlignCenter()
-                                .Text(certificate.Student?.FullName ?? "")
-                                .FontSize(28)
+                            column.Item().AlignCenter().Text(certificate.Course?.CourseName ?? string.Empty)
+                                .FontSize(20)
+                                .Bold()
+                                .FontColor("#2D3748");
+
+                            column.Item().AlignCenter().Text($"Final Score: {grade.Score:0.0} / 10")
+                                .FontSize(16)
                                 .Bold();
 
-                            column.Item()
-                                .AlignCenter()
-                                .Text(
-                                    $"for successfully completing {certificate.Course?.CourseName}")
-                                .FontSize(16);
-
-                            column.Item()
-                                .AlignCenter()
-                                .Text($"Score: {grade.Score:0.0} / 10")
-                                .FontSize(18)
-                                .Bold();
-
-                            column.Item()
-                                .PaddingTop(15)
-                                .AlignCenter()
-                                .Text(
-                                    $"Certificate Code: {certificate.CertificateCode}")
-                                .FontSize(12);
-
-                            column.Item()
-                                .PaddingTop(15)
-                                .Row(row =>
+                            column.Item().PaddingTop(25).Row(row =>
+                            {
+                                row.RelativeItem().Column(col =>
                                 {
-                                    row.RelativeItem()
-                                        .AlignLeft()
-                                        .Text(
-                                            $"Issue Date: {certificate.IssueDate:dd/MM/yyyy}")
-                                        .FontSize(12);
-
-                                    row.RelativeItem()
-                                        .AlignRight()
-                                        .Text("Signature")
-                                        .FontSize(12);
+                                    col.Item().Text($"Certificate Code: {certificate.CertificateCode}").FontSize(11);
+                                    col.Item().Text($"Issue Date: {certificate.IssueDate:dd/MM/yyyy}").FontSize(11);
                                 });
+
+                                row.RelativeItem().AlignRight().Column(col =>
+                                {
+                                    col.Item().Text("Director of Center").FontSize(12).Bold();
+                                    col.Item().PaddingTop(30).Text("English Center").FontSize(11).Italic();
+                                });
+                            });
                         });
                 });
             }).GeneratePdf();
 
-            // GHI FILE PDF
             await File.WriteAllBytesAsync(filePath, pdfBytes);
 
-            // LƯU ĐƯỜNG DẪN VÀO DATABASE
-            certificate.PdfFilePath =
-                $"/certificates/{fileName}";
+            certificate.PdfFilePath = $"/certificates/{fileName}";
+            await _certificateRepository.UpdatePdfPathAsync(certificate.Id, certificate.PdfFilePath);
 
-            await _context.SaveChangesAsync();
-            // AUDIT LOG
             await _auditLogService.CreateAsync(
-                userid,
+                userId,
                 "EXPORT_PDF",
                 "Certificate",
                 certificate.Id,
                 $"Xuất PDF chứng chỉ {certificate.CertificateCode}",
-                ipaddress);
+                ipAddress);
 
-            await _notificationService.CreateAsync(
-    new NotificationCreateDto
-    {
-        UserId = userid.Value,
-        Title = "Chứng chỉ đã được cấp",
-        Message = $"Chứng chỉ {certificate.CertificateCode} của bạn đã được tạo thành công.",
-        Type = "CERTIFICATE"
-    });
-            var student = await _context.Students
-   .FirstOrDefaultAsync(s => s.Id == certificate.StudentId);
-            if (student != null)
+            if (userId.HasValue)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = student.UserId.Value,
-                        Title = "Chứng chỉ được cập nhật",
-                        Message = $"Chứng chỉ {certificate.CertificateCode} của bạn đã được cấp.",
-                        Type = "CERTIFICATE"
-                    });
+                await _notificationService.CreateForUserAsync(new NotificationCreateDto
+                {
+                    UserId = userId.Value,
+                    Title = "Chứng chỉ đã được tạo",
+                    Message = $"Chứng chỉ {certificate.CertificateCode} đã được tạo thành công.",
+                    Type = "CERTIFICATE"
+                });
             }
+
+            var studentUserId = certificate.Student?.UserId;
+            if (studentUserId.HasValue)
+            {
+                await _notificationService.CreateForUserAsync(new NotificationCreateDto
+                {
+                    UserId = studentUserId.Value,
+                    Title = "Chứng chỉ được cập nhật",
+                    Message = $"Chứng chỉ {certificate.CertificateCode} của bạn đã được cấp.",
+                    Type = "CERTIFICATE"
+                });
+            }
+
             return certificate.PdfFilePath;
         }
     }

@@ -1,143 +1,74 @@
-﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
-using Microsoft.EntityFrameworkCore;
+using EnglishCenter.Application.Abstractions.Persistence;
+using EnglishCenter.Infrastructure.Persistence.Dapper;
 
 namespace EnglishCenter.API.Services
 {
     public class ExamService : IExamService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IExamRepository _examRepository;
+        private readonly ICourseRepository _courseRepository;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly INotificationService _notificationService;
+        private readonly IStudentRepository _studentRepository;
+        private readonly IEnrollmentRepository _enrollmentRepository;
+        private readonly IGradeRepository _gradeRepository;
+        private readonly IInvoiceRepository _invoiceRepository;
 
         public ExamService(
-      ApplicationDbContext context,
-      IAuditLogService auditLogService,
-      IHttpContextAccessor httpContextAccessor,
-      INotificationService notificationService)
+            IExamRepository examRepository,
+            ICourseRepository courseRepository,
+            IAuditLogService auditLogService,
+            IHttpContextAccessor httpContextAccessor,
+            INotificationService notificationService, IGradeRepository gradeRepository,
+    IStudentRepository studentRepository,
+    IEnrollmentRepository enrollmentRepository,
+    IInvoiceRepository invoiceRepository)
         {
-            _context = context;
+            _examRepository = examRepository;
+            _courseRepository = courseRepository;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
             _notificationService = notificationService;
+            _studentRepository = studentRepository;
+            _enrollmentRepository = enrollmentRepository;
+            _gradeRepository = gradeRepository;
+            _invoiceRepository = invoiceRepository;
         }
-        private int? userid =>
-AuditContext.GetUserId(
- _httpContextAccessor.HttpContext!);
 
-        private string? ipaddress =>
-            AuditContext.GetIPAddress(
-                _httpContextAccessor.HttpContext!);
+        private int? userid => AuditContext.GetUserId(_httpContextAccessor.HttpContext!);
+        private string? ipaddress => AuditContext.GetIPAddress(_httpContextAccessor.HttpContext!);
 
         public async Task<PagedResultDto<ExamDto>> GetAllAsync(
-     string? search,
-     int? courseId,
-     string? examType,
-     string? sortBy,
-     bool sortDesc,
-     int page,
-     int pageSize)
+            string? search,
+            int? courseId,
+            string? examType,
+            string? sortBy,
+            bool sortDesc,
+            int page,
+            int pageSize)
         {
-            var query = _context.Exams
-                .Include(e => e.Course)
-                .AsQueryable();
+            var (exams, totalItems) = await _examRepository.GetAllAsync(
+                search, courseId, examType, sortBy, sortDesc, page, pageSize);
 
-            // SEARCH
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                query = query.Where(e =>
-                    e.ExamName.Contains(search) ||
-                    e.ExamType.Contains(search) ||
-                    (e.Course != null &&
-                     e.Course.CourseName.Contains(search)));
-            }
-
-            // FILTER
-            if (courseId.HasValue)
-            {
-                query = query.Where(e =>
-                    e.CourseId == courseId.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(examType))
-            {
-                query = query.Where(e =>
-                    e.ExamType == examType);
-            }
-
-            // SORT
-            if (!string.IsNullOrWhiteSpace(sortBy))
-            {
-                switch (sortBy.ToLower())
-                {
-                    case "id":
-                        query = sortDesc
-                            ? query.OrderByDescending(e => e.Id)
-                            : query.OrderBy(e => e.Id);
-                        break;
-
-                    case "examname":
-                        query = sortDesc
-                            ? query.OrderByDescending(e => e.ExamName)
-                            : query.OrderBy(e => e.ExamName);
-                        break;
-
-                    case "examtype":
-                        query = sortDesc
-                            ? query.OrderByDescending(e => e.ExamType)
-                            : query.OrderBy(e => e.ExamType);
-                        break;
-
-                    case "examdate":
-                        query = sortDesc
-                            ? query.OrderByDescending(e => e.ExamDate)
-                            : query.OrderBy(e => e.ExamDate);
-                        break;
-                }
-            }
-            else
-            {
-                query = query.OrderBy(e => e.Id);
-            }
-
-            // PAGINATION
-            if (page < 1)
-            {
-                page = 1;
-            }
-
-            if (pageSize < 1)
-            {
-                pageSize = 20;
-            }
-
-            var totalItems = await query.CountAsync();
-
-            var totalPages = (int)Math.Ceiling(
-                (double)totalItems / pageSize);
-
-            var exams = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            // DTO
-            var data = exams.Select(e => new ExamDto
-            {
-                Id = e.Id,
-                ExamName = e.ExamName,
-                ExamType = e.ExamType,
-                ExamDate = e.ExamDate,
-                CourseId = e.CourseId,
-                CourseName = e.Course?.CourseName
-            }).ToList();
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? 20 : pageSize;
+            var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
             return new PagedResultDto<ExamDto>
             {
-                Data = data,
+                Data = exams.Select(e => new ExamDto
+                {
+                    Id = e.Id,
+                    ExamName = e.ExamName,
+                    ExamType = e.ExamType,
+                    ExamDate = e.ExamDate,
+                    CourseId = e.CourseId,
+                    CourseName = e.Course?.CourseName
+                }).ToList(),
                 Page = page,
                 PageSize = pageSize,
                 TotalItems = totalItems,
@@ -147,10 +78,7 @@ AuditContext.GetUserId(
 
         public async Task<ExamDto?> GetByIdAsync(int id)
         {
-            var exam = await _context.Exams
-                .Include(e => e.Course)
-                .FirstOrDefaultAsync(e => e.Id == id);
-
+            var exam = await _examRepository.GetByIdAsync(id);
             if (exam == null)
             {
                 return null;
@@ -169,56 +97,28 @@ AuditContext.GetUserId(
 
         public async Task<ExamDto> CreateAsync(ExamCreateDto dto)
         {
-            // EXAM NAME
             if (string.IsNullOrWhiteSpace(dto.ExamName))
             {
-                throw new ArgumentException(
-                    "Tên bài thi không được để trống.");
+                throw new ArgumentException("Tên kỳ thi không được để trống.");
             }
 
             if (dto.ExamName.Length > 100)
             {
-                throw new ArgumentException(
-                    "Tên bài thi không được vượt quá 100 ký tự.");
+                throw new ArgumentException("Tên kỳ thi không được vượt quá 100 ký tự.");
             }
 
-            // EXAM TYPE
             if (string.IsNullOrWhiteSpace(dto.ExamType))
             {
-                throw new ArgumentException(
-                    "Loại bài thi không được để trống.");
+                throw new ArgumentException("Loại kỳ thi không được để trống.");
             }
 
-            // COURSE
             if (dto.CourseId.HasValue)
             {
-                var courseExists = await _context.Courses
-                    .AnyAsync(c => c.Id == dto.CourseId.Value);
-
+                var courseExists = await _courseRepository.ExistsAsync(dto.CourseId.Value);
                 if (!courseExists)
                 {
-                    throw new ArgumentException(
-                        "Course không tồn tại.");
+                    throw new ArgumentException("Course không tồn tại.");
                 }
-            }
-
-            // EXAM DATE
-            if (dto.ExamDate < DateTime.Now)
-            {
-                throw new ArgumentException(
-                    "Ngày thi không được ở trong quá khứ.");
-            }
-
-            // CHECK EXAM TRÙNG
-            var existed = await _context.Exams
-                .AnyAsync(e =>
-                    e.ExamName == dto.ExamName &&
-                    e.CourseId == dto.CourseId);
-
-            if (existed)
-            {
-                throw new ArgumentException(
-                    "Bài thi này đã tồn tại trong khóa học.");
             }
 
             var exam = new Exam
@@ -229,245 +129,173 @@ AuditContext.GetUserId(
                 CourseId = dto.CourseId
             };
 
-            _context.Exams.Add(exam);
+            await _examRepository.CreateAsync(exam);
 
-            await _context.SaveChangesAsync();
+            var created = await _examRepository.GetByIdAsync(exam.Id);
 
             await _auditLogService.CreateAsync(
                 userid,
                 "CREATE",
                 "Exam",
                 exam.Id,
-                $"Tạo bài thi {exam.ExamName}",
+                $"Tạo kỳ thi {exam.ExamName} - Loại: {exam.ExamType}",
                 ipaddress);
+
             if (userid.HasValue)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = userid.Value,
-                        Title = "Tạo bài thi",
-                        Message = $"Bạn đã tạo bài thi {exam.ExamName}.",
-                        Type = "EXAM"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = userid.Value,
+                    Title = "Tạo kỳ thi",
+                    Message = $"Bạn đã tạo kỳ thi {exam.ExamName}.",
+                    Type = "EXAM"
+                });
             }
-          
+
             return new ExamDto
             {
                 Id = exam.Id,
                 ExamName = exam.ExamName,
                 ExamType = exam.ExamType,
                 ExamDate = exam.ExamDate,
-                CourseId = exam.CourseId
+                CourseId = exam.CourseId,
+                CourseName = created?.Course?.CourseName
             };
         }
 
-        public async Task<bool> UpdateAsync(
-     int id,
-     ExamUpdateDto dto)
+        public async Task<bool> UpdateAsync(int id, ExamUpdateDto dto)
         {
-            // KIỂM TRA EXAM
-            var exam = await _context.Exams
-                .FindAsync(id);
-
+            var exam = await _examRepository.GetByIdAsync(id);
             if (exam == null)
             {
                 return false;
             }
 
-            // EXAM NAME
             if (string.IsNullOrWhiteSpace(dto.ExamName))
             {
-                throw new ArgumentException(
-                    "Tên bài thi không được để trống.");
+                throw new ArgumentException("Tên kỳ thi không được để trống.");
             }
 
             if (dto.ExamName.Length > 100)
             {
-                throw new ArgumentException(
-                    "Tên bài thi không được vượt quá 100 ký tự.");
+                throw new ArgumentException("Tên kỳ thi không được vượt quá 100 ký tự.");
             }
 
-            // EXAM TYPE
             if (string.IsNullOrWhiteSpace(dto.ExamType))
             {
-                throw new ArgumentException(
-                    "Loại bài thi không được để trống.");
+                throw new ArgumentException("Loại kỳ thi không được để trống.");
             }
 
-            // COURSE
             if (dto.CourseId.HasValue)
             {
-                var courseExists = await _context.Courses
-                    .AnyAsync(c => c.Id == dto.CourseId.Value);
-
+                var courseExists = await _courseRepository.ExistsAsync(dto.CourseId.Value);
                 if (!courseExists)
                 {
-                    throw new ArgumentException(
-                        "Course không tồn tại.");
+                    throw new ArgumentException("Course không tồn tại.");
                 }
             }
 
-            // EXAM DATE
-            if (dto.ExamDate < DateTime.Now)
-            {
-                throw new ArgumentException(
-                    "Ngày thi không được ở trong quá khứ.");
-            }
-
-            // CHECK TRÙNG
-            var existed = await _context.Exams
-                .AnyAsync(e =>
-                    e.Id != id &&
-                    e.ExamName == dto.ExamName &&
-                    e.CourseId == dto.CourseId);
-
-            if (existed)
-            {
-                throw new ArgumentException(
-                    "Bài thi này đã tồn tại trong khóa học.");
-            }
-
-            // UPDATE
             exam.ExamName = dto.ExamName;
             exam.ExamType = dto.ExamType;
             exam.ExamDate = dto.ExamDate;
             exam.CourseId = dto.CourseId;
 
-            await _context.SaveChangesAsync();
+            await _examRepository.UpdateAsync(exam);
 
             await _auditLogService.CreateAsync(
                 userid,
                 "UPDATE",
                 "Exam",
                 exam.Id,
-                $"Cập nhật bài thi {exam.ExamName}",
+                $"Cập nhật kỳ thi {exam.ExamName} - Loại: {exam.ExamType}",
                 ipaddress);
+
             if (userid.HasValue)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = userid.Value,
-                        Title = "Cập nhật bài thi",
-                        Message = $"Bạn đã cập nhật bài thi {exam.ExamName}.",
-                        Type = "EXAM"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = userid.Value,
+                    Title = "Cập nhật kỳ thi",
+                    Message = $"Bạn đã cập nhật kỳ thi {exam.ExamName}.",
+                    Type = "EXAM"
+                });
             }
+
             return true;
         }
+
         public async Task<bool> DeleteAsync(int id)
         {
-            var exam = await _context.Exams
-                .FindAsync(id);
-
+            var exam = await _examRepository.GetByIdAsync(id);
             if (exam == null)
             {
                 return false;
             }
 
             var examName = exam.ExamName;
+            var examType = exam.ExamType;
 
-            exam.IsDeleted = true;
-
-            await _context.SaveChangesAsync();
+            await _examRepository.SoftDeleteAsync(id);
 
             await _auditLogService.CreateAsync(
                 userid,
                 "DELETE",
                 "Exam",
                 id,
-                $"Xóa bài thi {examName}",
+                $"Xóa kỳ thi {examName} - Loại: {examType}",
                 ipaddress);
+
             if (userid.HasValue)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = userid.Value,
-                        Title = "Xóa bài thi",
-                        Message = $"Bạn đã xóa bài thi {examName}.",
-                        Type = "EXAM"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = userid.Value,
+                    Title = "Xóa kỳ thi",
+                    Message = $"Bạn đã xóa kỳ thi {examName}.",
+                    Type = "EXAM"
+                });
             }
 
             return true;
         }
         public async Task<bool> CanStartExamAsync(
-    int studentId,
-    int examId)
+      int studentId,
+      int examId)
         {
-            // KIỂM TRA EXAM
-            var exam = await _context.Exams
-                .FirstOrDefaultAsync(e => e.Id == examId);
+            var exam = await _examRepository.GetByIdAsync(examId);
 
-            if (exam == null)
+            if (exam == null || exam.IsDeleted)
             {
-                throw new ArgumentException(
-                    "Bài thi không tồn tại.");
+                return false;
             }
 
-            // KIỂM TRA COURSE
+            var student = await _studentRepository.GetByIdAsync(studentId);
+
+            if (student == null)
+            {
+                return false;
+            }
+
             if (!exam.CourseId.HasValue)
             {
-                throw new ArgumentException(
-                    "Bài thi chưa thuộc khóa học.");
+                return false;
             }
 
+            var hasPaidInvoice = await _invoiceRepository.HasPaidInvoiceForStudentAndCourseAsync(
+                studentId, exam.CourseId.Value);
+            if (!hasPaidInvoice) return false;
 
-            // KIỂM TRA ENROLLMENT
-            var enrollment = await _context.Enrollments
-                .FirstOrDefaultAsync(e =>
-                    e.StudentId == studentId &&
-                    e.CourseId == exam.CourseId.Value);
+            // Kết quả thi được lưu ở bảng Grades. Nếu đã có điểm thì học viên
+            // không thể bắt đầu lại bài thi này.
+            var hasCompletedAttempt = await _gradeRepository.ExistsAsync(
+                examId,
+                studentId);
 
-            if (enrollment == null)
+            if (hasCompletedAttempt)
             {
-                throw new ArgumentException(
-                    "Student chưa đăng ký khóa học này.");
+                return false;
             }
 
-            // KIỂM TRA HÓA ĐƠN
-            var invoicePaid = await _context.Invoices
-                .AnyAsync(i =>
-                    i.EnrollmentId == enrollment.Id &&
-                    i.Status == "Paid");
-
-            if (!invoicePaid)
-            {
-                throw new ArgumentException(
-                    "Student chưa thanh toán khóa học.");
-            }
-            // KIỂM TRA COURSE ĐÃ HOÀN THÀNH
-            var course = await _context.Courses
-                .FirstOrDefaultAsync(c =>
-                    c.Id == exam.CourseId.Value);
-
-            if (course == null)
-            {
-                throw new ArgumentException(
-                    "Khóa học không tồn tại.");
-            }
-
-            if (course.Status != "Completed")
-            {
-                throw new ArgumentException(
-                    "Khóa học chưa hoàn thành.");
-            }
-           
-                if (enrollment.Student.UserId != userid)
-                {
-                    await _notificationService.CreateAsync(
-                        new NotificationCreateDto
-                        {
-                            UserId = enrollment.Student.UserId.Value,
-                            Title = "Bài thi đã bắt đầu",
-                            Message =
-                                $"Bài thi {exam.ExamName} đã bắt đầu. Hãy đến lớp đúng giờ để làm bài.",
-                            Type = "EXAM"
-                        });
-                }
-            
             return true;
         }
     }

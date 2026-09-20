@@ -1,53 +1,56 @@
-﻿using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
-using Microsoft.EntityFrameworkCore;
+using EnglishCenter.Application.Abstractions.Persistence;
 
 namespace EnglishCenter.API.Services
 {
     public class NotificationService : INotificationService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly INotificationRepository _notificationRepository;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public NotificationService(
-            ApplicationDbContext context,
+            INotificationRepository notificationRepository,
             IHttpContextAccessor httpContextAccessor)
         {
-            _context = context;
+            _notificationRepository = notificationRepository;
             _httpContextAccessor = httpContextAccessor;
         }
 
-        // LẤY USER ID TỪ AUDIT CONTEXT
         private int? userid =>
-AuditContext.GetUserId(
-_httpContextAccessor.HttpContext!);
+            AuditContext.GetUserId(_httpContextAccessor.HttpContext!);
 
-        // =========================
-        // CREATE
-        // =========================
-        public async Task<NotificationDto> CreateAsync(
-            NotificationCreateDto dto)
+        public async Task<NotificationDto> CreateAsync(NotificationCreateDto dto)
         {
-           
-
             if (!userid.HasValue)
             {
-                throw new UnauthorizedAccessException(
-                    "Không xác định được UserId.");
+                throw new UnauthorizedAccessException("Không xác định được UserId.");
+            }
+
+            return await CreateNotificationAsync(dto);
+        }
+
+        public Task<NotificationDto> CreateForUserAsync(NotificationCreateDto dto)
+        {
+            return CreateNotificationAsync(dto);
+        }
+
+        private async Task<NotificationDto> CreateNotificationAsync(NotificationCreateDto dto)
+        {
+            if (dto.UserId <= 0)
+            {
+                throw new ArgumentException("UserId không hợp lệ.");
             }
 
             if (string.IsNullOrWhiteSpace(dto.Title))
             {
-                throw new ArgumentException(
-                    "Tiêu đề thông báo không được để trống.");
+                throw new ArgumentException("Tiêu đề thông báo không được để trống.");
             }
 
             if (string.IsNullOrWhiteSpace(dto.Message))
             {
-                throw new ArgumentException(
-                    "Nội dung thông báo không được để trống.");
+                throw new ArgumentException("Nội dung thông báo không được để trống.");
             }
 
             var notification = new Notification
@@ -60,9 +63,7 @@ _httpContextAccessor.HttpContext!);
                 CreatedAt = DateTime.Now
             };
 
-            _context.Notifications.Add(notification);
-
-            await _context.SaveChangesAsync();
+            await _notificationRepository.CreateAsync(notification);
 
             return new NotificationDto
             {
@@ -76,104 +77,35 @@ _httpContextAccessor.HttpContext!);
             };
         }
 
-        // =========================
-        // GET NOTIFICATION
-        // =========================
-        public async Task<List<NotificationDto>>
-            GetByUserIdAsync(int userId)
+        public async Task<List<NotificationDto>> GetByUserIdAsync(int userId)
         {
-            return await _context.Notifications
-                .Where(n => n.UserId == userId)
-                .OrderByDescending(n => n.CreatedAt)
-                .Select(n => new NotificationDto
-                {
-                    Id = n.Id,
-                    UserId = n.UserId,
-                    Title = n.Title,
-                    Message = n.Message,
-                    Type = n.Type,
-                    IsRead = n.IsRead,
-                    CreatedAt = n.CreatedAt
-                })
-                .ToListAsync();
+            var notifications = await _notificationRepository.GetByUserIdAsync(userId);
+
+            return notifications.Select(n => new NotificationDto
+            {
+                Id = n.Id,
+                UserId = n.UserId,
+                Title = n.Title,
+                Message = n.Message,
+                Type = n.Type,
+                IsRead = n.IsRead,
+                CreatedAt = n.CreatedAt
+            }).ToList();
         }
 
-        // =========================
-        // READ ONE
-        // =========================
-        public async Task<bool> MarkAsReadAsync(
-            int id,
-            int userId)
+        public Task<bool> MarkAsReadAsync(int id, int userId)
         {
-            var notification =
-                await _context.Notifications
-                    .FirstOrDefaultAsync(n =>
-                        n.Id == id &&
-                        n.UserId == userId);
-
-            if (notification == null)
-            {
-                return false;
-            }
-
-            notification.IsRead = true;
-
-            await _context.SaveChangesAsync();
-
-            return true;
+            return _notificationRepository.MarkAsReadAsync(id, userId);
         }
 
-        // =========================
-        // READ ALL
-        // =========================
-        public async Task<bool> MarkAllAsReadAsync(
-            int userId)
+        public Task<bool> MarkAllAsReadAsync(int userId)
         {
-            var notifications =
-                await _context.Notifications
-                    .Where(n =>
-                        n.UserId == userId &&
-                        !n.IsRead)
-                    .ToListAsync();
-
-            if (!notifications.Any())
-            {
-                return false;
-            }
-
-            foreach (var notification in notifications)
-            {
-                notification.IsRead = true;
-            }
-
-            await _context.SaveChangesAsync();
-
-            return true;
+            return _notificationRepository.MarkAllAsReadAsync(userId);
         }
 
-        // =========================
-        // DELETE
-        // =========================
-        public async Task<bool> DeleteAsync(
-            int id,
-            int userId)
+        public Task<bool> DeleteAsync(int id, int userId)
         {
-            var notification =
-                await _context.Notifications
-                    .FirstOrDefaultAsync(n =>
-                        n.Id == id &&
-                        n.UserId == userId);
-
-            if (notification == null)
-            {
-                return false;
-            }
-
-            _context.Notifications.Remove(notification);
-
-            await _context.SaveChangesAsync();
-
-            return true;
+            return _notificationRepository.DeleteAsync(id, userId);
         }
     }
 }

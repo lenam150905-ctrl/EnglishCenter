@@ -1,154 +1,70 @@
-﻿using DocumentFormat.OpenXml.Spreadsheet;
-using EnglishCenter.API.Data;
 using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
-using Microsoft.EntityFrameworkCore;
-using System.Net;
+using EnglishCenter.Application.Abstractions.Persistence;
 
 namespace EnglishCenter.API.Services
 {
     public class CourseService : ICourseService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ICourseRepository _courseRepository;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly INotificationService _notificationService;
 
         public CourseService(
-    ApplicationDbContext context,
-    IAuditLogService auditLogService,
-    IHttpContextAccessor httpContextAccessor,
-    INotificationService notificationService)
+            ICourseRepository courseRepository,
+            IAuditLogService auditLogService,
+            IHttpContextAccessor httpContextAccessor,
+            INotificationService notificationService)
         {
-            _context = context;
+            _courseRepository = courseRepository;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
             _notificationService = notificationService;
         }
 
-        private int? userid =>
-     AuditContext.GetUserId(
-         _httpContextAccessor.HttpContext!);
+        private int? userid => AuditContext.GetUserId(_httpContextAccessor.HttpContext!);
+        private string? ipaddress => AuditContext.GetIPAddress(_httpContextAccessor.HttpContext!);
 
-        private string? ipaddress =>
-            AuditContext.GetIPAddress(
-                _httpContextAccessor.HttpContext!);
         public async Task<PagedResultDto<CourseDto>> GetAllAsync(
-    string? search,
-    decimal? minTuitionFee,
-    decimal? maxTuitionFee,
-    string? sortBy,
-    bool sortDesc,
-    int page,
-    int pageSize)
-{
-    var query = _context.Courses.AsQueryable();
-
-    // SEARCH
-    if (!string.IsNullOrWhiteSpace(search))
-    {
-        query = query.Where(c =>
-            c.CourseName.Contains(search) ||
-            c.Description.Contains(search));
-            }
-
-    // FILTER - HỌC PHÍ
-    if (minTuitionFee.HasValue)
-    {
-        query = query.Where(c =>
-            c.TuitionFee >= minTuitionFee.Value);
-    }
-
-    if (maxTuitionFee.HasValue)
-    {
-        query = query.Where(c =>
-            c.TuitionFee <= maxTuitionFee.Value);
-    }
-
-    // SORT
-    if (!string.IsNullOrWhiteSpace(sortBy))
-    {
-        switch (sortBy.ToLower())
+            string? search,
+            decimal? minTuitionFee,
+            decimal? maxTuitionFee,
+            string? sortBy,
+            bool sortDesc,
+            int page,
+            int pageSize)
         {
-            case "id":
-                query = sortDesc
-                    ? query.OrderByDescending(c => c.Id)
-                    : query.OrderBy(c => c.Id);
-                break;
+            var (courses, totalItems) = await _courseRepository.GetAllAsync(
+                search, minTuitionFee, maxTuitionFee, sortBy, sortDesc, page, pageSize);
 
-            case "coursename":
-                query = sortDesc
-                    ? query.OrderByDescending(c => c.CourseName)
-                    : query.OrderBy(c => c.CourseName);
-                break;
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? 20 : pageSize;
+            var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
-            case "tuitionfee":
-                query = sortDesc
-                    ? query.OrderByDescending(c => c.TuitionFee)
-                    : query.OrderBy(c => c.TuitionFee);
-                break;
-
-            case "duration":
-                query = sortDesc
-                    ? query.OrderByDescending(c => c.Duration)
-                    : query.OrderBy(c => c.Duration);
-                break;
+            return new PagedResultDto<CourseDto>
+            {
+                Data = courses.Select(c => new CourseDto
+                {
+                    Id = c.Id,
+                    CourseCode = c.CourseCode,
+                    CourseName = c.CourseName,
+                    Description = c.Description,
+                    Duration = c.Duration,
+                    TuitionFee = c.TuitionFee,
+                    Status = c.Status
+                }).ToList(),
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                TotalPages = totalPages
+            };
         }
-    }
-    else
-    {
-        query = query.OrderBy(c => c.Id);
-    }
-
-    // PAGINATION
-    if (page < 1)
-    {
-        page = 1;
-    }
-
-    if (pageSize < 1)
-    {
-        pageSize = 20;
-    }
-
-    var totalItems = await query.CountAsync();
-
-    var totalPages = (int)Math.Ceiling(
-        (double)totalItems / pageSize);
-
-    var courses = await query
-        .Skip((page - 1) * pageSize)
-        .Take(pageSize)
-        .ToListAsync();
-
-    // DTO
-    var data = courses.Select(c => new CourseDto
-    {
-        Id = c.Id,
-        CourseName = c.CourseName,
-        TuitionFee = c.TuitionFee,
-        Duration = c.Duration,
-        Description = c.Description,
-        Status= c.Status
-
-    }).ToList();
-
-    return new PagedResultDto<CourseDto>
-    {
-        Data = data,
-        Page = page,
-        PageSize = pageSize,
-        TotalItems = totalItems,
-        TotalPages = totalPages
-    };
-}
 
         public async Task<CourseDto?> GetByIdAsync(int id)
         {
-            var course = await _context.Courses
-                .FirstOrDefaultAsync(c => c.Id == id);
-
+            var course = await _courseRepository.GetByIdAsync(id);
             if (course == null)
             {
                 return null;
@@ -159,244 +75,159 @@ namespace EnglishCenter.API.Services
                 Id = course.Id,
                 CourseCode = course.CourseCode,
                 CourseName = course.CourseName,
-                TuitionFee = course.TuitionFee,
                 Description = course.Description,
                 Duration = course.Duration,
+                TuitionFee = course.TuitionFee,
                 Status = course.Status
             };
         }
 
         public async Task<CourseDto> CreateAsync(CourseCreateDto dto)
         {
-            // COURSE NAME
             if (string.IsNullOrWhiteSpace(dto.CourseName))
             {
-                throw new ArgumentException(
-                    "Tên khóa học không được để trống.");
+                throw new ArgumentException("Tên khóa học không được để trống.");
             }
 
-            if (dto.CourseName.Length > 100)
-            {
-                throw new ArgumentException(
-                    "Tên khóa học không được vượt quá 100 ký tự.");
-            }
-
-            // DESCRIPTION
-            if (string.IsNullOrWhiteSpace(dto.Description))
-            {
-                throw new ArgumentException(
-                    "Mô tả không được để trống.");
-            }
-
-            // TUITION FEE
-            if (dto.TuitionFee <= 0)
-            {
-                throw new ArgumentException(
-                    "Học phí phải lớn hơn 0.");
-            }
-
-            // DURATION
             if (dto.Duration <= 0)
             {
-                throw new ArgumentException(
-                    "Thời lượng khóa học phải lớn hơn 0.");
+                throw new ArgumentException("Thời lượng khóa học phải lớn hơn 0.");
             }
 
-            // CHECK COURSE NAME
-            var existed = await _context.Courses
-                .AnyAsync(c =>
-                    c.CourseName == dto.CourseName);
-            var validStatuses = new[]
-{
-    "Pending",
-    "Active",
-    "Completed"
-};
-
-            if (!validStatuses.Contains(dto.Status))
+            if (dto.TuitionFee < 0)
             {
-                throw new ArgumentException(
-                    "Trạng thái khóa học không hợp lệ.");
-            }
-
-            if (existed)
-            {
-                throw new ArgumentException(
-                    "Tên khóa học đã tồn tại.");
+                throw new ArgumentException("Học phí không được âm.");
             }
 
             var course = new Course
             {
+                CourseCode = dto.CourseCode,
                 CourseName = dto.CourseName,
                 Description = dto.Description,
-                TuitionFee = dto.TuitionFee,
                 Duration = dto.Duration,
-                Status= dto.Status
+                TuitionFee = dto.TuitionFee,
+                Status = dto.Status
             };
 
-            _context.Courses.Add(course);
-
-            await _context.SaveChangesAsync();
-           
-
+            await _courseRepository.CreateAsync(course);
 
             await _auditLogService.CreateAsync(
                 userid,
                 "CREATE",
                 "Course",
                 course.Id,
-                $"Tạo khóa học {course.CourseName}",
+                $"Tạo khóa học {course.CourseName} - Mã: {course.CourseCode}",
                 ipaddress);
+
             if (userid.HasValue)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = userid.Value,
-                        Title = "Tạo khóa học",
-                        Message =
-                            $"Bạn đã tạo khóa học {course.CourseName}.",
-                        Type = "COURSE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = userid.Value,
+                    Title = "Tạo khóa học",
+                    Message = $"Bạn đã tạo khóa học {course.CourseName}.",
+                    Type = "COURSE"
+                });
             }
+
             return new CourseDto
             {
                 Id = course.Id,
+                CourseCode = course.CourseCode,
                 CourseName = course.CourseName,
-                CourseCode= course.CourseCode,
+                Description = course.Description,
                 Duration = course.Duration,
                 TuitionFee = course.TuitionFee,
-                Description = course.Description,
-                Status= course.Status
-
+                Status = course.Status
             };
         }
 
         public async Task<bool> UpdateAsync(int id, CourseUpdateDto dto)
         {
-            // KIỂM TRA COURSE
-            var course = await _context.Courses
-                .FindAsync(id);
-
+            var course = await _courseRepository.GetByIdAsync(id);
             if (course == null)
             {
                 return false;
             }
 
-            // COURSE NAME
             if (string.IsNullOrWhiteSpace(dto.CourseName))
             {
-                throw new ArgumentException(
-                    "Tên khóa học không được để trống.");
+                throw new ArgumentException("Tên khóa học không được để trống.");
             }
 
-            if (dto.CourseName.Length > 100)
-            {
-                throw new ArgumentException(
-                    "Tên khóa học không được vượt quá 100 ký tự.");
-            }
-
-            // DESCRIPTION
-            if (string.IsNullOrWhiteSpace(dto.Description))
-            {
-                throw new ArgumentException(
-                    "Mô tả không được để trống.");
-            }
-
-            // TUITION FEE
-            if (dto.TuitionFee <= 0)
-            {
-                throw new ArgumentException(
-                    "Học phí phải lớn hơn 0.");
-            }
-
-            // DURATION
             if (dto.Duration <= 0)
             {
-                throw new ArgumentException(
-                    "Thời lượng khóa học phải lớn hơn 0.");
+                throw new ArgumentException("Thời lượng khóa học phải lớn hơn 0.");
             }
 
-            // CHECK COURSE NAME TRÙNG
-            var existed = await _context.Courses
-                .AnyAsync(c =>
-                    c.Id != id &&
-                    c.CourseName == dto.CourseName);
-
-            if (existed)
+            if (dto.TuitionFee < 0)
             {
-                throw new ArgumentException(
-                    "Tên khóa học đã tồn tại.");
+                throw new ArgumentException("Học phí không được âm.");
             }
 
-            // UPDATE
+            course.CourseCode = dto.CourseCode;
             course.CourseName = dto.CourseName;
             course.Description = dto.Description;
-            course.CourseCode = dto.CourseCode;
-            course.TuitionFee = dto.TuitionFee;
             course.Duration = dto.Duration;
+            course.TuitionFee = dto.TuitionFee;
+            course.Status = dto.Status;
 
-            await _context.SaveChangesAsync();
-     
-       
+            await _courseRepository.UpdateAsync(course);
+
             await _auditLogService.CreateAsync(
                 userid,
                 "UPDATE",
                 "Course",
                 course.Id,
-                $"Cập nhật khóa học {course.CourseName}",
+                $"Cập nhật khóa học {course.CourseName} - Mã: {course.CourseCode}",
                 ipaddress);
+
             if (userid.HasValue)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = userid.Value,
-                        Title = "Cập nhật khóa học",
-                        Message =
-                            $"Bạn đã cập nhật khóa học {course.CourseName}.",
-                        Type = "COURSE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = userid.Value,
+                    Title = "Cập nhật khóa học",
+                    Message = $"Bạn đã cập nhật khóa học {course.CourseName}.",
+                    Type = "COURSE"
+                });
             }
+
             return true;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var course = await _context.Courses
-                .FirstOrDefaultAsync(c => c.Id == id);
-
+            var course = await _courseRepository.GetByIdAsync(id);
             if (course == null)
             {
                 return false;
             }
 
             var courseName = course.CourseName;
+            var courseCode = course.CourseCode;
 
-            course.IsDeleted = true;
+            await _courseRepository.SoftDeleteAsync(id);
 
-            await _context.SaveChangesAsync();
-          
-      
             await _auditLogService.CreateAsync(
                 userid,
                 "DELETE",
                 "Course",
                 id,
-                $"Xóa khóa học {courseName}",
+                $"Xóa khóa học {courseName} - Mã: {courseCode}",
                 ipaddress);
+
             if (userid.HasValue)
             {
-                await _notificationService.CreateAsync(
-                    new NotificationCreateDto
-                    {
-                        UserId = userid.Value,
-                        Title = "Xóa khóa học",
-                        Message =
-                            $"Bạn đã xóa khóa học {courseName}.",
-                        Type = "COURSE"
-                    });
+                await _notificationService.CreateAsync(new NotificationCreateDto
+                {
+                    UserId = userid.Value,
+                    Title = "Xóa khóa học",
+                    Message = $"Bạn đã xóa khóa học {courseName}.",
+                    Type = "COURSE"
+                });
             }
+
             return true;
         }
     }

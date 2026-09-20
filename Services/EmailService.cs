@@ -20,6 +20,14 @@ namespace EnglishCenter.API.Services
             string subject,
             string body)
         {
+            if (string.IsNullOrWhiteSpace(_settings.SmtpServer) ||
+                _settings.Port <= 0 ||
+                string.IsNullOrWhiteSpace(_settings.SenderEmail) ||
+                string.IsNullOrWhiteSpace(_settings.Password))
+            {
+                throw new InvalidOperationException("Cấu hình EmailSettings chưa đầy đủ.");
+            }
+
             using var message = new MailMessage();
 
             message.From = new MailAddress(
@@ -38,11 +46,13 @@ namespace EnglishCenter.API.Services
                 _settings.SmtpServer,
                 _settings.Port);
 
+            smtp.UseDefaultCredentials = false;
             smtp.Credentials = new NetworkCredential(
                 _settings.SenderEmail,
                 _settings.Password);
 
             smtp.EnableSsl = _settings.EnableSsl;
+            smtp.Timeout = 30_000;
 
             await smtp.SendMailAsync(message);
         }

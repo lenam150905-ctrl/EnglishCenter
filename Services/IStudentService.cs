@@ -21,6 +21,12 @@ namespace EnglishCenter.API.Services
             StudentUpdateDto dto);
 
         Task<bool> DeleteAsync(int id);
-        Task<ExcelImportResultDto> ImportExcelAsync(IFormFile file);
+        Task<ExcelImportResultDto> ValidateImportExcelAsync(
+      IFormFile file);
+
+        Task<ExcelImportResultDto> ImportExcelAsync(
+            IFormFile file,
+            int userId,
+            string? ipAddress);
     }
 }

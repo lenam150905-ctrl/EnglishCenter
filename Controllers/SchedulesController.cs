@@ -95,9 +95,9 @@ namespace EnglishCenter.API.Controllers
         }
 
         // DELETE: api/Schedules/1
-        // Chỉ Admin
+        // Admin + Teacher
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult> DeleteSchedule(int id)
         {
             var result = await _scheduleService.DeleteAsync(id);

@@ -2,6 +2,9 @@
 {
     public interface ICertificatePdfService
     {
-        Task<string> GenerateCertificatePdfAsync(int certificateId);
+        Task<string> GenerateCertificatePdfAsync(
+    int certificateId,
+    int? userId,
+    string? ipAddress);
     }
 }
