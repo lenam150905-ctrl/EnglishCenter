@@ -24,4 +24,8 @@
     <Folder Include="wwwroot\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="EnglishCenter.Tests\**\*.cs" />
+  </ItemGroup>
+
 </Project>
