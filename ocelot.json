@@ -10,10 +10,7 @@
           "Host": "localhost",
           "Port": 7207
         }
-      ],
-      "AuthenticationOptions": {
-        "AllowAnonymous": true
-      }
+      ]
     },
     {
       "UpstreamPathTemplate": "/gateway/{everything}",
@@ -25,11 +22,7 @@
           "Host": "localhost",
           "Port": 7207
         }
-      ],
-      "AuthenticationOptions": {
-        "AuthenticationProviderKeys": [ "GatewayJwt" ],
-        "AllowedScopes": []
-      }
+      ]
     }
   ],
   "GlobalConfiguration": {
