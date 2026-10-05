@@ -17,6 +17,11 @@ const registerButton =
         "registerButton"
     );
 
+const registerSuccessNotice =
+    document.getElementById(
+        "registerSuccessNotice"
+    );
+
 
 // =========================
 // HIỂN THỊ THÔNG BÁO
@@ -32,6 +37,12 @@ function showRegisterMessage(
 
     registerMessage.className =
         "login-message " + type;
+}
+
+function showRegisterSuccess() {
+    registerMessage.textContent = "";
+    registerMessage.className = "login-message";
+    registerSuccessNotice.classList.remove("hidden");
 }
 
 
@@ -182,10 +193,7 @@ registerForm.addEventListener(
             // THÀNH CÔNG
             // =========================
 
-            showRegisterMessage(
-                "Tạo tài khoản thành công. Đang chuyển đến trang đăng nhập…",
-                "success"
-            );
+            showRegisterSuccess();
 
 
             window.setTimeout(
