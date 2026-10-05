@@ -1,0 +1,13 @@
+# Build outputs and IDE data
+bin/
+obj/
+.vs/
+
+# Local configuration and user secrets
+appsettings.Development.local.json
+*.user
+*.suo
+
+# Logs
+logs/
+*.log
