@@ -7,6 +7,11 @@
     <link rel="stylesheet" href="../css/login.css">
 </head>
 <body>
+    <div id="registerToast" class="register-toast hidden" role="status" aria-live="polite">
+        <span id="registerToastIcon" class="register-toast-icon">✓</span>
+        <div class="register-toast-content"><strong id="registerToastTitle"></strong><p id="registerToastMessage"></p></div>
+        <button id="registerToastClose" class="register-toast-close" type="button" aria-label="Đóng thông báo">×</button>
+    </div>
     <main class="login-page">
         <section class="login-card register-card">
             <aside class="login-left">
@@ -29,11 +34,6 @@
                         <label class="agree-terms"><input id="agreeTerms" type="checkbox" required><span>Tôi đồng ý với điều khoản sử dụng.</span></label>
                         <button id="registerButton" class="login-button" type="submit">Tạo tài khoản</button>
                     </form>
-                    <div id="registerSuccessNotice" class="register-success-notice hidden" role="status" aria-live="polite">
-                        <span class="register-success-icon">✓</span>
-                        <div><strong>Đăng ký thành công!</strong><p>Tài khoản học viên đã được tạo. Đang chuyển đến trang đăng nhập…</p></div>
-                    </div>
-                    <p id="registerMessage" class="login-message" aria-live="polite"></p>
                     <div class="login-footer"><span>Đã có tài khoản?</span><a href="../index.html">Đăng nhập</a></div>
                 </div>
             </section>

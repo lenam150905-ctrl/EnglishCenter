@@ -7,43 +7,41 @@ const registerForm =
         "registerForm"
     );
 
-const registerMessage =
-    document.getElementById(
-        "registerMessage"
-    );
-
 const registerButton =
     document.getElementById(
         "registerButton"
     );
 
-const registerSuccessNotice =
-    document.getElementById(
-        "registerSuccessNotice"
-    );
+const registerToast = document.getElementById("registerToast");
+const registerToastIcon = document.getElementById("registerToastIcon");
+const registerToastTitle = document.getElementById("registerToastTitle");
+const registerToastMessage = document.getElementById("registerToastMessage");
+const registerToastClose = document.getElementById("registerToastClose");
+let registerToastTimer;
 
 
 // =========================
 // HIỂN THỊ THÔNG BÁO
 // =========================
 
-function showRegisterMessage(
-    text,
-    type = "error"
-) {
-
-    registerMessage.textContent =
-        text;
-
-    registerMessage.className =
-        "login-message " + type;
+function hideRegisterToast() {
+    window.clearTimeout(registerToastTimer);
+    registerToast.classList.add("hidden");
+    registerToast.classList.remove("leaving");
 }
 
-function showRegisterSuccess() {
-    registerMessage.textContent = "";
-    registerMessage.className = "login-message";
-    registerSuccessNotice.classList.remove("hidden");
+function showRegisterToast(message, type = "error", autoHideMs = 5000) {
+    window.clearTimeout(registerToastTimer);
+    registerToast.className = "register-toast " + type;
+    registerToastIcon.textContent = type === "success" ? "✓" : "!";
+    registerToastTitle.textContent = type === "success" ? "Đăng ký thành công!" : "Không thể đăng ký";
+    registerToastMessage.textContent = message;
+    if (autoHideMs) {
+        registerToastTimer = window.setTimeout(hideRegisterToast, autoHideMs);
+    }
 }
+
+registerToastClose.addEventListener("click", hideRegisterToast);
 
 
 // =========================
@@ -55,6 +53,11 @@ registerForm.addEventListener(
     async function (event) {
 
         event.preventDefault();
+
+        // Chặn nhấp đôi hoặc gửi lại form khi yêu cầu trước chưa hoàn tất.
+        if (registerForm.dataset.submitting === "true") {
+            return;
+        }
 
 
         // =========================
@@ -101,7 +104,7 @@ registerForm.addEventListener(
 
         if (userName.length < 3) {
 
-            showRegisterMessage(
+            showRegisterToast(
                 "Tên đăng nhập cần có ít nhất 3 ký tự."
             );
 
@@ -115,7 +118,7 @@ registerForm.addEventListener(
 
         if (email === "") {
 
-            showRegisterMessage(
+            showRegisterToast(
                 "Vui lòng nhập email."
             );
 
@@ -129,7 +132,7 @@ registerForm.addEventListener(
 
         if (password.length < 6) {
 
-            showRegisterMessage(
+            showRegisterToast(
                 "Mật khẩu cần có ít nhất 6 ký tự."
             );
 
@@ -146,7 +149,7 @@ registerForm.addEventListener(
             confirmPassword
         ) {
 
-            showRegisterMessage(
+            showRegisterToast(
                 "Mật khẩu xác nhận không khớp."
             );
 
@@ -163,6 +166,8 @@ registerForm.addEventListener(
 
         registerButton.textContent =
             "Đang tạo tài khoản…";
+
+        registerForm.dataset.submitting = "true";
 
 
         try {
@@ -193,7 +198,14 @@ registerForm.addEventListener(
             // THÀNH CÔNG
             // =========================
 
-            showRegisterSuccess();
+            showRegisterToast(
+                "Tài khoản học viên đã được tạo. Đang chuyển đến trang đăng nhập…",
+                "success",
+                1200
+            );
+
+            // Giữ trạng thái khóa để không gửi lần hai trong lúc chuyển trang.
+            registerButton.textContent = "Đã tạo tài khoản";
 
 
             window.setTimeout(
@@ -203,7 +215,7 @@ registerForm.addEventListener(
                         "../index.html";
 
                 },
-                1200
+                1400
             );
 
         } catch (error) {
@@ -214,18 +226,18 @@ registerForm.addEventListener(
             );
 
 
-            showRegisterMessage(
+            showRegisterToast(
                 error.message ||
                 "Không thể tạo tài khoản. Vui lòng thử lại."
             );
-
-        } finally {
 
             registerButton.disabled =
                 false;
 
             registerButton.textContent =
                 "Tạo tài khoản";
+
+            delete registerForm.dataset.submitting;
         }
     }
 );

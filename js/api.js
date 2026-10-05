@@ -80,7 +80,11 @@ async function apiRequest(endpoint, options = {}) {
         }
 
         if (!response.ok) {
+            const validationErrors = data?.errors && typeof data.errors === "object"
+                ? Object.values(data.errors).flat().filter(Boolean)
+                : [];
             throw new Error(
+                validationErrors.join(" ") ||
                 data?.message ||
                 data?.title ||
                 `Lỗi ${response.status}: Không thể xử lý yêu cầu.`
