@@ -3,6 +3,7 @@ using EnglishCenter.API.Models;
 using EnglishCenter.API.Services;
 using EnglishCenter.Application.Abstractions.Persistence;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Distributed;
 using Moq;
 
 namespace EnglishCenter.Tests;
@@ -12,7 +13,19 @@ public sealed class CourseServiceTests
     private readonly Mock<ICourseRepository> _courses = new();
     private readonly Mock<IAuditLogService> _audit = new();
     private readonly Mock<INotificationService> _notifications = new();
-    private CourseService Service() => new(_courses.Object, _audit.Object, new HttpContextAccessor { HttpContext = new DefaultHttpContext() }, _notifications.Object);
+    private readonly Mock<IDistributedCache> _cache = new();
+
+    private CourseService Service()
+    {
+        _cache.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((byte[]?)null);
+        _cache.Setup(x => x.SetAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<DistributedCacheEntryOptions>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        return new CourseService(_courses.Object, _audit.Object,
+            new HttpContextAccessor { HttpContext = new DefaultHttpContext() },
+            _notifications.Object, _cache.Object);
+    }
 
     [Fact]
     public async Task CreateAsync_Rejects_EmptyCourseName()
@@ -39,7 +52,7 @@ public sealed class CourseServiceTests
     [Fact]
     public async Task GetAllAsync_NormalizesPaging_AndMapsCourse()
     {
-        _courses.Setup(x => x.GetAllAsync(null, null, null, null, false, 0, 0, It.IsAny<CancellationToken>())).ReturnsAsync((new List<Course> { new() { Id = 7, CourseCode = "EC07", CourseName = "IELTS Foundation", Description = "Starter", Duration = 24, TuitionFee = 3500000, Status = "Active" } }, 1));
+        _courses.Setup(x => x.GetAllAsync(null, null, null, null, false, 1, 20, It.IsAny<CancellationToken>())).ReturnsAsync((new List<Course> { new() { Id = 7, CourseCode = "EC07", CourseName = "IELTS Foundation", Description = "Starter", Duration = 24, TuitionFee = 3500000, Status = "Active" } }, 1));
         var result = await Service().GetAllAsync(null, null, null, null, false, 0, 0);
         Assert.Equal(1, result.Page); Assert.Equal(20, result.PageSize); Assert.Single(result.Data); Assert.Equal("IELTS Foundation", result.Data[0].CourseName);
     }

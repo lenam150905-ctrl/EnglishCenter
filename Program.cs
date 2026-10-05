@@ -1,4 +1,5 @@
 using EnglishCenter.API.Background;
+using EnglishCenter.API.Health;
 using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
 using EnglishCenter.API.Services;
@@ -6,13 +7,38 @@ using EnglishCenter.Services;
 using EnglishCenter.Application.Abstractions.Persistence;
 using EnglishCenter.Infrastructure.Persistence.Dapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
+using Asp.Versioning;
+using Serilog;
 using Microsoft.IdentityModel.Tokens;
 using QuestPDF.Infrastructure;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("logs/english-center-.log", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
 builder.Services.AddControllers();
+builder.Services.AddProblemDetails();
+
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+    options.ApiVersionReader = ApiVersionReader.Combine(
+        new UrlSegmentApiVersionReader(),
+        new QueryStringApiVersionReader("api-version"),
+        new HeaderApiVersionReader("X-API-Version"));
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -61,6 +87,34 @@ builder.Services.AddScoped<IAttemptRepository, AttemptRepository>();
 builder.Services.AddSingleton<IBackgroundJobQueue, BackgroundJobQueue>();
 builder.Services.AddHostedService<BackgroundJobWorker>();
 
+var redisConnection = builder.Configuration["Redis:ConnectionString"];
+if (string.IsNullOrWhiteSpace(redisConnection))
+{
+    builder.Services.AddDistributedMemoryCache();
+}
+else
+{
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnection;
+        options.InstanceName = "EnglishCenter:";
+    });
+}
+
+builder.Services.AddHealthChecks()
+    .AddCheck<SqlServerHealthCheck>("sql-server");
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("auth", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 5;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueLimit = 0;
+    });
+});
+
 var key = Encoding.UTF8.GetBytes(
     builder.Configuration["Jwt:Key"]!
 );
@@ -105,6 +159,7 @@ app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
+app.UseRateLimiter();
 app.UseAuthentication();
 
 app.UseMiddleware<AuditContextMiddleware>();
@@ -113,6 +168,14 @@ app.UseAuthorization();
 
 app.UseMiddleware<ExceptionMiddleware>();
 
+app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false
+});
+
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }

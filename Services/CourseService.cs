@@ -2,6 +2,8 @@ using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
 using EnglishCenter.Application.Abstractions.Persistence;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace EnglishCenter.API.Services
 {
@@ -11,17 +13,20 @@ namespace EnglishCenter.API.Services
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly INotificationService _notificationService;
+        private readonly IDistributedCache _cache;
 
         public CourseService(
             ICourseRepository courseRepository,
             IAuditLogService auditLogService,
             IHttpContextAccessor httpContextAccessor,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IDistributedCache cache)
         {
             _courseRepository = courseRepository;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
             _notificationService = notificationService;
+            _cache = cache;
         }
 
         private int? userid => AuditContext.GetUserId(_httpContextAccessor.HttpContext!);
@@ -36,14 +41,23 @@ namespace EnglishCenter.API.Services
             int page,
             int pageSize)
         {
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? 20 : pageSize;
+            var version = await GetCacheVersionAsync();
+            var cacheKey = $"courses:{version}:{search}:{minTuitionFee}:{maxTuitionFee}:{sortBy}:{sortDesc}:{page}:{pageSize}";
+            var cached = await _cache.GetStringAsync(cacheKey);
+            if (!string.IsNullOrWhiteSpace(cached))
+            {
+                var cachedResult = JsonSerializer.Deserialize<PagedResultDto<CourseDto>>(cached);
+                if (cachedResult != null) return cachedResult;
+            }
+
             var (courses, totalItems) = await _courseRepository.GetAllAsync(
                 search, minTuitionFee, maxTuitionFee, sortBy, sortDesc, page, pageSize);
 
-            page = page < 1 ? 1 : page;
-            pageSize = pageSize < 1 ? 20 : pageSize;
             var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
-            return new PagedResultDto<CourseDto>
+            var result = new PagedResultDto<CourseDto>
             {
                 Data = courses.Select(c => new CourseDto
                 {
@@ -60,6 +74,13 @@ namespace EnglishCenter.API.Services
                 TotalItems = totalItems,
                 TotalPages = totalPages
             };
+
+            await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(result), new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+            });
+
+            return result;
         }
 
         public async Task<CourseDto?> GetByIdAsync(int id)
@@ -110,6 +131,7 @@ namespace EnglishCenter.API.Services
             };
 
             await _courseRepository.CreateAsync(course);
+            await InvalidateCourseCacheAsync();
 
             await _auditLogService.CreateAsync(
                 userid,
@@ -173,6 +195,7 @@ namespace EnglishCenter.API.Services
             course.Status = dto.Status;
 
             await _courseRepository.UpdateAsync(course);
+            await InvalidateCourseCacheAsync();
 
             await _auditLogService.CreateAsync(
                 userid,
@@ -208,6 +231,7 @@ namespace EnglishCenter.API.Services
             var courseCode = course.CourseCode;
 
             await _courseRepository.SoftDeleteAsync(id);
+            await InvalidateCourseCacheAsync();
 
             await _auditLogService.CreateAsync(
                 userid,
@@ -230,5 +254,19 @@ namespace EnglishCenter.API.Services
 
             return true;
         }
+
+        private async Task<string> GetCacheVersionAsync()
+        {
+            const string versionKey = "courses:version";
+            var version = await _cache.GetStringAsync(versionKey);
+            if (!string.IsNullOrWhiteSpace(version)) return version;
+
+            version = Guid.NewGuid().ToString("N");
+            await _cache.SetStringAsync(versionKey, version);
+            return version;
+        }
+
+        private Task InvalidateCourseCacheAsync() =>
+            _cache.SetStringAsync("courses:version", Guid.NewGuid().ToString("N"));
     }
 }

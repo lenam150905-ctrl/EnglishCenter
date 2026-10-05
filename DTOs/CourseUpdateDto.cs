@@ -6,16 +6,16 @@ namespace EnglishCenter.API.DTOs
     {
         [Required(ErrorMessage = "Mã khóa học không được để trống")]
         [StringLength(20, ErrorMessage = "Mã khóa học tối đa 20 ký tự")]
-        public string CourseCode { get; set; }
+        public string CourseCode { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Tên khóa học không được để trống")]
         [StringLength(100, ErrorMessage = "Tên khóa học tối đa 100 ký tự")]
-        public string CourseName { get; set; }
+        public string CourseName { get; set; } = string.Empty;
 
         [Range(0, 1000000000, ErrorMessage = "Học phí phải từ 0 đến 1 tỷ")]
         public decimal TuitionFee { get; set; }
         public int Duration { get; set; }
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
     }
 }

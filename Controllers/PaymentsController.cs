@@ -9,7 +9,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EnglishCenter.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Asp.Versioning.ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
+[Route("api/[controller]")]
     [ApiController]
     [Authorize(Roles = "Admin,Student")]
     public class PaymentsController : ControllerBase

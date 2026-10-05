@@ -1,4 +1,4 @@
-﻿using EnglishCenter.API.DTOs;
+using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Jobs;
 using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
@@ -9,7 +9,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EnglishCenter.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Asp.Versioning.ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
+[Route("api/[controller]")]
     [ApiController]
     [Authorize]
     public class CertificatesController : ControllerBase

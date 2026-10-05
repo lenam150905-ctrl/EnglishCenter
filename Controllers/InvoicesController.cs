@@ -1,4 +1,4 @@
-﻿using EnglishCenter.API.DTOs;
+using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Models;
 using EnglishCenter.API.Services;
 using EnglishCenter.Application.Abstractions.Persistence;
@@ -7,7 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EnglishCenter.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Asp.Versioning.ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
+[Route("api/[controller]")]
     [ApiController]
     [Authorize]
     public class InvoicesController : ControllerBase

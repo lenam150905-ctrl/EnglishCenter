@@ -1,11 +1,16 @@
-﻿using EnglishCenter.API.DTOs;
+using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EnglishCenter.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Asp.Versioning.ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
+[Route("api/[controller]")]
     [ApiController]
+    [EnableRateLimiting("auth")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
@@ -104,6 +109,23 @@ namespace EnglishCenter.API.Controllers
                 await _authService.VerifyLoginOtpAsync(dto);
 
             return Ok(result);
+        }
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh(RefreshTokenRequestDto dto)
+        {
+            var result = await _authService.RefreshAsync(dto.RefreshToken);
+            return result is null
+                ? Unauthorized(new { message = "Refresh token không hợp lệ hoặc đã hết hạn." })
+                : Ok(result);
+        }
+
+        [Authorize]
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout(RefreshTokenRequestDto dto)
+        {
+            await _authService.RevokeRefreshTokenAsync(dto.RefreshToken);
+            return Ok(new { message = "Đăng xuất thành công." });
         }
     }
 }

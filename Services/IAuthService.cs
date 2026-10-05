@@ -18,5 +18,9 @@ namespace EnglishCenter.API.Services
 
         Task<LoginResultDto?> VerifyLoginOtpAsync(
             VerifyLoginOtpDto dto);
+
+        Task<AuthResponseDto?> RefreshAsync(string refreshToken);
+
+        Task RevokeRefreshTokenAsync(string refreshToken);
     }
 }

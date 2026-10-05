@@ -3,7 +3,9 @@ using EnglishCenter.API.Jobs;
 using EnglishCenter.API.Models;
 using EnglishCenter.Application.Abstractions.Persistence;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Caching.Distributed;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text;
 
@@ -15,17 +17,20 @@ namespace EnglishCenter.API.Services
         private readonly IUserRepository _userRepository;
         private readonly IConfiguration _configuration;
         private readonly IBackgroundJobQueue _queue;
+        private readonly IDistributedCache _cache;
 
         public AuthService(
             IUserRepository userRepository,
             IConfiguration configuration,
             IEmailService emailService,
-            IBackgroundJobQueue queue)
+            IBackgroundJobQueue queue,
+            IDistributedCache cache)
         {
             _userRepository = userRepository;
             _configuration = configuration;
             _emailService = emailService;
             _queue = queue;
+            _cache = cache;
         }
 
         public async Task<bool> RegisterAsync(RegisterDto dto)
@@ -392,14 +397,7 @@ namespace EnglishCenter.API.Services
             loginOtp.IsVerified = true;
             await _userRepository.UpdateLoginOtpAsync(loginOtp);
 
-            var token = GenerateToken(user);
-            var auth = new AuthResponseDto
-            {
-                Id = user.Id,
-                UserName = user.UserName,
-                Role = user.Role,
-                Token = token
-            };
+            var auth = await IssueAuthAsync(user);
 
             return new LoginResultDto
             {
@@ -407,6 +405,75 @@ namespace EnglishCenter.API.Services
                 UserName = user.UserName,
                 Auth = auth
             };
+        }
+
+        public async Task<AuthResponseDto?> RefreshAsync(string refreshToken)
+        {
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return null;
+            }
+
+            var cacheKey = GetRefreshTokenCacheKey(refreshToken);
+            var userIdValue = await _cache.GetStringAsync(cacheKey);
+            if (!int.TryParse(userIdValue, out var userId))
+            {
+                return null;
+            }
+
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user is null)
+            {
+                await _cache.RemoveAsync(cacheKey);
+                return null;
+            }
+
+            // Token rotation: a refresh token can only be used once.
+            await _cache.RemoveAsync(cacheKey);
+            return await IssueAuthAsync(user);
+        }
+
+        public Task RevokeRefreshTokenAsync(string refreshToken)
+        {
+            return string.IsNullOrWhiteSpace(refreshToken)
+                ? Task.CompletedTask
+                : _cache.RemoveAsync(GetRefreshTokenCacheKey(refreshToken));
+        }
+
+        private async Task<AuthResponseDto> IssueAuthAsync(User user)
+        {
+            var refreshToken = GenerateRefreshToken();
+            var refreshDays = _configuration.GetValue<int?>("Jwt:RefreshTokenDays") ?? 30;
+            await _cache.SetStringAsync(
+                GetRefreshTokenCacheKey(refreshToken),
+                user.Id.ToString(),
+                new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(refreshDays)
+                });
+
+            return new AuthResponseDto
+            {
+                Id = user.Id,
+                UserName = user.UserName,
+                Role = user.Role,
+                Token = GenerateToken(user),
+                RefreshToken = refreshToken
+            };
+        }
+
+        private static string GenerateRefreshToken()
+        {
+            return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64))
+                .Replace('+', '-')
+                .Replace('/', '_')
+                .TrimEnd('=');
+        }
+
+        private static string GetRefreshTokenCacheKey(string refreshToken)
+        {
+            var hash = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
+            return $"auth:refresh:{Convert.ToHexString(hash)}";
         }
     }
 }
