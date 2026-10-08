@@ -92,9 +92,9 @@ namespace EnglishCenter.API.Controllers
         }
         [HttpPost("send-login-otp")]
         public async Task<IActionResult> SendLoginOtp(
-    string userName)
+    [FromBody] SendLoginOtpDto dto)
         {
-            await _authService.SendLoginOtpAsync(userName);
+            await _authService.SendLoginOtpAsync(dto.UserName);
 
             return Ok(new
             {

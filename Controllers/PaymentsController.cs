@@ -48,10 +48,18 @@ namespace EnglishCenter.API.Controllers
         private int? userid => AuditContext.GetUserId(_httpContextAccessor.HttpContext!);
         private string? ipaddress => AuditContext.GetIPAddress(_httpContextAccessor.HttpContext!);
 
-        // Tạo link thanh toán VNPAY
-        [HttpPost("create-vnpay/{invoiceId}")]
+[HttpPost("create-vnpay/{invoiceId}")]
         public async Task<IActionResult> CreateVNPayPayment(int invoiceId)
         {
+            if (string.IsNullOrWhiteSpace(_configuration["VNPay:TmnCode"]) ||
+                string.IsNullOrWhiteSpace(_configuration["VNPay:HashSecret"]))
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+                {
+                    message = "Thanh toán VNPay chưa được cấu hình. Vui lòng liên hệ quản trị viên."
+                });
+            }
+
             var invoice = await _invoiceRepository.GetByIdAsync(invoiceId);
 
             if (invoice == null)
@@ -68,8 +76,7 @@ namespace EnglishCenter.API.Controllers
                 return Forbid();
             }
 
-            // Chỉ cho thanh toán hóa đơn chưa thanh toán
-            if (invoice.Status != "Unpaid")
+if (invoice.Status != "Unpaid")
             {
                 return BadRequest(new
                 {
@@ -122,8 +129,7 @@ namespace EnglishCenter.API.Controllers
             });
         }
 
-        // VNPAY trả kết quả về đây
-        [AllowAnonymous]
+[AllowAnonymous]
         [HttpGet("vnpay-return")]
         public async Task<IActionResult> VNPayReturn()
         {
@@ -149,8 +155,7 @@ namespace EnglishCenter.API.Controllers
                 });
             }
 
-            // txnRef có dạng: InvoiceId_yyyyMMddHHmmss
-            var invoiceIdText = txnRef.Split('_')[0];
+var invoiceIdText = txnRef.Split('_')[0];
 
             if (!int.TryParse(invoiceIdText, out var invoiceId))
             {
@@ -174,8 +179,7 @@ namespace EnglishCenter.API.Controllers
                 ? await _enrollmentRepository.GetStudentUserIdByEnrollmentIdAsync(invoice.EnrollmentId.Value)
                 : null;
 
-            // Thanh toán thành công
-            if (responseCode == "00" && transactionStatus == "00")
+if (responseCode == "00" && transactionStatus == "00")
             {
                 await _invoiceRepository.UpdateStatusAsync(invoice.Id, "Paid");
 
@@ -239,3 +243,4 @@ namespace EnglishCenter.API.Controllers
         }
     }
 }
+
