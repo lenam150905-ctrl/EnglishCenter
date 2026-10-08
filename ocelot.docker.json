@@ -1,6 +1,13 @@
 {
   "Routes": [
     {
+      "UpstreamPathTemplate": "/gateway/v1/Payments/vnpay-return",
+      "UpstreamHttpMethod": [ "Get" ],
+      "DownstreamPathTemplate": "/api/Payments/vnpay-return",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "api", "Port": 8080 } ]
+    },
+    {
       "UpstreamPathTemplate": "/gateway/v1/Auth/{everything}",
       "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete", "Patch" ],
       "DownstreamPathTemplate": "/api/Auth/{everything}",
