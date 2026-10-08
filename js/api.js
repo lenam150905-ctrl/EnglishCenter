@@ -1,6 +1,4 @@
-// =========================
-// API HELPER
-// =========================
+
 
 async function apiRequest(endpoint, options = {}) {
     const controller = new AbortController();
@@ -19,8 +17,7 @@ async function apiRequest(endpoint, options = {}) {
             ...(options.headers || {})
         };
 
-        // Chỉ thêm Content-Type khi có body
-        if (
+if (
             options.body &&
             !(options.body instanceof FormData)
         ) {
@@ -29,8 +26,7 @@ async function apiRequest(endpoint, options = {}) {
                 "application/json";
         }
 
-        // Nếu đã đăng nhập thì gửi JWT
-        if (token) {
+if (token) {
             headers["Authorization"] =
                 `Bearer ${token}`;
         }
@@ -56,11 +52,9 @@ async function apiRequest(endpoint, options = {}) {
             data = await response.json();
         }
 
-        // Token hết hạn / không hợp lệ
-        if (response.status === 401) {
-            // Endpoint đăng nhập cũng trả 401 khi sai thông tin; không báo
-            // nhầm là phiên hết hạn và không xóa dữ liệu đăng nhập ở đây.
-            if (endpoint.toLowerCase().startsWith("/auth/")) {
+if (response.status === 401) {
+
+if (endpoint.toLowerCase().startsWith("/auth/")) {
                 throw new Error(
                     data?.message ||
                     "Tên đăng nhập hoặc mật khẩu không đúng."
@@ -72,8 +66,7 @@ async function apiRequest(endpoint, options = {}) {
             );
         }
 
-        // Không có quyền
-        if (response.status === 403) {
+if (response.status === 403) {
             throw new Error(
                 "Bạn không có quyền thực hiện chức năng này."
             );
@@ -86,6 +79,7 @@ async function apiRequest(endpoint, options = {}) {
             throw new Error(
                 validationErrors.join(" ") ||
                 data?.message ||
+                data?.detail ||
                 data?.title ||
                 `Lỗi ${response.status}: Không thể xử lý yêu cầu.`
             );
@@ -107,19 +101,11 @@ async function apiRequest(endpoint, options = {}) {
     }
 }
 
-// =========================
-// GET
-// =========================
-
 function apiGet(endpoint) {
     return apiRequest(endpoint, {
         method: "GET"
     });
 }
-
-// =========================
-// POST
-// =========================
 
 function apiPost(endpoint, body) {
     return apiRequest(endpoint, {
@@ -127,10 +113,6 @@ function apiPost(endpoint, body) {
         body: JSON.stringify(body)
     });
 }
-
-// =========================
-// PUT
-// =========================
 
 async function apiPut(endpoint, body) {
     const result = await apiRequest(endpoint, {
@@ -141,20 +123,12 @@ async function apiPut(endpoint, body) {
     return result;
 }
 
-// =========================
-// PATCH
-// =========================
-
 function apiPatch(endpoint, body) {
     return apiRequest(endpoint, {
         method: "PATCH",
         body: JSON.stringify(body)
     });
 }
-
-// =========================
-// DELETE
-// =========================
 
 async function apiDelete(endpoint) {
     const result = await apiRequest(endpoint, {
@@ -183,3 +157,5 @@ async function apiDownload(endpoint, fileName) {
     link.remove();
     URL.revokeObjectURL(url);
 }
+
+
