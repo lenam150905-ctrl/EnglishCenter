@@ -10,11 +10,17 @@
         Teacher: "../teacher/dashboard.html#invoices",
         Student: "../student/dashboard.html#invoices"
     };
-    document.getElementById("paymentBack").href = destinations[role] || "../../index.html";
+    var destination = destinations[role] || "../../index.html";
+    document.getElementById("paymentBack").href = destination;
     document.getElementById("paymentBack").textContent = role === "Admin" ? "Về quản lý hóa đơn" : "Về hóa đơn của tôi";
     document.getElementById("paymentCard").classList.toggle("failed", !success);
     document.getElementById("paymentIcon").textContent = success ? "✓" : "!";
     title.textContent = success ? "Thanh toán thành công" : "Thanh toán chưa thành công";
-    message.textContent = query.get("message") || (success ? "Hóa đơn của bạn đã được cập nhật." : "Giao dịch chưa hoàn tất. Bạn có thể thử lại từ trang hóa đơn.");
+    var resultMessage = query.get("message") || (success ? "Hóa đơn của bạn đã được cập nhật." : "Giao dịch chưa hoàn tất. Bạn có thể thử lại từ trang hóa đơn.");
+    message.textContent = resultMessage + " Tự động quay về trang hóa đơn sau 5 giây.";
     document.getElementById("invoiceReference").textContent = invoice ? "Hóa đơn #" + invoice : "";
+    window.setTimeout(function () {
+        window.location.replace(destination);
+    }, 5000);
 })();
+
