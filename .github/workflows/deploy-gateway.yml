@@ -55,7 +55,8 @@ jobs:
           ssh -i ~/.ssh/id_deploy "$VPS_USER@$VPS_HOST" '
             set -e
             cd ~/EnglishCenter.Gateway
-            git pull --ff-only origin gateway
+            git fetch origin gateway
+            git reset --hard origin/gateway
             cd ~
             docker compose up -d --build gateway
             docker compose ps gateway

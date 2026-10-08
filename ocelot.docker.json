@@ -1,0 +1,20 @@
+{
+  "Routes": [
+    {
+      "UpstreamPathTemplate": "/gateway/v1/Auth/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete", "Patch" ],
+      "DownstreamPathTemplate": "/api/Auth/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "api", "Port": 8080 } ]
+    },
+    {
+      "UpstreamPathTemplate": "/gateway/v1/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete", "Patch" ],
+      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "api", "Port": 8080 } ],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": [ "GatewayJwt" ] }
+    }
+  ],
+  "GlobalConfiguration": { "BaseUrl": "http://localhost:7300" }
+}

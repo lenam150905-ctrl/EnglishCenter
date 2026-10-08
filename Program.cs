@@ -6,8 +6,11 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Cố định địa chỉ Gateway khi chạy bằng Start/Ctrl+F5 hoặc từ file .exe.
-builder.WebHost.UseUrls("https://localhost:7300");
+// Giữ cổng local khi chạy F5; Docker sẽ cung cấp ASPNETCORE_URLS=http://+:8080.
+if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
+{
+    builder.WebHost.UseUrls("http://localhost:7300");
+}
 
 builder.Logging
     .ClearProviders()
@@ -24,7 +27,9 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://127.0.0.1:5500",
-                "http://localhost:5500"
+                "http://localhost:5500",
+                "http://20.89.171.41",
+                "https://englishcenter-namle.duckdns.org"
             )
             .AllowAnyHeader()
             .AllowAnyMethod();
