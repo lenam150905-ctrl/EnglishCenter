@@ -1,10 +1,7 @@
-// =========================
-// Cấu hình chung hệ thống
-// =========================
-
 const CONFIG = {
-    // Frontend chỉ gọi API Gateway. Gateway chuyển tiếp request này
-    // đến EnglishCenter API nội bộ tại https://localhost:7207/api/v1.
-    API_BASE_URL: "https://localhost:7300/gateway/v1",
+    // Khi chạy local dùng Gateway local; khi deploy dùng cùng origin HTTPS.
+    API_BASE_URL: ["localhost", "127.0.0.1"].includes(window.location.hostname)
+        ? "http://localhost:7300/gateway/v1"
+        : `${window.location.origin}/gateway/v1`,
     REQUEST_TIMEOUT: 15000
 };
