@@ -56,7 +56,8 @@ jobs:
           ssh -i ~/.ssh/id_deploy "$VPS_USER@$VPS_HOST" '
             set -e
             cd ~/EnglishCenter
-            git pull --ff-only origin master
+            git fetch origin master
+            git reset --hard origin/master
             cd ~
             docker compose up -d --build api
             docker compose ps api
