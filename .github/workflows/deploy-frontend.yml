@@ -1,0 +1,60 @@
+name: Release and deploy frontend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build frontend image
+        run: docker build --tag englishcenter-frontend:ci .
+
+  release:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: frontend-${{ github.run_number }}
+          name: Frontend release #${{ github.run_number }}
+          generate_release_notes: true
+
+  deploy:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' '20.89.171.41 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGoQ/c4Y4u/lY/6wv9A29AZ2GGhA7tOie0Qr7O46Zpku' > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+      - name: Deploy frontend to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          ssh -i ~/.ssh/id_deploy "$VPS_USER@$VPS_HOST" '
+            set -e
+            cd ~/EnglishCenter.Web
+            git pull --ff-only origin main
+            cd ~
+            docker compose up -d --build frontend
+            docker compose ps frontend
+          '
