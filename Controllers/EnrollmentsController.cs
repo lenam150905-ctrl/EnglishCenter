@@ -161,6 +161,28 @@ namespace EnglishCenter.API.Controllers
         [HttpPut("{id}/cancel")]
         public async Task<IActionResult> Cancel(int id)
         {
+            var enrollment = await _enrollmentService.GetByIdAsync(id);
+            if (enrollment == null)
+            {
+                return NotFound(new { message = "Không tìm thấy đăng ký khóa học." });
+            }
+
+            if (User.IsInRole("Student"))
+            {
+                var userIdText = User.FindFirst("UserId")?.Value
+                    ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdText, out var userId))
+                {
+                    return Unauthorized(new { message = "Không xác định được tài khoản học viên." });
+                }
+
+                var student = await _studentRepository.GetByUserIdAsync(userId);
+                if (student == null || enrollment.StudentId != student.Id)
+                {
+                    return Forbid();
+                }
+            }
+
             var result = await _enrollmentService.CancelAsync(id);
 
             if (!result)

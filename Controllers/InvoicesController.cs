@@ -183,6 +183,28 @@ namespace EnglishCenter.API.Controllers
         {
             try
             {
+                var invoice = await _invoiceService.GetByIdAsync(id);
+                if (invoice == null)
+                {
+                    return NotFound(new { message = "Hóa đơn không tồn tại." });
+                }
+
+                if (User.IsInRole("Student"))
+                {
+                    var userIdText = User.FindFirst("UserId")?.Value
+                        ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    if (!int.TryParse(userIdText, out var userId))
+                    {
+                        return Unauthorized(new { message = "Không xác định được tài khoản học viên." });
+                    }
+
+                    var student = await _studentRepository.GetByUserIdAsync(userId);
+                    if (student == null || invoice.StudentId != student.Id)
+                    {
+                        return Forbid();
+                    }
+                }
+
                 var result =
                     await _invoiceService.CancelAsync(id);
 

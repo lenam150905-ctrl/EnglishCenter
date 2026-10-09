@@ -224,11 +224,20 @@ namespace EnglishCenter.API.Controllers
                 relativePath = await _certificatePdfService.GenerateCertificatePdfAsync(id, userId, AuditContext.GetIPAddress(HttpContext));
             }
 
-            var filePath = Path.Combine(_environment.WebRootPath, relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            var webRoot = Path.GetFullPath(_environment.WebRootPath);
+            var filePath = Path.GetFullPath(Path.Combine(
+                webRoot,
+                relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)));
+            if (!filePath.StartsWith(webRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new { message = "Đường dẫn chứng chỉ không hợp lệ." });
+            }
             if (!System.IO.File.Exists(filePath))
             {
                 relativePath = await _certificatePdfService.GenerateCertificatePdfAsync(id, userId, AuditContext.GetIPAddress(HttpContext));
-                filePath = Path.Combine(_environment.WebRootPath, relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                filePath = Path.GetFullPath(Path.Combine(
+                    webRoot,
+                    relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)));
             }
 
             return PhysicalFile(filePath, "application/pdf", $"{certificate.CertificateCode}.pdf");
