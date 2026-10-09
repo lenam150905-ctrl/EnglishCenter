@@ -3,6 +3,7 @@ using EnglishCenter.API.Health;
 using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
 using EnglishCenter.API.Services;
+using EnglishCenter.API.Security;
 using EnglishCenter.Services;
 using EnglishCenter.Application.Abstractions.Persistence;
 using EnglishCenter.Infrastructure.Persistence.Dapper;
@@ -139,6 +140,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(key),
             ClockSkew = TimeSpan.Zero
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                // The browser cannot read this HttpOnly cookie. It is sent only
+                // by the browser over HTTPS and becomes the bearer token here.
+                context.Token = context.Request.Cookies[AuthCookies.AccessToken];
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddCors(options =>
 {
@@ -150,7 +161,8 @@ builder.Services.AddCors(options =>
                 "http://localhost:5500"
             )
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 var app = builder.Build();
