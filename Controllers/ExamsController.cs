@@ -25,9 +25,7 @@ namespace EnglishCenter.API.Controllers
             _studentRepository = studentRepository;
         }
 
-        // GET: api/Exams
-        // Admin + Teacher + Student
-        [HttpGet]
+[HttpGet]
         [Authorize(Roles = "Admin,Teacher,Student")]
         public async Task<ActionResult<PagedResultDto<ExamDto>>> GetExams(
     string? search,
@@ -49,9 +47,8 @@ namespace EnglishCenter.API.Controllers
 
             return Ok(exams);
         }
-        // GET: api/Exams/1
-        // Admin + Teacher + Student
-        [HttpGet("{id}")]
+
+[HttpGet("{id}")]
         [Authorize(Roles = "Admin,Teacher,Student")]
         public async Task<ActionResult<ExamDto>>
             GetExam(int id)
@@ -67,9 +64,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(exam);
         }
 
-        // POST: api/Exams
-        // Admin + Teacher
-        [HttpPost]
+[HttpPost]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<ExamDto>>
             CreateExam(ExamCreateDto dto)
@@ -83,9 +78,7 @@ namespace EnglishCenter.API.Controllers
                 exam);
         }
 
-        // PUT: api/Exams/1
-        // Admin + Teacher
-        [HttpPut("{id}")]
+[HttpPut("{id}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult>
             UpdateExam(
@@ -103,9 +96,7 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Exams/1
-        // Admin + Teacher
-        [HttpDelete("{id}")]
+[HttpDelete("{id}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult>
             DeleteExam(int id)
@@ -120,9 +111,8 @@ namespace EnglishCenter.API.Controllers
 
             return NoContent();
         }
-        // POST: api/Exams/1/start
-        // Chỉ Student
-        [HttpGet("{examId}/can-start")]
+
+[HttpGet("{examId}/can-start")]
         [Authorize(Roles = "Student")]
         public async Task<IActionResult> CanStartExam(int examId)
         {
@@ -179,3 +169,4 @@ namespace EnglishCenter.API.Controllers
         }
     }
 }
+

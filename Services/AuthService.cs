@@ -52,7 +52,8 @@ namespace EnglishCenter.API.Services
                 UserName = dto.UserName,
                 Email = dto.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role = dto.Role
+                // Never trust a role supplied by a public registration request.
+                Role = "Student"
             };
 
             await _userRepository.CreateAsync(user);
@@ -121,9 +122,9 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException("Mật khẩu mới không được để trống.");
             }
 
-            if (dto.NewPassword.Length < 6)
+            if (dto.NewPassword.Length < 8)
             {
-                throw new ArgumentException("Mật khẩu phải có ít nhất 6 ký tự.");
+                throw new ArgumentException("Mật khẩu phải có ít nhất 8 ký tự.");
             }
 
             if (dto.NewPassword != dto.ConfirmPassword)
@@ -134,7 +135,7 @@ namespace EnglishCenter.API.Services
             var user = await _userRepository.GetByUserNameOrEmailAsync(dto.Email);
             if (user == null)
             {
-                throw new ArgumentException("Email không tồn tại.");
+                throw new ArgumentException("Yêu cầu đặt lại mật khẩu không hợp lệ.");
             }
 
             var resetOtp = await _userRepository.GetLatestPasswordResetOtpAsync(user.Id, onlyVerified: true);
@@ -148,7 +149,7 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException("Mã OTP đã hết hạn.");
             }
 
-            if (resetOtp.Otp != dto.Otp)
+            if (!IsOtpMatch(resetOtp.Otp, dto.Otp))
             {
                 throw new ArgumentException("Mã OTP không chính xác.");
             }
@@ -170,14 +171,10 @@ namespace EnglishCenter.API.Services
             }
 
             var user = await _userRepository.GetByUserNameOrEmailAsync(dto.Email);
-            if (user == null)
+            if (user == null || string.IsNullOrWhiteSpace(user.Email))
             {
-                throw new ArgumentException("Email không tồn tại.");
-            }
-
-            if (string.IsNullOrWhiteSpace(user.Email))
-            {
-                throw new ArgumentException("Tài khoản chưa có email.");
+                // Do not disclose whether an account or its email exists.
+                return string.Empty;
             }
 
             var lastOtp = await _userRepository.GetLatestPasswordResetOtpAsync(user.Id);
@@ -193,11 +190,11 @@ namespace EnglishCenter.API.Services
 
             await _userRepository.InvalidateOldPasswordResetOtpsAsync(user.Id);
 
-            var otp = Random.Shared.Next(100000, 1000000).ToString();
+            var otp = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
             var resetOtp = new PasswordResetOtp
             {
                 UserId = user.Id,
-                Otp = otp,
+                Otp = HashOtp(otp),
                 CreatedAt = DateTime.Now,
                 ExpiredAt = DateTime.Now.AddMinutes(5),
                 IsVerified = false,
@@ -241,7 +238,7 @@ namespace EnglishCenter.API.Services
             var user = await _userRepository.GetByUserNameOrEmailAsync(dto.Email);
             if (user == null)
             {
-                throw new ArgumentException("Email không tồn tại.");
+                throw new ArgumentException("Mã OTP không hợp lệ.");
             }
 
             var resetOtp = await _userRepository.GetLatestPasswordResetOtpAsync(user.Id);
@@ -260,7 +257,7 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException("Bạn đã nhập sai OTP quá 5 lần.");
             }
 
-            if (resetOtp.Otp != dto.Otp)
+            if (!IsOtpMatch(resetOtp.Otp, dto.Otp))
             {
                 resetOtp.FailedAttempts++;
                 await _userRepository.UpdatePasswordResetOtpAsync(resetOtp);
@@ -281,9 +278,10 @@ namespace EnglishCenter.API.Services
             }
 
             var user = await _userRepository.GetByUserNameOrEmailAsync(userName);
-            if (user == null)
+            if (user == null || string.IsNullOrWhiteSpace(user.Email))
             {
-                throw new ArgumentException("Tài khoản không tồn tại.");
+                // Return the same response as a real account to prevent enumeration.
+                return true;
             }
 
             await CreateAndQueueLoginOtpAsync(user);
@@ -310,11 +308,11 @@ namespace EnglishCenter.API.Services
 
             await _userRepository.InvalidateOldLoginOtpsAsync(user.Id);
 
-            var otp = Random.Shared.Next(100000, 1000000).ToString();
+            var otp = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
             var loginOtp = new LoginOtp
             {
                 UserId = user.Id,
-                Otp = otp,
+                Otp = HashOtp(otp),
                 CreatedAt = DateTime.Now,
                 ExpiredAt = DateTime.Now.AddMinutes(5),
                 IsVerified = false,
@@ -357,7 +355,7 @@ namespace EnglishCenter.API.Services
             var user = await _userRepository.GetByUserNameOrEmailAsync(dto.UserName);
             if (user == null)
             {
-                throw new ArgumentException("Tài khoản không tồn tại.");
+                throw new ArgumentException("Mã OTP không hợp lệ.");
             }
 
             var loginOtp = await _userRepository.GetLatestLoginOtpAsync(user.Id);
@@ -380,7 +378,7 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException("Bạn đã nhập sai OTP quá 5 lần.");
             }
 
-            if (loginOtp.Otp != dto.Otp)
+            if (!IsOtpMatch(loginOtp.Otp, dto.Otp))
             {
                 loginOtp.FailedAttempts++;
                 if (loginOtp.FailedAttempts >= 5)
@@ -428,8 +426,7 @@ namespace EnglishCenter.API.Services
                 return null;
             }
 
-            // Token rotation: a refresh token can only be used once.
-            await _cache.RemoveAsync(cacheKey);
+await _cache.RemoveAsync(cacheKey);
             return await IssueAuthAsync(user);
         }
 
@@ -438,6 +435,24 @@ namespace EnglishCenter.API.Services
             return string.IsNullOrWhiteSpace(refreshToken)
                 ? Task.CompletedTask
                 : _cache.RemoveAsync(GetRefreshTokenCacheKey(refreshToken));
+        }
+
+        private string HashOtp(string otp)
+        {
+            var secret = _configuration["Otp:HashKey"] ?? _configuration["Jwt:Key"]
+                ?? throw new InvalidOperationException("Chưa cấu hình khóa bảo vệ OTP.");
+            var hash = HMACSHA256.HashData(
+                Encoding.UTF8.GetBytes(secret),
+                Encoding.UTF8.GetBytes(otp));
+            return Convert.ToHexString(hash);
+        }
+
+        private bool IsOtpMatch(string storedHash, string candidateOtp)
+        {
+            var candidateHash = HashOtp(candidateOtp);
+            return CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(storedHash),
+                Encoding.UTF8.GetBytes(candidateHash));
         }
 
         private async Task<AuthResponseDto> IssueAuthAsync(User user)
@@ -477,3 +492,4 @@ namespace EnglishCenter.API.Services
         }
     }
 }
+

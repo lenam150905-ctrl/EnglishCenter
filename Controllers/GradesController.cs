@@ -38,9 +38,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(await _gradeService.GetAllAsync(search, examId, student.Id, minScore, maxScore, sortBy, sortDesc, page, pageSize));
         }
 
-        // GET: api/Grades
-        // Admin + Teacher
-        [HttpGet]
+[HttpGet]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<PagedResultDto<GradeDto>>> GetGrades(
     string? search,
@@ -67,9 +65,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(grades);
         }
 
-        // GET: api/Grades/1
-        // Admin + Teacher
-        [HttpGet("{id}")]
+[HttpGet("{id}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<GradeDto>>
             GetGrade(int id)
@@ -85,9 +81,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(grade);
         }
 
-        // POST: api/Grades
-        // Admin + Teacher
-        [HttpPost]
+[HttpPost]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<GradeDto>>
             CreateGrade(GradeCreateDto dto)
@@ -101,9 +95,7 @@ namespace EnglishCenter.API.Controllers
                 grade);
         }
 
-        // PUT: api/Grades/1
-        // Admin + Teacher
-        [HttpPut("{id}")]
+[HttpPut("{id}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult>
             UpdateGrade(
@@ -121,9 +113,7 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Grades/1
-        // Admin + Teacher
-        [HttpDelete("{id}")]
+[HttpDelete("{id}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult>
             DeleteGrade(int id)
@@ -161,3 +151,4 @@ namespace EnglishCenter.API.Controllers
         }
     }
 }
+

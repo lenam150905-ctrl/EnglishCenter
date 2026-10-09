@@ -24,22 +24,16 @@ namespace EnglishCenter.API.Controllers
             _httpContextAccessor = httpContextAccessor;
         }
 
-        // Lấy UserId từ JWT
-        private int? userid =>
+private int? userid =>
 AuditContext.GetUserId(
 _httpContextAccessor.HttpContext!);
 
-
-        // =========================
-        // GET: api/Notifications
-        // =========================
-        [Authorize(Roles = "Admin,Teacher,Student")]
+[Authorize(Roles = "Admin,Teacher,Student")]
         [HttpGet]
         public async Task<IActionResult> GetMyNotifications()
         {
-        
 
-            if (!userid.HasValue)
+if (!userid.HasValue)
             {
                 return Unauthorized(new
                 {
@@ -54,11 +48,7 @@ _httpContextAccessor.HttpContext!);
             return Ok(notifications);
         }
 
-        // =========================
-        // POST: api/Notifications
-        // =========================
-        // Tạm dùng để TEST
-        [HttpPost]
+[HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create(
             NotificationCreateDto dto)
@@ -73,15 +63,12 @@ _httpContextAccessor.HttpContext!);
             });
         }
         [Authorize(Roles = "Admin,Teacher,Student")]
-        // =========================
-        // PUT: api/Notifications/{id}/read
-        // =========================
-        [HttpPut("{id}/read")]
+
+[HttpPut("{id}/read")]
         public async Task<IActionResult> MarkAsRead(int id)
         {
-           
 
-            if (!userid.HasValue)
+if (!userid.HasValue)
             {
                 return Unauthorized(new
                 {
@@ -111,16 +98,12 @@ _httpContextAccessor.HttpContext!);
             });
         }
 
-        // =========================
-        // DELETE: api/Notifications/{id}
-        // =========================
-        [Authorize(Roles = "Admin,Teacher,Student")]
+[Authorize(Roles = "Admin,Teacher,Student")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-       
 
-            if (!userid.HasValue)
+if (!userid.HasValue)
             {
                 return Unauthorized(new
                 {
@@ -149,10 +132,8 @@ _httpContextAccessor.HttpContext!);
                     "Xóa thông báo thành công."
             });
         }
-        // =========================
-        // PUT: api/Notifications/read-all
-        // =========================
-        [Authorize(Roles = "Admin,Teacher,Student")]
+
+[Authorize(Roles = "Admin,Teacher,Student")]
         [HttpPut("read-all")]
         public async Task<IActionResult> MarkAllAsRead()
         {
@@ -186,3 +167,4 @@ _httpContextAccessor.HttpContext!);
     }
 
 }
+

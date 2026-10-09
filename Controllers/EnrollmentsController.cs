@@ -26,9 +26,7 @@ namespace EnglishCenter.API.Controllers
             _studentRepository = studentRepository;
         }
 
-        // GET: api/Enrollments
-        // Admin + Teacher
-        [HttpGet]
+[HttpGet]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<PagedResultDto<EnrollmentDto>>> GetEnrollments(
     string? search,
@@ -53,9 +51,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(enrollments);
         }
 
-        // GET: api/Enrollments/1
-        // Admin + Teacher
-        [HttpGet("{id}")]
+[HttpGet("{id}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<EnrollmentDto>> GetEnrollment(
             int id)
@@ -71,9 +67,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(enrollment);
         }
 
-        // POST: api/Enrollments
-        // Admin + Student
-        [HttpPost]
+[HttpPost]
         [Authorize(Roles = "Admin,Student")]
         public async Task<ActionResult<EnrollmentDto>> CreateEnrollment(
             EnrollmentCreateDto dto)
@@ -100,9 +94,7 @@ namespace EnglishCenter.API.Controllers
                 enrollment);
         }
 
-        // PUT: api/Enrollments/1
-        // Chỉ Admin
-        [HttpPut("{id}")]
+[HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateEnrollment(
             int id,
@@ -119,9 +111,7 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Enrollments/1
-        // Chỉ Admin
-        [HttpDelete("{id}")]
+[HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteEnrollment(
             int id)
@@ -161,6 +151,28 @@ namespace EnglishCenter.API.Controllers
         [HttpPut("{id}/cancel")]
         public async Task<IActionResult> Cancel(int id)
         {
+            var enrollment = await _enrollmentService.GetByIdAsync(id);
+            if (enrollment == null)
+            {
+                return NotFound(new { message = "Không tìm thấy đăng ký khóa học." });
+            }
+
+            if (User.IsInRole("Student"))
+            {
+                var userIdText = User.FindFirst("UserId")?.Value
+                    ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdText, out var userId))
+                {
+                    return Unauthorized(new { message = "Không xác định được tài khoản học viên." });
+                }
+
+                var student = await _studentRepository.GetByUserIdAsync(userId);
+                if (student == null || enrollment.StudentId != student.Id)
+                {
+                    return Forbid();
+                }
+            }
+
             var result = await _enrollmentService.CancelAsync(id);
 
             if (!result)
@@ -178,3 +190,4 @@ namespace EnglishCenter.API.Controllers
         }
     }
 }
+

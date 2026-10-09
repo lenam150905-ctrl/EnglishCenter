@@ -55,9 +55,7 @@ namespace EnglishCenter.API.Controllers
                 "invoiceDate", true, page, pageSize));
         }
 
-        // GET: api/Invoices
-        // Admin + Teacher được xem danh sách hóa đơn
-        [HttpGet]
+[HttpGet]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<PagedResultDto<InvoiceDto>>> GetInvoices(
     string? search,
@@ -86,9 +84,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(invoices);
         }
 
-        // GET: api/Invoices/1
-        // Admin + Teacher được xem chi tiết hóa đơn
-        [HttpGet("{id}")]
+[HttpGet("{id}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<InvoiceDto>>
             GetInvoice(int id)
@@ -104,9 +100,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(invoice);
         }
 
-        // POST: api/Invoices
-        // Chỉ Admin
-        [HttpPost]
+[HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<InvoiceDto>>
             CreateInvoice(InvoiceCreateDto dto)
@@ -120,9 +114,7 @@ namespace EnglishCenter.API.Controllers
                 invoice);
         }
 
-        // PUT: api/Invoices/1
-        // Chỉ Admin
-        [HttpPut("{id}")]
+[HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult>
             UpdateInvoice(
@@ -140,9 +132,7 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Invoices/1
-        // Chỉ Admin
-        [HttpDelete("{id}")]
+[HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult>
             DeleteInvoice(int id)
@@ -183,6 +173,28 @@ namespace EnglishCenter.API.Controllers
         {
             try
             {
+                var invoice = await _invoiceService.GetByIdAsync(id);
+                if (invoice == null)
+                {
+                    return NotFound(new { message = "Hóa đơn không tồn tại." });
+                }
+
+                if (User.IsInRole("Student"))
+                {
+                    var userIdText = User.FindFirst("UserId")?.Value
+                        ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    if (!int.TryParse(userIdText, out var userId))
+                    {
+                        return Unauthorized(new { message = "Không xác định được tài khoản học viên." });
+                    }
+
+                    var student = await _studentRepository.GetByUserIdAsync(userId);
+                    if (student == null || invoice.StudentId != student.Id)
+                    {
+                        return Forbid();
+                    }
+                }
+
                 var result =
                     await _invoiceService.CancelAsync(id);
 
@@ -209,3 +221,4 @@ namespace EnglishCenter.API.Controllers
         }
     }
 }
+

@@ -22,9 +22,7 @@ namespace EnglishCenter.API.Controllers
             _softDeleteService = softDeleteService;
         }
 
-        // GET: api/courses
-        // Admin + Teacher + Student đều được xem
-        [HttpGet]
+[HttpGet]
         [Authorize(Roles = "Admin,Teacher,Student")]
         public async Task<ActionResult<PagedResultDto<CourseDto>>> GetCourses(
     string? search,
@@ -47,9 +45,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(courses);
         }
 
-        // GET: api/courses/5
-        // Admin + Teacher + Student đều được xem
-        [HttpGet("{id}")]
+[HttpGet("{id}")]
         [Authorize(Roles = "Admin,Teacher,Student")]
         public async Task<ActionResult<CourseDto>> GetCourse(int id)
         {
@@ -63,9 +59,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(course);
         }
 
-        // POST: api/courses
-        // Admin + Teacher được thêm
-        [HttpPost]
+[HttpPost]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<CourseDto>> CreateCourse(
             CourseCreateDto dto)
@@ -78,9 +72,7 @@ namespace EnglishCenter.API.Controllers
                 course);
         }
 
-        // PUT: api/courses/5
-        // Admin + Teacher được sửa
-        [HttpPut("{id}")]
+[HttpPut("{id}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult> UpdateCourse(
             int id,
@@ -96,9 +88,7 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
-        // DELETE: api/courses/5
-        // Admin + Teacher được xóa
-        [HttpDelete("{id}")]
+[HttpDelete("{id}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult> DeleteCourse(int id)
         {
@@ -134,3 +124,4 @@ namespace EnglishCenter.API.Controllers
         }
     }
 }
+

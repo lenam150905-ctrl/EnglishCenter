@@ -4,7 +4,6 @@ using EnglishCenter.Application.Abstractions.Persistence;
 
 namespace EnglishCenter.Infrastructure.Persistence.Dapper;
 
-/// <summary>Dapper ánh xạ dữ liệu; ADO.NET quản lý connection/transaction.</summary>
 public abstract class DapperRepository(IDbConnectionFactory connectionFactory)
 {
     protected IDbConnectionFactory ConnectionFactory => connectionFactory;
@@ -81,3 +80,4 @@ public abstract class DapperRepository(IDbConnectionFactory connectionFactory)
         return result.AsList();
     }
 }
+

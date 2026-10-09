@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 
 namespace EnglishCenter.API.Middleware
 {
@@ -13,7 +13,7 @@ namespace EnglishCenter.API.Middleware
 
         public async Task InvokeAsync(HttpContext context)
         {
-            // UserId từ JWT
+            
             var userIdText = context.User
                 .FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -24,13 +24,11 @@ namespace EnglishCenter.API.Middleware
                 userId = id;
             }
 
-            // IP
-            var ipAddress = context.Connection
+var ipAddress = context.Connection
                 .RemoteIpAddress?
                 .ToString();
 
-            // Lưu vào HttpContext
-            context.Items["AuditUserId"] = userId;
+context.Items["AuditUserId"] = userId;
             context.Items["AuditIPAddress"] = ipAddress;
 
             await _next(context);

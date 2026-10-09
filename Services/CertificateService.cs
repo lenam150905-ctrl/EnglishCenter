@@ -252,10 +252,8 @@ namespace EnglishCenter.API.Services
             certificate.CourseId = dto.CourseId;
             certificate.CertificateCode = dto.CertificateCode;
             certificate.IssueDate = dto.IssueDate;
-            if (!string.IsNullOrWhiteSpace(dto.PdfFilePath))
-            {
-                certificate.PdfFilePath = dto.PdfFilePath;
-            }
+            // PDF paths are owned by CertificatePdfService. Do not accept a path
+            // from the browser because it could target a file outside wwwroot.
 
             await _certificateRepository.UpdateAsync(certificate);
 

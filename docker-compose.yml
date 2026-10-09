@@ -1,22 +1,26 @@
 services:
+  # =========================
+  # API BACKEND (ASP.NET Core 8)
+  # =========================
   api:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: englishcenter-api
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=EnglishCenterDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
-      Jwt__Key: ${JWT_KEY}
-      Jwt__Issuer: ${JWT_ISSUER}
-      Jwt__Audience: ${JWT_AUDIENCE}
-      Jwt__RefreshTokenDays: ${JWT_REFRESH_TOKEN_DAYS:-30}
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=EnglishCenterDb;User Id=sa;Password=;TrustServerCertificate=True;"
+      Jwt__Key: 
+      Jwt__Issuer: 
+      Jwt__Audience: 
+      Jwt__RefreshTokenDays: 
       Redis__ConnectionString: redis:6379
-      EmailSettings__SmtpServer: ${SMTP_SERVER:-smtp.gmail.com}
-      EmailSettings__Port: ${SMTP_PORT:-587}
-      EmailSettings__SenderName: ${SMTP_SENDER_NAME:-English Center}
-      EmailSettings__SenderEmail: ${SMTP_SENDER_EMAIL}
-      EmailSettings__Password: ${SMTP_PASSWORD}
-      EmailSettings__EnableSsl: ${SMTP_ENABLE_SSL:-true}
+      EmailSettings__SmtpServer: 
+      EmailSettings__Port: 
+      EmailSettings__SenderName: 
+      EmailSettings__SenderEmail: 
+      EmailSettings__Password: 
+      EmailSettings__EnableSsl: 
     ports:
       - "7207:8080"
     depends_on:
@@ -24,29 +28,110 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    networks:
+      - englishcenter-network
 
+  # =========================
+  # API GATEWAY (Ocelot - ASP.NET Core 9)
+  # =========================
+  gateway:
+    build:
+      context: ../EnglishCenter.Gateway
+      dockerfile: Dockerfile
+    container_name: englishcenter-gateway
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Jwt__Key: 
+      Jwt__Issuer: 
+      Jwt__Audience: 
+    ports:
+      - "7300:8080"
+    depends_on:
+      - api
+    networks:
+      - englishcenter-network
+
+  # =========================
+  # FRONTEND (Static files via Nginx)
+  # =========================
+  frontend:
+    build:
+      context: ../EnglishCenter.Web
+      dockerfile: Dockerfile
+    container_name: englishcenter-frontend
+    ports:
+      - "5500:80"
+    depends_on:
+      - gateway
+    networks:
+      - englishcenter-network
+
+  # =========================
+  # SQL SERVER DATABASE
+  # =========================
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: englishcenter-sqlserver
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: ${SA_PASSWORD}
+      MSSQL_SA_PASSWORD: 
+      MSSQL_PID: "Developer"
     ports:
       - "1433:1433"
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"\" -Q 'SELECT 1' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 15
       start_period: 30s
     volumes:
       - sqlserver-data:/var/opt/mssql
+      - ./Database:/docker-entrypoint-initdb.d
+    networks:
+      - englishcenter-network
 
+  # =========================
+  # DATABASE INITIALIZATION
+  # =========================
+  db-init:
+    image: mcr.microsoft.com/mssql-tools:latest
+    container_name: englishcenter-db-init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      SA_PASSWORD: 
+    entrypoint: >
+      /bin/bash -c "
+      echo 'Waiting for SQL Server...' &&
+      until /opt/mssql-tools18/bin/sqlcmd -C -S sqlserver -U sa -P \"\" -Q 'SELECT 1' > /dev/null 2>&1; do sleep 2; done &&
+      echo 'Creating database...' &&
+      /opt/mssql-tools18/bin/sqlcmd -C -S sqlserver -U sa -P \"\" -Q 'IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = \"EnglishCenterDb\") CREATE DATABASE EnglishCenterDb;' &&
+      echo 'Running seed script...' &&
+      /opt/mssql-tools18/bin/sqlcmd -C -S sqlserver -U sa -P \"\" -d EnglishCenterDb -i /scripts/Seed_2000.sql &&
+      echo 'Database initialization complete!'
+      "
+    volumes:
+      - ./Database:/scripts
+    networks:
+      - englishcenter-network
+
+  # =========================
+  # REDIS CACHE
+  # =========================
   redis:
     image: redis:7-alpine
+    container_name: englishcenter-redis
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
+    networks:
+      - englishcenter-network
+
+networks:
+  englishcenter-network:
+    driver: bridge
 
 volumes:
   sqlserver-data:

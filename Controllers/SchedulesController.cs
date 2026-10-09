@@ -22,9 +22,7 @@ namespace EnglishCenter.API.Controllers
             _softDeleteService = softDeleteService;
         }
 
-        // GET: api/Schedules
-        // Admin + Teacher + Student
-        [HttpGet]
+[HttpGet]
         [Authorize(Roles = "Admin,Teacher,Student")]
         public async Task<ActionResult<PagedResultDto<ScheduleDto>>> GetSchedules(
     string? search,
@@ -47,9 +45,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(schedules);
         }
 
-        // GET: api/Schedules/1
-        // Admin + Teacher + Student
-        [HttpGet("{id}")]
+[HttpGet("{id}")]
         [Authorize(Roles = "Admin,Teacher,Student")]
         public async Task<ActionResult<ScheduleDto>> GetSchedule(int id)
         {
@@ -63,9 +59,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(schedule);
         }
 
-        // POST: api/Schedules
-        // Admin + Teacher
-        [HttpPost]
+[HttpPost]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<ScheduleDto>> CreateSchedule(
             ScheduleCreateDto dto)
@@ -78,9 +72,7 @@ namespace EnglishCenter.API.Controllers
                 schedule);
         }
 
-        // PUT: api/Schedules/1
-        // Admin + Teacher
-        [HttpPut("{id}")]
+[HttpPut("{id}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult> UpdateSchedule(
             int id,
@@ -96,9 +88,7 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Schedules/1
-        // Admin + Teacher
-        [HttpDelete("{id}")]
+[HttpDelete("{id}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult> DeleteSchedule(int id)
         {
@@ -133,3 +123,4 @@ namespace EnglishCenter.API.Controllers
         }
     }
 }
+

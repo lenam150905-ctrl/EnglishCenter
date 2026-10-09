@@ -122,8 +122,7 @@ public sealed class UserRepository(IDbConnectionFactory connectionFactory)
         return await ExecuteAsync(sql, new { Id = id }, cancellationToken) > 0;
     }
 
-    // Login OTP
-    public Task<LoginOtp?> GetLatestLoginOtpAsync(int userId, CancellationToken cancellationToken = default) =>
+public Task<LoginOtp?> GetLatestLoginOtpAsync(int userId, CancellationToken cancellationToken = default) =>
         QueryFirstOrDefaultAsync<LoginOtp>(
             "SELECT TOP 1 Id, UserId, Otp, CreatedAt, ExpiredAt, IsVerified, FailedAttempts FROM LoginOtps WHERE UserId = @UserId ORDER BY Id DESC;",
             new { UserId = userId },
@@ -151,8 +150,7 @@ public sealed class UserRepository(IDbConnectionFactory connectionFactory)
             otp,
             cancellationToken);
 
-    // Password Reset OTP
-    public Task<PasswordResetOtp?> GetLatestPasswordResetOtpAsync(int userId, bool onlyVerified = false, CancellationToken cancellationToken = default)
+public Task<PasswordResetOtp?> GetLatestPasswordResetOtpAsync(int userId, bool onlyVerified = false, CancellationToken cancellationToken = default)
     {
         var sql = onlyVerified
             ? "SELECT TOP 1 Id, UserId, Otp, CreatedAt, ExpiredAt, IsVerified, FailedAttempts FROM PasswordResetOtps WHERE UserId = @UserId AND IsVerified = 1 ORDER BY Id DESC;"
@@ -182,3 +180,4 @@ public sealed class UserRepository(IDbConnectionFactory connectionFactory)
             otp,
             cancellationToken);
 }
+

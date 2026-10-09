@@ -1,4 +1,4 @@
-﻿using EnglishCenter.API.Models;
+using EnglishCenter.API.Models;
 using EnglishCenter.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -13,8 +13,7 @@ namespace EnglishCenter.API.Services
     {
         private readonly VNPaySettings _settings;
 
-
-        public VNPayService(
+public VNPayService(
             IOptions<VNPaySettings> options)
         {
             _settings = options.Value;
@@ -64,8 +63,7 @@ namespace EnglishCenter.API.Services
 
             var createDate = DateTime.Now;
 
-            // Mã giao dịch duy nhất
-            var txnRef =
+var txnRef =
                 $"{invoiceId}_{createDate:yyyyMMddHHmmss}";
 
             var parameters =
@@ -234,3 +232,4 @@ namespace EnglishCenter.API.Services
         }
     }
 }
+

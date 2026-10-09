@@ -22,9 +22,7 @@ namespace EnglishCenter.API.Controllers
             _softDeleteService = softDeleteService;
         }
 
-        // GET: api/Users
-        // Chỉ Admin
-        [HttpGet]
+[HttpGet]
         public async Task<ActionResult<PagedResultDto<UserDto>>> GetUsers(
     string? search,
     string? role,
@@ -44,9 +42,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(users);
         }
 
-        // GET: api/Users/1
-        // Chỉ Admin
-        [HttpGet("{id}")]
+[HttpGet("{id}")]
         public async Task<ActionResult<UserDto>> GetUser(int id)
         {
             var user = await _userService.GetByIdAsync(id);
@@ -59,9 +55,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(user);
         }
 
-        // POST: api/Users
-        // Chỉ Admin
-        [HttpPost]
+[HttpPost]
         public async Task<ActionResult<UserDto>> CreateUser(
             UserCreateDto dto)
         {
@@ -73,9 +67,7 @@ namespace EnglishCenter.API.Controllers
                 user);
         }
 
-        // PUT: api/Users/1
-        // Chỉ Admin
-        [HttpPut("{id}")]
+[HttpPut("{id}")]
         public async Task<IActionResult> UpdateUser(
             int id,
             UserUpdateDto dto)
@@ -91,9 +83,7 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Users/1
-        // Chỉ Admin
-        [HttpDelete("{id}")]
+[HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
             var result =

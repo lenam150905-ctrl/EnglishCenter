@@ -20,15 +20,14 @@ public interface IUserRepository
     Task<bool> UpdateAsync(User user, CancellationToken cancellationToken = default);
     Task<bool> SoftDeleteAsync(int id, CancellationToken cancellationToken = default);
 
-    // Login OTP operations
-    Task<LoginOtp?> GetLatestLoginOtpAsync(int userId, CancellationToken cancellationToken = default);
+Task<LoginOtp?> GetLatestLoginOtpAsync(int userId, CancellationToken cancellationToken = default);
     Task InvalidateOldLoginOtpsAsync(int userId, CancellationToken cancellationToken = default);
     Task CreateLoginOtpAsync(LoginOtp otp, CancellationToken cancellationToken = default);
     Task UpdateLoginOtpAsync(LoginOtp otp, CancellationToken cancellationToken = default);
 
-    // Password Reset OTP operations
-    Task<PasswordResetOtp?> GetLatestPasswordResetOtpAsync(int userId, bool onlyVerified = false, CancellationToken cancellationToken = default);
+Task<PasswordResetOtp?> GetLatestPasswordResetOtpAsync(int userId, bool onlyVerified = false, CancellationToken cancellationToken = default);
     Task InvalidateOldPasswordResetOtpsAsync(int userId, CancellationToken cancellationToken = default);
     Task CreatePasswordResetOtpAsync(PasswordResetOtp otp, CancellationToken cancellationToken = default);
     Task UpdatePasswordResetOtpAsync(PasswordResetOtp otp, CancellationToken cancellationToken = default);
 }
+

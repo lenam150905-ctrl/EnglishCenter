@@ -1,4 +1,4 @@
-﻿using EnglishCenter.API.Jobs;
+using EnglishCenter.API.Jobs;
 using EnglishCenter.API.Services;
 
 namespace EnglishCenter.API.Background
@@ -34,8 +34,7 @@ namespace EnglishCenter.API.Background
                         {
                             await job.ExecuteAsync();
 
-                            // Job thành công
-                            break;
+break;
                         }
                         catch (Exception ex)
                         {
@@ -56,8 +55,7 @@ namespace EnglishCenter.API.Background
                                 break;
                             }
 
-                            // Chờ trước khi thử lại
-                            await Task.Delay(
+await Task.Delay(
                                 TimeSpan.FromSeconds(2),
                                 stoppingToken);
                         }

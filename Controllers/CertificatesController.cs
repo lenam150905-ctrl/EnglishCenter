@@ -68,9 +68,7 @@ namespace EnglishCenter.API.Controllers
                 search, student.Id, courseId, sortBy, sortDesc, page, pageSize));
         }
 
-        // GET: api/Certificates
-        // Admin + Teacher + Student
-        [HttpGet]
+[HttpGet]
         [Authorize(Roles = "Admin,Teacher,Student")]
         public async Task<ActionResult<PagedResultDto<CertificateDto>>> GetCertificates(
             string? search,
@@ -93,8 +91,7 @@ namespace EnglishCenter.API.Controllers
                     return NotFound(new { message = "Tài khoản chưa liên kết với hồ sơ học viên." });
                 }
 
-                // Student không được truyền StudentId của người khác.
-                studentId = student.Id;
+studentId = student.Id;
             }
 
             var certificates = await _certificateService.GetAllAsync(
@@ -109,9 +106,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(certificates);
         }
 
-        // GET: api/Certificates/1
-        // Admin + Teacher + Student
-        [HttpGet("{id}")]
+[HttpGet("{id}")]
         [Authorize(Roles = "Admin,Teacher,Student")]
         public async Task<ActionResult<CertificateDto>>
             GetCertificate(int id)
@@ -140,9 +135,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(certificate);
         }
 
-        // POST: api/Certificates
-        // Admin + Teacher
-        [HttpPost]
+[HttpPost]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<CertificateDto>>
             CreateCertificate(
@@ -157,9 +150,7 @@ namespace EnglishCenter.API.Controllers
                 certificate);
         }
 
-        // PUT: api/Certificates/1
-        // Admin + Teacher
-        [HttpPut("{id}")]
+[HttpPut("{id}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult>
             UpdateCertificate(
@@ -178,9 +169,7 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Certificates/1
-        // Admin + Teacher
-        [HttpDelete("{id}")]
+[HttpDelete("{id}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult>
             DeleteCertificate(int id)
@@ -197,12 +186,7 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
-        // ==========================================
-        // EXPORT PDF
-        // Admin + Teacher + Student
-        // ==========================================
-
-        [Authorize(Roles = "Admin,Teacher,Student")]
+[Authorize(Roles = "Admin,Teacher,Student")]
         [HttpGet("{id}/download")]
         public async Task<IActionResult> DownloadPdf(int id)
         {
@@ -224,11 +208,20 @@ namespace EnglishCenter.API.Controllers
                 relativePath = await _certificatePdfService.GenerateCertificatePdfAsync(id, userId, AuditContext.GetIPAddress(HttpContext));
             }
 
-            var filePath = Path.Combine(_environment.WebRootPath, relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+            var webRoot = Path.GetFullPath(_environment.WebRootPath);
+            var filePath = Path.GetFullPath(Path.Combine(
+                webRoot,
+                relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)));
+            if (!filePath.StartsWith(webRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new { message = "Đường dẫn chứng chỉ không hợp lệ." });
+            }
             if (!System.IO.File.Exists(filePath))
             {
                 relativePath = await _certificatePdfService.GenerateCertificatePdfAsync(id, userId, AuditContext.GetIPAddress(HttpContext));
-                filePath = Path.Combine(_environment.WebRootPath, relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                filePath = Path.GetFullPath(Path.Combine(
+                    webRoot,
+                    relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)));
             }
 
             return PhysicalFile(filePath, "application/pdf", $"{certificate.CertificateCode}.pdf");
@@ -237,7 +230,7 @@ namespace EnglishCenter.API.Controllers
         [HttpPost("{id}/export-pdf")]
         public async Task<IActionResult> ExportPdf(int id)
         {
-            // Kiểm tra UserId hiện tại
+            
             var userId = AuditContext.GetUserId(
                 HttpContext);
 
@@ -246,12 +239,10 @@ namespace EnglishCenter.API.Controllers
                 return Unauthorized();
             }
 
-            // Lấy IP
-            var ipAddress = AuditContext.GetIPAddress(
+var ipAddress = AuditContext.GetIPAddress(
                 HttpContext);
 
-            // Kiểm tra Certificate có tồn tại
-            var certificate =
+var certificate =
                 await _certificateService.GetByIdAsync(id);
 
             if (certificate == null)
@@ -271,15 +262,13 @@ namespace EnglishCenter.API.Controllers
                 }
             }
 
-            // Tạo Background Job
-            var job = new CertificatePdfJob(
+var job = new CertificatePdfJob(
                 _scopeFactory,
                 id,
                 userId,
                 ipAddress);
 
-            // Đưa Job vào Queue
-            _queue.Enqueue(job);
+_queue.Enqueue(job);
 
             return Accepted(new
             {
@@ -289,12 +278,7 @@ namespace EnglishCenter.API.Controllers
             });
         }
 
-        // ==========================================
-        // RESTORE
-        // Chỉ Admin
-        // ==========================================
-
-        [HttpPut("{id}/restore")]
+[HttpPut("{id}/restore")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Restore(int id)
         {
@@ -319,3 +303,4 @@ namespace EnglishCenter.API.Controllers
         }
     }
 }
+

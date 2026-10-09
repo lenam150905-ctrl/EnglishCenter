@@ -285,9 +285,7 @@ namespace EnglishCenter.API.Services
                 studentId, exam.CourseId.Value);
             if (!hasPaidInvoice) return false;
 
-            // Kết quả thi được lưu ở bảng Grades. Nếu đã có điểm thì học viên
-            // không thể bắt đầu lại bài thi này.
-            var hasCompletedAttempt = await _gradeRepository.ExistsAsync(
+var hasCompletedAttempt = await _gradeRepository.ExistsAsync(
                 examId,
                 studentId);
 
@@ -300,3 +298,4 @@ namespace EnglishCenter.API.Services
         }
     }
 }
+

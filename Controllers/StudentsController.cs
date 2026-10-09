@@ -47,9 +47,7 @@ namespace EnglishCenter.API.Controllers
                 : Ok(new { student.Id, student.FullName, student.Email, student.Phone, student.Address });
         }
 
-        // GET: api/Students
-        // Admin + Teacher
-        [HttpGet]
+[HttpGet]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<PagedResultDto<StudentDto>>> GetStudents(
     string? search,
@@ -72,9 +70,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(students);
         }
 
-        // GET: api/Students/1
-        // Admin + Teacher
-        [HttpGet("{id}")]
+[HttpGet("{id}")]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<ActionResult<StudentDto>>
             GetStudent(int id)
@@ -90,9 +86,7 @@ namespace EnglishCenter.API.Controllers
             return Ok(student);
         }
 
-        // POST: api/Students
-        // Chỉ Admin
-        [HttpPost]
+[HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<StudentDto>>
             CreateStudent(StudentCreateDto dto)
@@ -106,9 +100,7 @@ namespace EnglishCenter.API.Controllers
                 student);
         }
 
-        // PUT: api/Students/1
-        // Chỉ Admin
-        [HttpPut("{id}")]
+[HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult>
             UpdateStudent(
@@ -126,9 +118,7 @@ namespace EnglishCenter.API.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Students/1
-        // Chỉ Admin
-        [HttpDelete("{id}")]
+[HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult>
             DeleteStudent(int id)
@@ -164,20 +154,11 @@ namespace EnglishCenter.API.Controllers
                 return Unauthorized();
             }
 
-            // ==========================================
-            // KIỂM TRA FILE NGAY LẬP TỨC
-            // ==========================================
-
-            var validation =
+var validation =
                 await _studentService
                     .ValidateImportExcelAsync(file);
 
-            // ==========================================
-            // CÓ LỖI → TRẢ LỖI NGAY
-            // KHÔNG ĐƯA VÀO QUEUE
-            // ==========================================
-
-            if (validation.Errors.Count > 0)
+if (validation.Errors.Count > 0)
             {
                 return BadRequest(new
                 {
@@ -195,11 +176,7 @@ namespace EnglishCenter.API.Controllers
                 });
             }
 
-            // ==========================================
-            // FILE HỢP LỆ → LƯU FILE TẠM
-            // ==========================================
-
-            var ipAddress =
+var ipAddress =
                 HttpContext.Connection.RemoteIpAddress?
                     .ToString();
 
@@ -224,11 +201,7 @@ namespace EnglishCenter.API.Controllers
                 await file.CopyToAsync(stream);
             }
 
-            // ==========================================
-            // ĐƯA VÀO BACKGROUND JOB
-            // ==========================================
-
-            var job =
+var job =
                 new ImportStudentJob(
                     _scopeFactory,
                     filePath,
@@ -248,3 +221,4 @@ namespace EnglishCenter.API.Controllers
         }
     }
 }
+
