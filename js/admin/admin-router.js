@@ -91,7 +91,7 @@
                 else if (view.trash) cells += '<td><button class="table-button" data-restore-entity="' + esc(row.entity) + '" data-restore-id="' + row.id + '">Khôi phục</button></td>';
                 return "<tr>" + cells + "</tr>";
             }).join("") : '<tr><td colspan="' + (view.columns.length + 1) + '" class="table-empty">Chưa có dữ liệu phù hợp.</td></tr>';
-            meta.innerHTML = 'Hiển thị ' + rows.length + ' / ' + total + ' bản ghi <span class="pager-controls"><button class="pager-button" id="previousPage"' + (page <= 1 ? ' disabled' : '') + '>← Trước</button><span>Trang ' + page + ' / ' + totalPages + '</span><button class="pager-button" id="nextPage"' + (page >= totalPages ? ' disabled' : '') + '>Sau →</button></span>';
+            meta.innerHTML = 'Hiển thị ' + rows.length + ' / ' + total + ' bản ghi <span class="pager-controls"><button class="pager-button" id="previousPage"' + (page <= 1 ? ' disabled' : '') + '>← Trước</button><span>Trang ' + page + ' / ' + totalPages + '</span><label class="pager-jump">Đến <input id="adminPageJump" type="number" min="1" max="' + totalPages + '" value="' + page + '" inputmode="numeric" aria-label="Chuyển đến trang"></label><button class="pager-button" id="adminJumpPage">Đi</button><button class="pager-button" id="nextPage"' + (page >= totalPages ? ' disabled' : '') + '>Sau →</button></span>';
             body.querySelectorAll("[data-edit]").forEach(function (button) { button.onclick = function () { openForm(name, rows.find(function (row) { return row.id === Number(button.dataset.edit); }), reload); }; });
             body.querySelectorAll("[data-delete]").forEach(function (button) { button.onclick = function () { remove(view, button.dataset.delete, reload); }; });
             body.querySelectorAll("[data-cancel]").forEach(function (button) { button.onclick = function () { action(view.endpoint, button.dataset.cancel, "cancel", "PUT", reload); }; });
@@ -102,6 +102,12 @@
             body.querySelectorAll("[data-pay]").forEach(function (button) { button.onclick = function () { pay(button.dataset.pay); }; });
             document.getElementById("previousPage")?.addEventListener("click", function () { changePage(page - 1); });
             document.getElementById("nextPage")?.addEventListener("click", function () { changePage(page + 1); });
+            function jumpToPage() {
+                var requested = Number(document.getElementById("adminPageJump").value);
+                if (Number.isInteger(requested) && requested >= 1 && requested <= totalPages && requested !== page) changePage(requested);
+            }
+            document.getElementById("adminJumpPage")?.addEventListener("click", jumpToPage);
+            document.getElementById("adminPageJump")?.addEventListener("keydown", function (event) { if (event.key === "Enter") { event.preventDefault(); jumpToPage(); } });
         } catch (error) { body.innerHTML = '<tr><td colspan="' + (view.columns.length + 1) + '" class="table-empty table-error">' + esc(error.message) + "</td></tr>"; meta.textContent = "Không thể tải dữ liệu."; }
     }
     function formControl(item, record) {

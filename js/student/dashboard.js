@@ -93,7 +93,7 @@
                 if (name === "notifications") cells += '<td><div class="row-actions"><button class="table-button" data-read="' + row.id + '"' + (row.isRead ? ' disabled' : '') + '>Đã đọc</button><button class="table-button danger" data-delete-notification="' + row.id + '">Xóa</button></div></td>';
                 return "<tr>" + cells + "</tr>";
             }).join("") : '<tr><td colspan="' + (view.columns.length + 1) + '" class="table-empty">Chưa có dữ liệu.</td></tr>';
-            meta.innerHTML = 'Hiển thị ' + rows.length + ' / ' + total + ' bản ghi <span class="pager-controls"><button class="pager-button" id="studentPrevious"' + (page <= 1 ? ' disabled' : '') + '>← Trước</button><span>Trang ' + page + ' / ' + totalPages + '</span><button class="pager-button" id="studentNext"' + (page >= totalPages ? ' disabled' : '') + '>Sau →</button></span>';
+            meta.innerHTML = 'Hiển thị ' + rows.length + ' / ' + total + ' bản ghi <span class="pager-controls"><button class="pager-button" id="studentPrevious"' + (page <= 1 ? ' disabled' : '') + '>← Trước</button><span>Trang ' + page + ' / ' + totalPages + '</span><label class="pager-jump">Đến <input id="studentPageJump" type="number" min="1" max="' + totalPages + '" value="' + page + '" inputmode="numeric" aria-label="Chuyển đến trang"></label><button class="pager-button" id="studentJumpPage">Đi</button><button class="pager-button" id="studentNext"' + (page >= totalPages ? ' disabled' : '') + '>Sau →</button></span>';
             table.querySelectorAll("[data-enroll]").forEach(function (button) { button.onclick = function () { enroll(button.dataset.enroll, reload); }; });
             table.querySelectorAll("[data-exam]").forEach(function (button) { button.onclick = function () { checkExam(button.dataset.exam); }; });
             table.querySelectorAll("[data-pdf]").forEach(function (button) { button.onclick = function () { exportPdf(button.dataset.pdf); }; });
@@ -102,6 +102,12 @@
             table.querySelectorAll("[data-delete-notification]").forEach(function (button) { button.onclick = function () { deleteNotification(button.dataset.deleteNotification, reload); }; });
             document.getElementById("studentPrevious")?.addEventListener("click", function () { changePage(page - 1); });
             document.getElementById("studentNext")?.addEventListener("click", function () { changePage(page + 1); });
+            function jumpToPage() {
+                var requested = Number(document.getElementById("studentPageJump").value);
+                if (Number.isInteger(requested) && requested >= 1 && requested <= totalPages && requested !== page) changePage(requested);
+            }
+            document.getElementById("studentJumpPage")?.addEventListener("click", jumpToPage);
+            document.getElementById("studentPageJump")?.addEventListener("keydown", function (event) { if (event.key === "Enter") { event.preventDefault(); jumpToPage(); } });
         } catch (error) { table.innerHTML = '<tr><td colspan="' + (view.columns.length + 1) + '" class="table-empty table-error">' + escapeHtml(error.message) + "</td></tr>"; }
     }
     async function enroll(courseId, reload) {
