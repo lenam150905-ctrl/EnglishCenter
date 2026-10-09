@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+const string AccessTokenCookie = "ec_access";
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Giữ cổng local khi chạy F5; Docker sẽ cung cấp ASPNETCORE_URLS=http://+:8080.
@@ -32,7 +34,8 @@ builder.Services.AddCors(options =>
                 "https://englishcenter-namle.duckdns.org"
             )
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -53,6 +56,14 @@ builder.Services
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             ClockSkew = TimeSpan.Zero
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                context.Token = context.Request.Cookies[AccessTokenCookie];
+                return Task.CompletedTask;
+            }
         };
     });
 
