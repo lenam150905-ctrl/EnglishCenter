@@ -1,24 +1,4 @@
 
-
-function getAuthStorage() {
-    if (localStorage.getItem("accessToken")) {
-        return localStorage;
-    }
-
-    if (sessionStorage.getItem("accessToken")) {
-        return sessionStorage;
-    }
-
-    return null;
-}
-
-function getAccessToken() {
-    return (
-        localStorage.getItem("accessToken") ||
-        sessionStorage.getItem("accessToken")
-    );
-}
-
 function getCurrentUserName() {
     return (
         localStorage.getItem("userName") ||
@@ -52,10 +32,12 @@ function getCurrentUser() {
 }
 
 function isAuthenticated() {
-    return !!getAccessToken();
+    // Credentials are held in an HttpOnly cookie and cannot be read by JS.
+    // The non-sensitive profile metadata below only drives the client UI.
+    return !!getCurrentUserName() && !!getCurrentRole();
 }
 
-function saveAuthData(data, token, rememberMe = false) {
+function saveAuthData(data, rememberMe = false) {
     
     clearAuthData();
 
@@ -79,7 +61,6 @@ function saveAuthData(data, token, rememberMe = false) {
         auth.Role ||
         "";
 
-    storage.setItem("accessToken", token);
     storage.setItem("userName", userName);
     storage.setItem("role", role);
 
@@ -94,6 +75,7 @@ function saveAuthData(data, token, rememberMe = false) {
 
 function clearAuthData() {
     const keys = [
+        // Removes tokens saved by older releases during the first new login.
         "accessToken",
         "userName",
         "role",
@@ -110,9 +92,18 @@ async function logout() {
     if (window.appConfirm && !(await window.appConfirm("Bạn có chắc muốn đăng xuất?", "Đăng xuất"))) {
         return;
     }
-    clearAuthData();
-
-    window.location.href = "/index.html";
+    try {
+        if (typeof apiPost === "function") {
+            await apiPost("/Auth/logout", {});
+        }
+    } catch (error) {
+        // Clearing the local UI state is still safe if a previous session has
+        // already expired on the server.
+        console.warn("Logout request failed:", error);
+    } finally {
+        clearAuthData();
+        window.location.href = "/index.html";
+    }
 }
 
 function requireAuth() {
@@ -175,7 +166,7 @@ function redirectToDashboard() {
 }
 
 function preserveAuthForPaymentReturn() {
-    ["accessToken", "userName", "role", "currentUser"].forEach(function (key) {
+    ["userName", "role", "currentUser"].forEach(function (key) {
         const value = localStorage.getItem(key) || sessionStorage.getItem(key);
         if (value) localStorage.setItem(key, value);
     });

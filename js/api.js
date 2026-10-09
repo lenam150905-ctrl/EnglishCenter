@@ -11,12 +11,6 @@ async function apiRequest(endpoint, options = {}) {
     );
 
     try {
-        // Public pages (for example Forgot Password) do not load auth.js.
-        // They must still be able to call anonymous API endpoints.
-        const token = typeof getAccessToken === "function"
-            ? getAccessToken()
-            : null;
-
         const headers = {
             ...(options.headers || {})
         };
@@ -30,16 +24,12 @@ if (
                 "application/json";
         }
 
-if (token) {
-            headers["Authorization"] =
-                `Bearer ${token}`;
-        }
-
         const response = await fetch(
             `${CONFIG.API_BASE_URL}${endpoint}`,
             {
                 ...options,
                 headers: headers,
+                credentials: "include",
                 signal: controller.signal
             }
         );
@@ -143,13 +133,9 @@ async function apiDelete(endpoint) {
 }
 
 async function apiDownload(endpoint, fileName) {
-    const token = typeof getAccessToken === "function"
-        ? getAccessToken()
-        : null;
-
     const response = await fetch(`${CONFIG.API_BASE_URL}${endpoint}`, {
         method: "GET",
-        headers: token ? { "Authorization": `Bearer ${token}` } : {}
+        credentials: "include"
     });
     if (!response.ok) {
         let data = null;

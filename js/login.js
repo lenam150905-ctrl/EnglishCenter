@@ -127,30 +127,8 @@ sessionStorage.setItem(
                 return;
             }
 
-const auth =
-                data.auth ||
-                data.Auth ||
-                {};
-
-            const token =
-                auth.token ||
-                auth.Token ||
-                data.token ||
-                data.Token ||
-                data.accessToken ||
-                data.AccessToken;
-
-            if (!token) {
-                showError(
-                    "Đăng nhập thành công nhưng không nhận được token."
-                );
-
-                return;
-            }
-
 saveAuthData(
                 data,
-                token,
                 rememberMeInput.checked
             );
 
