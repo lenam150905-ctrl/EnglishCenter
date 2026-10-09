@@ -1,6 +1,4 @@
-// =========================
-// Lấy phần tử HTML
-// =========================
+
 
 const loginForm =
     document.getElementById("loginForm");
@@ -35,11 +33,6 @@ const forgotPasswordLink =
 const registerLink =
     document.getElementById("registerLink");
 
-
-// =========================
-// Hiển thị thông báo
-// =========================
-
 function showMessage(message, type = "error") {
     loginMessage.textContent = message;
 
@@ -56,11 +49,6 @@ function hideMessage() {
     loginMessage.className = "login-message";
 }
 
-
-// =========================
-// Loading
-// =========================
-
 function setLoading(isLoading) {
     loginButton.disabled = isLoading;
 
@@ -76,11 +64,6 @@ function setLoading(isLoading) {
         loginLoading.classList.add("hidden");
     }
 }
-
-
-// =========================
-// Xử lý đăng nhập
-// =========================
 
 loginForm.addEventListener(
     "submit",
@@ -118,11 +101,7 @@ loginForm.addEventListener(
                 }
             );
 
-            // =========================
-            // Kiểm tra OTP
-            // =========================
-
-            const requiresTwoFactor =
+const requiresTwoFactor =
                 data?.requiresTwoFactor === true ||
                 data?.RequiresTwoFactor === true;
 
@@ -135,13 +114,7 @@ loginForm.addEventListener(
                     loginValue
                 );
 
-                /*
-                 * Quan trọng:
-                 * Lưu trạng thái rememberMe
-                 * để sau khi xác thực OTP biết
-                 * nên dùng localStorage hay sessionStorage.
-                 */
-                sessionStorage.setItem(
+sessionStorage.setItem(
                     "pendingRememberMe",
                     rememberMeInput.checked
                         ? "true"
@@ -154,11 +127,7 @@ loginForm.addEventListener(
                 return;
             }
 
-            // =========================
-            // Lấy token
-            // =========================
-
-            const auth =
+const auth =
                 data.auth ||
                 data.Auth ||
                 {};
@@ -179,21 +148,13 @@ loginForm.addEventListener(
                 return;
             }
 
-            // =========================
-            // Lưu Auth
-            // =========================
-
-            saveAuthData(
+saveAuthData(
                 data,
                 token,
                 rememberMeInput.checked
             );
 
-            // =========================
-            // Chuyển Dashboard
-            // =========================
-
-            redirectToDashboard();
+redirectToDashboard();
 
         } catch (error) {
 
@@ -214,11 +175,6 @@ loginForm.addEventListener(
     }
 );
 
-
-// =========================
-// Hiện / ẩn mật khẩu
-// =========================
-
 togglePasswordButton.addEventListener(
     "click",
     function () {
@@ -238,11 +194,6 @@ togglePasswordButton.addEventListener(
     }
 );
 
-
-// =========================
-// Quên mật khẩu
-// =========================
-
 forgotPasswordLink.addEventListener(
     "click",
     function (event) {
@@ -254,11 +205,6 @@ forgotPasswordLink.addEventListener(
     }
 );
 
-
-// =========================
-// Đăng ký
-// =========================
-
 registerLink.addEventListener(
     "click",
     function (event) {
@@ -269,3 +215,4 @@ registerLink.addEventListener(
             "pages/register.html";
     }
 );
+

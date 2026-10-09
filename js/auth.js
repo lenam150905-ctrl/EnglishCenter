@@ -1,6 +1,4 @@
-// =========================
-// AUTH HELPER
-// =========================
+
 
 function getAuthStorage() {
     if (localStorage.getItem("accessToken")) {
@@ -14,20 +12,12 @@ function getAuthStorage() {
     return null;
 }
 
-// =========================
-// Lấy token
-// =========================
-
 function getAccessToken() {
     return (
         localStorage.getItem("accessToken") ||
         sessionStorage.getItem("accessToken")
     );
 }
-
-// =========================
-// Lấy username
-// =========================
 
 function getCurrentUserName() {
     return (
@@ -37,10 +27,6 @@ function getCurrentUserName() {
     );
 }
 
-// =========================
-// Lấy role
-// =========================
-
 function getCurrentRole() {
     return (
         localStorage.getItem("role") ||
@@ -48,10 +34,6 @@ function getCurrentRole() {
         ""
     );
 }
-
-// =========================
-// Lấy currentUser
-// =========================
 
 function getCurrentUser() {
     const rawUser =
@@ -69,20 +51,12 @@ function getCurrentUser() {
     }
 }
 
-// =========================
-// Kiểm tra đã đăng nhập
-// =========================
-
 function isAuthenticated() {
     return !!getAccessToken();
 }
 
-// =========================
-// Lưu dữ liệu đăng nhập
-// =========================
-
 function saveAuthData(data, token, rememberMe = false) {
-    // Xóa dữ liệu cũ để tránh tồn tại ở cả 2 storage
+    
     clearAuthData();
 
     const storage = rememberMe
@@ -118,10 +92,6 @@ function saveAuthData(data, token, rememberMe = false) {
     );
 }
 
-// =========================
-// Xóa dữ liệu đăng nhập
-// =========================
-
 function clearAuthData() {
     const keys = [
         "accessToken",
@@ -136,10 +106,6 @@ function clearAuthData() {
     });
 }
 
-// =========================
-// Logout
-// =========================
-
 async function logout() {
     if (window.appConfirm && !(await window.appConfirm("Bạn có chắc muốn đăng xuất?", "Đăng xuất"))) {
         return;
@@ -148,10 +114,6 @@ async function logout() {
 
     window.location.href = "/index.html";
 }
-
-// =========================
-// Yêu cầu đăng nhập
-// =========================
 
 function requireAuth() {
     if (!isAuthenticated()) {
@@ -162,19 +124,11 @@ function requireAuth() {
     return true;
 }
 
-// =========================
-// Kiểm tra role
-// =========================
-
 function hasRole(...roles) {
     const currentRole = getCurrentRole();
 
     return roles.includes(currentRole);
 }
-
-// =========================
-// Bảo vệ trang theo role
-// =========================
 
 function requireRole(...roles) {
     if (!requireAuth()) {
@@ -192,10 +146,6 @@ function requireRole(...roles) {
 
     return true;
 }
-
-// =========================
-// Điều hướng Dashboard
-// =========================
 
 function redirectToDashboard() {
     const role = getCurrentRole();
@@ -224,12 +174,10 @@ function redirectToDashboard() {
     }
 }
 
-// VNPay có thể trả kết quả ở tab/cửa sổ khác; sessionStorage không được
-// chia sẻ giữa các tab. Sao chép phiên hiện tại để trang kết quả quay về
-// đúng dashboard sau thanh toán hoặc hủy thanh toán.
 function preserveAuthForPaymentReturn() {
     ["accessToken", "userName", "role", "currentUser"].forEach(function (key) {
         const value = localStorage.getItem(key) || sessionStorage.getItem(key);
         if (value) localStorage.setItem(key, value);
     });
 }
+

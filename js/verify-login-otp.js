@@ -1,6 +1,4 @@
-// =========================
-// LẤY PHẦN TỬ HTML
-// =========================
+
 
 const otpForm =
     document.getElementById("otpForm");
@@ -23,11 +21,6 @@ const buttonLoading =
 const resendOtpButton =
     document.getElementById("resendOtpButton");
 
-
-// =========================
-// THÔNG TIN LOGIN ĐANG CHỜ OTP
-// =========================
-
 const pendingLoginUserName =
     sessionStorage.getItem(
         "pendingLoginUserName"
@@ -38,20 +31,11 @@ const pendingRememberMe =
         "pendingRememberMe"
     ) === "true";
 
-
-// Nếu không có username đang chờ OTP
-// thì quay về Login
-
 if (!pendingLoginUserName) {
 
     window.location.href =
         "../index.html";
 }
-
-
-// =========================
-// CHỈ CHO NHẬP 6 CHỮ SỐ
-// =========================
 
 otpInput.addEventListener(
     "input",
@@ -64,11 +48,6 @@ otpInput.addEventListener(
     }
 );
 
-
-// =========================
-// HIỂN THỊ LỖI
-// =========================
-
 function showOtpError(message) {
 
     otpError.textContent =
@@ -77,7 +56,6 @@ function showOtpError(message) {
     otpError.style.display =
         "block";
 }
-
 
 function hideOtpError() {
 
@@ -88,18 +66,12 @@ function hideOtpError() {
         "none";
 }
 
-
-// =========================
-// LOADING
-// =========================
-
 function setOtpLoading(isLoading) {
 
     verifyOtpButton.disabled =
         isLoading;
 
-
-    if (isLoading) {
+if (isLoading) {
 
         buttonText.style.display =
             "none";
@@ -117,27 +89,16 @@ function setOtpLoading(isLoading) {
     }
 }
 
-
-// =========================
-// XÁC THỰC OTP
-// =========================
-
 otpForm.addEventListener(
     "submit",
     async function (event) {
 
         event.preventDefault();
 
-
-        const otp =
+const otp =
             otpInput.value.trim();
 
-
-        // =========================
-        // VALIDATE
-        // =========================
-
-        if (otp === "") {
+if (otp === "") {
 
             showOtpError(
                 "Vui lòng nhập mã OTP."
@@ -146,8 +107,7 @@ otpForm.addEventListener(
             return;
         }
 
-
-        if (!/^\d{6}$/.test(otp)) {
+if (!/^\d{6}$/.test(otp)) {
 
             showOtpError(
                 "Mã OTP phải gồm 6 chữ số."
@@ -156,19 +116,13 @@ otpForm.addEventListener(
             return;
         }
 
-
-        hideOtpError();
+hideOtpError();
 
         setOtpLoading(true);
 
+try {
 
-        try {
-
-            // =========================
-            // GỌI API
-            // =========================
-
-            const data =
+const data =
                 await apiPost(
                     "/Auth/verify-login-otp",
                     {
@@ -179,18 +133,12 @@ otpForm.addEventListener(
                     }
                 );
 
-
-            // =========================
-            // LẤY TOKEN
-            // =========================
-
-            const auth =
+const auth =
                 data.auth ||
                 data.Auth ||
                 {};
 
-
-            const token =
+const token =
                 auth.token ||
                 auth.Token ||
                 data.token ||
@@ -198,8 +146,7 @@ otpForm.addEventListener(
                 data.accessToken ||
                 data.AccessToken;
 
-
-            if (!token) {
+if (!token) {
 
                 showOtpError(
                     "Xác thực OTP thành công nhưng không nhận được token."
@@ -208,23 +155,13 @@ otpForm.addEventListener(
                 return;
             }
 
-
-            // =========================
-            // LƯU AUTH
-            // =========================
-
-            saveAuthData(
+saveAuthData(
                 data,
                 token,
                 pendingRememberMe
             );
 
-
-            // =========================
-            // XÓA DỮ LIỆU TẠM
-            // =========================
-
-            sessionStorage.removeItem(
+sessionStorage.removeItem(
                 "pendingLoginUserName"
             );
 
@@ -232,12 +169,7 @@ otpForm.addEventListener(
                 "pendingRememberMe"
             );
 
-
-            // =========================
-            // ĐI DASHBOARD THEO ROLE
-            // =========================
-
-            redirectToDashboard();
+redirectToDashboard();
 
         } catch (error) {
 
@@ -246,8 +178,7 @@ otpForm.addEventListener(
                 error
             );
 
-
-            showOtpError(
+showOtpError(
                 error.message ||
                 "Không thể xác thực mã OTP."
             );
@@ -258,11 +189,6 @@ otpForm.addEventListener(
         }
     }
 );
-
-
-// =========================
-// GỬI LẠI OTP
-// =========================
 
 resendOtpButton.addEventListener(
     "click",
@@ -277,12 +203,10 @@ resendOtpButton.addEventListener(
             return;
         }
 
-
-        resendOtpButton.disabled =
+resendOtpButton.disabled =
             true;
 
-
-        try {
+try {
 
             await apiPost(
                 "/Auth/send-login-otp",
@@ -292,11 +216,9 @@ resendOtpButton.addEventListener(
                 }
             );
 
+hideOtpError();
 
-            hideOtpError();
-
-
-            alert(
+alert(
                 "Mã OTP mới đã được gửi đến email của bạn."
             );
 
@@ -307,8 +229,7 @@ resendOtpButton.addEventListener(
                 error
             );
 
-
-            showOtpError(
+showOtpError(
                 error.message ||
                 "Không thể gửi lại mã OTP."
             );
@@ -320,3 +241,4 @@ resendOtpButton.addEventListener(
         }
     }
 );
+

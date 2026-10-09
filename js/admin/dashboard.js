@@ -1,18 +1,11 @@
-// =========================
-// BẢO VỆ ADMIN
-// =========================
+
 
 if (requireRole("Admin")) {
-    // Shell is initialized once. Content is rendered by admin-router.js.
+    
     loadUserInformation();
     initSidebar();
     initLogout();
 }
-
-
-// =========================
-// KHỞI TẠO
-// =========================
 
 function initDashboard() {
 
@@ -27,11 +20,6 @@ function initDashboard() {
     loadDashboard();
 }
 
-
-// =========================
-// USER INFORMATION
-// =========================
-
 function loadUserInformation() {
 
     const userName =
@@ -40,8 +28,7 @@ function loadUserInformation() {
     const role =
         getCurrentRole() || "Admin";
 
-
-    setText(
+setText(
         "sidebarUserName",
         userName
     );
@@ -76,15 +63,13 @@ function loadUserInformation() {
         role
     );
 
-
-    const firstLetter =
+const firstLetter =
         userName
             .trim()
             .charAt(0)
             .toUpperCase() || "A";
 
-
-    setText(
+setText(
         "sidebarAvatar",
         firstLetter
     );
@@ -95,71 +80,58 @@ function loadUserInformation() {
     );
 }
 
-
-// =========================
-// LOAD DASHBOARD API
-// =========================
-
 async function loadDashboard() {
 
     setStatisticsLoading();
 
-
-    try {
+try {
 
         const data =
             await apiGet(
                 "/Report/dashboard"
             );
 
-
-        console.log(
+console.log(
             "Dashboard data:",
             data
         );
 
-
-        setText(
+setText(
             "studentCount",
             formatNumber(
                 data.totalStudents
             )
         );
 
-
-        setText(
+setText(
             "courseCount",
             formatNumber(
                 data.totalCourses
             )
         );
 
-
-        setText(
+setText(
             "enrollmentCount",
             formatNumber(
                 data.totalEnrollments
             )
         );
 
-
-        setText(
+setText(
             "examCount",
             formatNumber(
                 data.totalExams
             )
         );
 
-
-        setText(
+setText(
             "gradeCount",
             formatNumber(
                 data.totalGrades
             )
         );
 
-
-        setText(
+setText(
             "certificateCount",
             formatNumber(
                 data.totalCertificates
@@ -173,15 +145,9 @@ async function loadDashboard() {
             error
         );
 
-
-        setStatisticsError();
+setStatisticsError();
     }
 }
-
-
-// =========================
-// LOADING
-// =========================
 
 function setStatisticsLoading() {
 
@@ -194,8 +160,7 @@ function setStatisticsLoading() {
         "certificateCount"
     ];
 
-
-    ids.forEach(
+ids.forEach(
         function (id) {
 
             setText(
@@ -205,11 +170,6 @@ function setStatisticsLoading() {
         }
     );
 }
-
-
-// =========================
-// ERROR
-// =========================
 
 function setStatisticsError() {
 
@@ -222,8 +182,7 @@ function setStatisticsError() {
         "certificateCount"
     ];
 
-
-    ids.forEach(
+ids.forEach(
         function (id) {
 
             setText(
@@ -234,34 +193,22 @@ function setStatisticsError() {
     );
 }
 
-
-// =========================
-// FORMAT NUMBER
-// =========================
-
 function formatNumber(value) {
 
     const number =
         Number(value ?? 0);
 
-
-    if (
+if (
         Number.isNaN(number)
     ) {
         return "0";
     }
 
-
-    return number
+return number
         .toLocaleString(
             "vi-VN"
         );
 }
-
-
-// =========================
-// REFRESH
-// =========================
 
 function initRefresh() {
 
@@ -270,13 +217,11 @@ function initRefresh() {
             "refreshButton"
         );
 
-
-    if (!refreshButton) {
+if (!refreshButton) {
         return;
     }
 
-
-    refreshButton.addEventListener(
+refreshButton.addEventListener(
         "click",
         async function () {
 
@@ -286,11 +231,9 @@ function initRefresh() {
             refreshButton.textContent =
                 "↻ Đang tải...";
 
+await loadDashboard();
 
-            await loadDashboard();
-
-
-            refreshButton.disabled =
+refreshButton.disabled =
                 false;
 
             refreshButton.textContent =
@@ -298,11 +241,6 @@ function initRefresh() {
         }
     );
 }
-
-
-// =========================
-// SIDEBAR
-// =========================
 
 function initSidebar() {
 
@@ -321,8 +259,7 @@ function initSidebar() {
             "sidebarOverlay"
         );
 
-
-    if (
+if (
         !sidebar ||
         !menuButton ||
         !overlay
@@ -330,8 +267,7 @@ function initSidebar() {
         return;
     }
 
-
-    menuButton.addEventListener(
+menuButton.addEventListener(
         "click",
         function () {
 
@@ -345,8 +281,7 @@ function initSidebar() {
         }
     );
 
-
-    overlay.addEventListener(
+overlay.addEventListener(
         "click",
         function () {
 
@@ -354,8 +289,7 @@ function initSidebar() {
         }
     );
 
-
-    function closeSidebar() {
+function closeSidebar() {
 
         sidebar.classList.remove(
             "open"
@@ -366,8 +300,7 @@ function initSidebar() {
         );
     }
 
-
-    window.addEventListener(
+window.addEventListener(
         "resize",
         function () {
 
@@ -380,11 +313,6 @@ function initSidebar() {
     );
 }
 
-
-// =========================
-// LOGOUT
-// =========================
-
 function initLogout() {
 
     const logoutButton =
@@ -392,22 +320,15 @@ function initLogout() {
             "logoutButton"
         );
 
-
-    if (!logoutButton) {
+if (!logoutButton) {
         return;
     }
 
-
-    logoutButton.addEventListener(
+logoutButton.addEventListener(
         "click",
         function () { logout(); }
     );
 }
-
-
-// =========================
-// HELPER
-// =========================
 
 function setText(
     elementId,
@@ -419,10 +340,11 @@ function setText(
             elementId
         );
 
-
-    if (element) {
+if (element) {
 
         element.textContent =
             value ?? "";
     }
 }
+
+

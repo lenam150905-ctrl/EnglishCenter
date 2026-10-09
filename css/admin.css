@@ -1,10 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap");
 
-
-/* =========================
-   VARIABLES
-========================= */
-
 :root {
     --primary: #4f46e5;
     --primary-dark: #3730a3;
@@ -28,11 +23,6 @@
         rgba(16, 24, 40, 0.06);
 }
 
-
-/* =========================
-   RESET
-========================= */
-
 * {
     margin: 0;
     padding: 0;
@@ -40,11 +30,9 @@
     box-sizing: border-box;
 }
 
-
 html {
     font-size: 16px;
 }
-
 
 body {
     min-width: 320px;
@@ -60,31 +48,19 @@ body {
         sans-serif;
 }
 
-
 a {
     color: inherit;
 
     text-decoration: none;
 }
 
-
 button {
     font-family: inherit;
 }
 
-
-/* =========================
-   APP
-========================= */
-
 .app {
     min-height: 100vh;
 }
-
-
-/* =========================
-   SIDEBAR
-========================= */
 
 .sidebar {
     position: fixed;
@@ -118,11 +94,6 @@ button {
         transform 0.25s ease;
 }
 
-
-/* =========================
-   BRAND
-========================= */
-
 .brand {
     display: flex;
     align-items: center;
@@ -137,7 +108,6 @@ button {
         1px solid
         rgba(255, 255, 255, 0.08);
 }
-
 
 .brand-logo {
     display: flex;
@@ -162,11 +132,9 @@ button {
     font-weight: 800;
 }
 
-
 .brand-info {
     min-width: 0;
 }
-
 
 .brand-info h2 {
     margin-bottom: 4px;
@@ -176,7 +144,6 @@ button {
 
     white-space: nowrap;
 }
-
 
 .brand-info p {
     color:
@@ -188,11 +155,6 @@ button {
     letter-spacing: 0.12em;
 }
 
-
-/* =========================
-   NAV
-========================= */
-
 .nav {
     flex: 1;
 
@@ -201,11 +163,9 @@ button {
     overflow-y: auto;
 }
 
-
 .nav::-webkit-scrollbar {
     width: 4px;
 }
-
 
 .nav::-webkit-scrollbar-thumb {
     border-radius: 20px;
@@ -213,7 +173,6 @@ button {
     background:
         rgba(255, 255, 255, 0.18);
 }
-
 
 .nav-title {
     margin:
@@ -229,7 +188,6 @@ button {
 
     letter-spacing: 0.14em;
 }
-
 
 .nav-item {
     display: flex;
@@ -257,14 +215,12 @@ button {
         0.18s ease;
 }
 
-
 .nav-item:hover {
     color: #ffffff;
 
     background:
         rgba(255, 255, 255, 0.09);
 }
-
 
 .nav-item.active {
     color: #ffffff;
@@ -274,7 +230,6 @@ button {
 
     font-weight: 700;
 }
-
 
 .nav-icon {
     display: flex;
@@ -287,11 +242,6 @@ button {
 
     font-size: 15px;
 }
-
-
-/* =========================
-   SIDEBAR PROFILE
-========================= */
 
 .sidebar-profile {
     display: flex;
@@ -313,7 +263,6 @@ button {
         rgba(255, 255, 255, 0.07);
 }
 
-
 .profile-avatar {
     display: flex;
     align-items: center;
@@ -334,14 +283,12 @@ button {
     font-weight: 800;
 }
 
-
 .profile-info {
     display: flex;
     flex-direction: column;
 
     min-width: 0;
 }
-
 
 .profile-info strong {
     overflow: hidden;
@@ -353,7 +300,6 @@ button {
     white-space: nowrap;
 }
 
-
 .profile-info span {
     margin-top: 3px;
 
@@ -363,22 +309,12 @@ button {
     font-size: 9px;
 }
 
-
-/* =========================
-   MAIN
-========================= */
-
 .main {
     min-height: 100vh;
 
     margin-left:
         var(--sidebar-width);
 }
-
-
-/* =========================
-   HEADER
-========================= */
 
 .header {
     position: sticky;
@@ -410,14 +346,12 @@ button {
         blur(10px);
 }
 
-
 .header-left {
     display: flex;
     align-items: center;
 
     gap: 13px;
 }
-
 
 .header-left h1 {
     margin-bottom: 3px;
@@ -428,13 +362,11 @@ button {
     letter-spacing: -0.025em;
 }
 
-
 .header-left p {
     color: var(--muted);
 
     font-size: 10px;
 }
-
 
 .menu-button {
     display: none;
@@ -457,7 +389,6 @@ button {
     font-size: 18px;
 }
 
-
 .header-right {
     display: flex;
     align-items: center;
@@ -465,14 +396,12 @@ button {
     gap: 16px;
 }
 
-
 .header-profile {
     display: flex;
     align-items: center;
 
     gap: 10px;
 }
-
 
 .header-avatar {
     display: flex;
@@ -497,17 +426,14 @@ button {
     font-weight: 800;
 }
 
-
 .header-profile-info {
     display: flex;
     flex-direction: column;
 }
 
-
 .header-profile-info strong {
     font-size: 11px;
 }
-
 
 .header-profile-info span {
     margin-top: 2px;
@@ -516,7 +442,6 @@ button {
 
     font-size: 9px;
 }
-
 
 .logout-button {
     height: 38px;
@@ -543,17 +468,11 @@ button {
     transition: 0.18s;
 }
 
-
 .logout-button:hover {
     border-color: #fda29b;
 
     background: #fff0ee;
 }
-
-
-/* =========================
-   CONTENT
-========================= */
 
 .content {
     width: 100%;
@@ -567,11 +486,6 @@ button {
         30px
         45px;
 }
-
-
-/* =========================
-   WELCOME
-========================= */
 
 .welcome {
     position: relative;
@@ -607,7 +521,6 @@ button {
         rgba(67, 56, 202, 0.18);
 }
 
-
 .welcome::before {
     position: absolute;
 
@@ -626,7 +539,6 @@ button {
     border-radius: 50%;
 }
 
-
 .welcome::after {
     position: absolute;
 
@@ -644,13 +556,11 @@ button {
         rgba(255, 255, 255, 0.035);
 }
 
-
 .welcome-content {
     position: relative;
 
     z-index: 2;
 }
-
 
 .welcome-label {
     display: block;
@@ -666,7 +576,6 @@ button {
     letter-spacing: 0.16em;
 }
 
-
 .welcome h2 {
     margin-bottom: 9px;
 
@@ -675,7 +584,6 @@ button {
 
     letter-spacing: -0.03em;
 }
-
 
 .welcome p {
     max-width: 570px;
@@ -687,7 +595,6 @@ button {
 
     line-height: 1.7;
 }
-
 
 .welcome-logo {
     position: relative;
@@ -719,11 +626,6 @@ button {
         rotate(7deg);
 }
 
-
-/* =========================
-   SECTION HEADER
-========================= */
-
 .section-header {
     display: flex;
     align-items: center;
@@ -737,7 +639,6 @@ button {
         15px;
 }
 
-
 .section-header h2 {
     margin-bottom: 4px;
 
@@ -745,13 +646,11 @@ button {
     font-weight: 800;
 }
 
-
 .section-header p {
     color: var(--muted);
 
     font-size: 10px;
 }
-
 
 .refresh-button {
     height: 36px;
@@ -776,7 +675,6 @@ button {
     font-weight: 600;
 }
 
-
 .refresh-button:hover {
     color: var(--primary);
 
@@ -784,11 +682,6 @@ button {
 
     background: #fafaff;
 }
-
-
-/* =========================
-   STATISTICS
-========================= */
 
 .stats-grid {
     display: grid;
@@ -798,7 +691,6 @@ button {
 
     gap: 16px;
 }
-
 
 .stat-card {
     display: flex;
@@ -829,7 +721,6 @@ button {
         border-color 0.18s ease;
 }
 
-
 .stat-card:hover {
     transform:
         translateY(-3px);
@@ -840,7 +731,6 @@ button {
         0 12px 26px
         rgba(79, 70, 229, 0.09);
 }
-
 
 .stat-icon {
     display: flex;
@@ -864,7 +754,6 @@ button {
     font-size: 23px;
 }
 
-
 .stat-info {
     display: flex;
     flex-direction: column;
@@ -872,14 +761,12 @@ button {
     min-width: 0;
 }
 
-
 .stat-info > span {
     color: var(--muted);
 
     font-size: 10px;
     font-weight: 600;
 }
-
 
 .stat-info strong {
     margin:
@@ -895,17 +782,11 @@ button {
     line-height: 1;
 }
 
-
 .stat-info small {
     color: #98a2b3;
 
     font-size: 9px;
 }
-
-
-/* =========================
-   BOTTOM
-========================= */
 
 .bottom-grid {
     display: grid;
@@ -918,7 +799,6 @@ button {
 
     margin-top: 18px;
 }
-
 
 .panel {
     min-width: 0;
@@ -936,11 +816,9 @@ button {
     box-shadow: var(--shadow);
 }
 
-
 .panel-header {
     margin-bottom: 17px;
 }
-
 
 .panel-header h3 {
     margin-bottom: 4px;
@@ -949,17 +827,11 @@ button {
     font-weight: 800;
 }
 
-
 .panel-header p {
     color: var(--muted);
 
     font-size: 9px;
 }
-
-
-/* =========================
-   QUICK
-========================= */
 
 .quick-grid {
     display: grid;
@@ -969,7 +841,6 @@ button {
 
     gap: 11px;
 }
-
 
 .quick-item {
     display: flex;
@@ -990,7 +861,6 @@ button {
     transition: 0.18s ease;
 }
 
-
 .quick-item:hover {
     border-color: #c7c4fb;
 
@@ -999,7 +869,6 @@ button {
     transform:
         translateY(-2px);
 }
-
 
 .quick-icon {
     display: flex;
@@ -1018,7 +887,6 @@ button {
     font-size: 17px;
 }
 
-
 .quick-item > div:last-child {
     display: flex;
     flex-direction: column;
@@ -1026,11 +894,9 @@ button {
     min-width: 0;
 }
 
-
 .quick-item strong {
     font-size: 10px;
 }
-
 
 .quick-item span {
     margin-top: 3px;
@@ -1040,16 +906,10 @@ button {
     font-size: 8px;
 }
 
-
-/* =========================
-   ACCOUNT
-========================= */
-
 .account-list {
     display: flex;
     flex-direction: column;
 }
-
 
 .account-row {
     display: flex;
@@ -1065,18 +925,15 @@ button {
         #f0f1f4;
 }
 
-
 .account-row:last-child {
     border-bottom: none;
 }
-
 
 .account-row span {
     color: var(--muted);
 
     font-size: 9px;
 }
-
 
 .account-row strong {
     max-width: 160px;
@@ -1092,15 +949,9 @@ button {
     white-space: nowrap;
 }
 
-
 .account-row .online {
     color: var(--success);
 }
-
-
-/* =========================
-   OVERLAY
-========================= */
 
 .sidebar-overlay {
     position: fixed;
@@ -1115,11 +966,6 @@ button {
         rgba(16, 24, 40, 0.48);
 }
 
-
-/* =========================
-   RESPONSIVE
-========================= */
-
 @media (max-width: 1150px) {
 
     .stats-grid {
@@ -1127,13 +973,11 @@ button {
             repeat(2, minmax(0, 1fr));
     }
 
-
-    .bottom-grid {
+.bottom-grid {
         grid-template-columns: 1fr;
     }
 
 }
-
 
 @media (max-width: 850px) {
 
@@ -1142,24 +986,20 @@ button {
             translateX(-100%);
     }
 
-
-    .sidebar.open {
+.sidebar.open {
         transform:
             translateX(0);
     }
 
-
-    .sidebar-overlay.show {
+.sidebar-overlay.show {
         display: block;
     }
 
-
-    .main {
+.main {
         margin-left: 0;
     }
 
-
-    .menu-button {
+.menu-button {
         display: flex;
 
         align-items: center;
@@ -1167,7 +1007,6 @@ button {
     }
 
 }
-
 
 @media (max-width: 650px) {
 
@@ -1177,26 +1016,22 @@ button {
             16px;
     }
 
-
-    .header-left p {
+.header-left p {
         display: none;
     }
 
-
-    .header-profile {
+.header-profile {
         display: none;
     }
 
-
-    .content {
+.content {
         padding:
             18px
             16px
             35px;
     }
 
-
-    .welcome {
+.welcome {
         min-height: 165px;
 
         padding:
@@ -1204,28 +1039,23 @@ button {
             24px;
     }
 
-
-    .welcome-logo {
+.welcome-logo {
         display: none;
     }
 
-
-    .welcome h2 {
+.welcome h2 {
         font-size: 21px;
     }
 
-
-    .stats-grid {
+.stats-grid {
         grid-template-columns: 1fr;
     }
 
-
-    .quick-grid {
+.quick-grid {
         grid-template-columns: 1fr;
     }
 
 }
-
 
 @media (max-width: 400px) {
 
@@ -1233,8 +1063,7 @@ button {
         font-size: 17px;
     }
 
-
-    .logout-button {
+.logout-button {
         padding:
             0
             10px;
@@ -1242,7 +1071,6 @@ button {
 
 }
 
-/* SPA administration views */
 .admin-page { animation: adminPageIn .2s ease-out; }
 @keyframes adminPageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .page-toolbar { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin: 24px 0 18px; flex-wrap: wrap; }
@@ -1284,10 +1112,12 @@ button {
 .form-grid textarea { min-height: 82px; resize: vertical; }
 .modal-actions { justify-content: flex-end; margin-top: 22px; }
 .pager-controls { display: inline-flex; align-items: center; gap: 9px; margin-left: 14px; }
+.pager-jump { display: inline-flex; align-items: center; gap: 5px; color: #475467; font-size: 13px; font-weight: 600; }
+.pager-jump input { width: 58px; padding: 8px; border: 1px solid #d0d5dd; border-radius: 8px; color: #1d2939; font: inherit; text-align: center; }
+.pager-jump input:focus { outline: 2px solid #c7d7fe; border-color: #2457c5; }
 .pager-controls { display: inline-flex; align-items: center; gap: 9px; margin-left: 14px; }
 @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .modal-card { padding: 19px; } }
 
-/* Thông báo gọn thay cho hộp alert của trình duyệt. */
 .toast-host { position: fixed; z-index: 200; top: 96px; right: 22px; display: grid; gap: 10px; width: min(360px, calc(100vw - 32px)); }
 .portal-footer { margin: 0 28px 24px; padding: 16px 20px; text-align: center; color: #667085; font-size: 13px; background: #fff; border: 1px solid #e7eaf0; border-radius: 12px; }.portal-footer a { color: #2457c5; font-weight: 650; text-decoration: none; }.portal-footer a:hover { text-decoration: underline; }
 .app-toast { display: flex; align-items: center; gap: 10px; padding: 13px 14px; color: #15325a; background: #fff; border: 1px solid #dce6f7; border-radius: 11px; box-shadow: 0 13px 28px rgba(20, 43, 81, .18); animation: toastIn .2s ease-out; }
@@ -1300,3 +1130,4 @@ button {
 .app-toast.leaving { opacity: 0; transform: translateX(12px); transition: .18s ease; }
 @keyframes toastIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
 .app-confirm-backdrop { position: fixed; z-index: 300; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(16,24,40,.48); }.app-confirm { width: min(390px,100%); padding: 26px; text-align: center; background: #fff; border-radius: 16px; box-shadow: 0 22px 52px rgba(16,24,40,.25); }.confirm-icon { display: grid; place-items: center; width: 42px; height: 42px; margin: 0 auto 12px; border-radius: 50%; color: #b42318; background: #fff0f0; font-size: 22px; font-weight: 800; }.app-confirm h3 { margin: 0; color: #1d2939; }.app-confirm p { margin: 9px 0 20px; color: #667085; line-height: 1.5; }.app-confirm > div:last-child { display: flex; justify-content: center; gap: 10px; }
+

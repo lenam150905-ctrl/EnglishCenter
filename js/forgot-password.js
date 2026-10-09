@@ -1,6 +1,4 @@
-// =========================
-// LẤY PHẦN TỬ HTML
-// =========================
+
 
 const forms = [
     document.getElementById("forgotForm"),
@@ -48,18 +46,8 @@ const confirmPasswordInput =
         "confirmPassword"
     );
 
-
-// =========================
-// BIẾN TẠM
-// =========================
-
 let recoveryEmail = "";
 let recoveryOtp = "";
-
-
-// =========================
-// NỘI DUNG TỪNG BƯỚC
-// =========================
 
 const copy = [
     [
@@ -76,11 +64,6 @@ const copy = [
     ]
 ];
 
-
-// =========================
-// HIỂN THỊ THÔNG BÁO
-// =========================
-
 function showMessage(
     text,
     type = "error"
@@ -92,11 +75,6 @@ function showMessage(
     message.className =
         "login-message " + type;
 }
-
-
-// =========================
-// CHUYỂN BƯỚC
-// =========================
 
 function setStep(step) {
 
@@ -110,8 +88,7 @@ function setStep(step) {
         }
     );
 
-
-    steps.forEach(
+steps.forEach(
         (item, index) => {
 
             item.classList.toggle(
@@ -121,31 +98,22 @@ function setStep(step) {
         }
     );
 
-
-    title.textContent =
+title.textContent =
         copy[step][0];
 
     description.textContent =
         copy[step][1];
 
+showMessage("", "");
 
-    showMessage("", "");
-
-
-    if (step === 1) {
+if (step === 1) {
         otpInput.focus();
     }
 
-
-    if (step === 2) {
+if (step === 2) {
         newPasswordInput.focus();
     }
 }
-
-
-// =========================
-// CHỈ CHO NHẬP OTP 6 SỐ
-// =========================
 
 otpInput.addEventListener(
     "input",
@@ -158,24 +126,16 @@ otpInput.addEventListener(
     }
 );
 
-
-// =========================
-// BƯỚC 1
-// GỬI OTP QUÊN MẬT KHẨU
-// =========================
-
 forms[0].addEventListener(
     "submit",
     async function (event) {
 
         event.preventDefault();
 
-
-        recoveryEmail =
+recoveryEmail =
             emailInput.value.trim();
 
-
-        if (recoveryEmail === "") {
+if (recoveryEmail === "") {
 
             showMessage(
                 "Vui lòng nhập email."
@@ -184,8 +144,7 @@ forms[0].addEventListener(
             return;
         }
 
-
-        try {
+try {
 
             await apiPost(
                 "/Auth/forgot-password",
@@ -195,11 +154,9 @@ forms[0].addEventListener(
                 }
             );
 
+setStep(1);
 
-            setStep(1);
-
-
-            showMessage(
+showMessage(
                 "Mã OTP đã được gửi. Mã có hiệu lực trong 5 phút.",
                 "success"
             );
@@ -211,8 +168,7 @@ forms[0].addEventListener(
                 error
             );
 
-
-            showMessage(
+showMessage(
                 error.message ||
                 "Không thể gửi mã OTP."
             );
@@ -220,24 +176,16 @@ forms[0].addEventListener(
     }
 );
 
-
-// =========================
-// BƯỚC 2
-// XÁC THỰC OTP
-// =========================
-
 forms[1].addEventListener(
     "submit",
     async function (event) {
 
         event.preventDefault();
 
-
-        recoveryOtp =
+recoveryOtp =
             otpInput.value.trim();
 
-
-        if (
+if (
             !/^\d{6}$/.test(
                 recoveryOtp
             )
@@ -250,8 +198,7 @@ forms[1].addEventListener(
             return;
         }
 
-
-        try {
+try {
 
             await apiPost(
                 "/Auth/verify-otp",
@@ -264,8 +211,7 @@ forms[1].addEventListener(
                 }
             );
 
-
-            setStep(2);
+setStep(2);
 
         } catch (error) {
 
@@ -274,8 +220,7 @@ forms[1].addEventListener(
                 error
             );
 
-
-            showMessage(
+showMessage(
                 error.message ||
                 "Mã OTP không đúng hoặc đã hết hạn."
             );
@@ -283,27 +228,19 @@ forms[1].addEventListener(
     }
 );
 
-
-// =========================
-// BƯỚC 3
-// ĐẶT LẠI MẬT KHẨU
-// =========================
-
 forms[2].addEventListener(
     "submit",
     async function (event) {
 
         event.preventDefault();
 
-
-        const newPassword =
+const newPassword =
             newPasswordInput.value;
 
         const confirmPassword =
             confirmPasswordInput.value;
 
-
-        if (
+if (
             newPassword.length < 6
         ) {
 
@@ -314,8 +251,7 @@ forms[2].addEventListener(
             return;
         }
 
-
-        if (
+if (
             newPassword !==
             confirmPassword
         ) {
@@ -327,8 +263,7 @@ forms[2].addEventListener(
             return;
         }
 
-
-        try {
+try {
 
             await apiPost(
                 "/Auth/reset-password",
@@ -347,14 +282,12 @@ forms[2].addEventListener(
                 }
             );
 
-
-            showMessage(
+showMessage(
                 "Đặt lại mật khẩu thành công. Đang chuyển đến trang đăng nhập…",
                 "success"
             );
 
-
-            window.setTimeout(
+window.setTimeout(
                 function () {
 
                     window.location.href =
@@ -371,11 +304,11 @@ forms[2].addEventListener(
                 error
             );
 
-
-            showMessage(
+showMessage(
                 error.message ||
                 "Không thể đặt lại mật khẩu."
             );
         }
     }
 );
+

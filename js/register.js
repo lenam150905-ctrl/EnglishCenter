@@ -1,6 +1,4 @@
-// =========================
-// LẤY PHẦN TỬ HTML
-// =========================
+
 
 const registerForm =
     document.getElementById(
@@ -18,11 +16,6 @@ const registerToastTitle = document.getElementById("registerToastTitle");
 const registerToastMessage = document.getElementById("registerToastMessage");
 const registerToastClose = document.getElementById("registerToastClose");
 let registerToastTimer;
-
-
-// =========================
-// HIỂN THỊ THÔNG BÁO
-// =========================
 
 function hideRegisterToast() {
     window.clearTimeout(registerToastTimer);
@@ -43,28 +36,17 @@ function showRegisterToast(message, type = "error", autoHideMs = 5000) {
 
 registerToastClose.addEventListener("click", hideRegisterToast);
 
-
-// =========================
-// XỬ LÝ ĐĂNG KÝ
-// =========================
-
 registerForm.addEventListener(
     "submit",
     async function (event) {
 
         event.preventDefault();
 
-        // Chặn nhấp đôi hoặc gửi lại form khi yêu cầu trước chưa hoàn tất.
-        if (registerForm.dataset.submitting === "true") {
+if (registerForm.dataset.submitting === "true") {
             return;
         }
 
-
-        // =========================
-        // LẤY DỮ LIỆU
-        // =========================
-
-        const userName =
+const userName =
             document
                 .getElementById(
                     "registerUserName"
@@ -72,8 +54,7 @@ registerForm.addEventListener(
                 .value
                 .trim();
 
-
-        const email =
+const email =
             document
                 .getElementById(
                     "registerEmail"
@@ -81,28 +62,21 @@ registerForm.addEventListener(
                 .value
                 .trim();
 
-
-        const password =
+const password =
             document
                 .getElementById(
                     "registerPassword"
                 )
                 .value;
 
-
-        const confirmPassword =
+const confirmPassword =
             document
                 .getElementById(
                     "registerConfirmPassword"
                 )
                 .value;
 
-
-        // =========================
-        // VALIDATE USERNAME
-        // =========================
-
-        if (userName.length < 3) {
+if (userName.length < 3) {
 
             showRegisterToast(
                 "Tên đăng nhập cần có ít nhất 3 ký tự."
@@ -111,12 +85,7 @@ registerForm.addEventListener(
             return;
         }
 
-
-        // =========================
-        // VALIDATE EMAIL
-        // =========================
-
-        if (email === "") {
+if (email === "") {
 
             showRegisterToast(
                 "Vui lòng nhập email."
@@ -125,12 +94,7 @@ registerForm.addEventListener(
             return;
         }
 
-
-        // =========================
-        // VALIDATE PASSWORD
-        // =========================
-
-        if (password.length < 6) {
+if (password.length < 6) {
 
             showRegisterToast(
                 "Mật khẩu cần có ít nhất 6 ký tự."
@@ -139,12 +103,7 @@ registerForm.addEventListener(
             return;
         }
 
-
-        // =========================
-        // CONFIRM PASSWORD
-        // =========================
-
-        if (
+if (
             password !==
             confirmPassword
         ) {
@@ -156,12 +115,7 @@ registerForm.addEventListener(
             return;
         }
 
-
-        // =========================
-        // LOADING
-        // =========================
-
-        registerButton.disabled =
+registerButton.disabled =
             true;
 
         registerButton.textContent =
@@ -169,14 +123,9 @@ registerForm.addEventListener(
 
         registerForm.dataset.submitting = "true";
 
+try {
 
-        try {
-
-            // =========================
-            // GỌI API REGISTER
-            // =========================
-
-            await apiPost(
+await apiPost(
                 "/Auth/register",
                 {
                     userName:
@@ -193,22 +142,15 @@ registerForm.addEventListener(
                 }
             );
 
-
-            // =========================
-            // THÀNH CÔNG
-            // =========================
-
-            showRegisterToast(
+showRegisterToast(
                 "Tài khoản học viên đã được tạo. Đang chuyển đến trang đăng nhập…",
                 "success",
                 1200
             );
 
-            // Giữ trạng thái khóa để không gửi lần hai trong lúc chuyển trang.
-            registerButton.textContent = "Đã tạo tài khoản";
+registerButton.textContent = "Đã tạo tài khoản";
 
-
-            window.setTimeout(
+window.setTimeout(
                 function () {
 
                     window.location.href =
@@ -225,8 +167,7 @@ registerForm.addEventListener(
                 error
             );
 
-
-            showRegisterToast(
+showRegisterToast(
                 error.message ||
                 "Không thể tạo tài khoản. Vui lòng thử lại."
             );
@@ -241,3 +182,5 @@ registerForm.addEventListener(
         }
     }
 );
+
+

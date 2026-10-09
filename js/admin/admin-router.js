@@ -1,4 +1,4 @@
-/* Admin SPA router. Header and sidebar are kept mounted once. */
+
 (function () {
     var content = document.getElementById("adminContent");
     var dashboardMarkup = content ? content.innerHTML : "";
@@ -174,3 +174,5 @@
     window.addEventListener("hashchange", function () { render(route()); });
     render(route());
 })();
+
+
