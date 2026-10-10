@@ -134,7 +134,7 @@ namespace EnglishCenter.API.Controllers
         public async Task<IActionResult> Restore(int id)
         {
             var result =
-                await _softDeleteService.RestoreAsync<Course>(id);
+                await _softDeleteService.RestoreAsync<Grade>(id);
 
             if (!result)
             {
