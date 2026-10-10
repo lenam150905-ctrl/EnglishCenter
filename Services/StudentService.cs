@@ -387,6 +387,23 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException("Chỉ hỗ trợ file Excel có định dạng .xlsx.");
             }
 
+            const long maxFileSize = 5 * 1024 * 1024;
+            if (file.Length > maxFileSize)
+            {
+                throw new ArgumentException("File Excel không được vượt quá 5 MB.");
+            }
+
+            await using (var signatureStream = file.OpenReadStream())
+            {
+                var signature = new byte[4];
+                var read = await signatureStream.ReadAsync(signature);
+                if (read != 4 || signature[0] != 0x50 || signature[1] != 0x4B ||
+                    signature[2] != 0x03 || signature[3] != 0x04)
+                {
+                    throw new ArgumentException("Tệp tải lên không phải Excel .xlsx hợp lệ.");
+                }
+            }
+
             var result = new ExcelImportResultDto();
             var studentsToAdd = new List<Student>();
 

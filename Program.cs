@@ -9,6 +9,7 @@ using EnglishCenter.Application.Abstractions.Persistence;
 using EnglishCenter.Infrastructure.Persistence.Dapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Http.Features;
 using Asp.Versioning;
 using Serilog;
 using Microsoft.IdentityModel.Tokens;
@@ -28,6 +29,10 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 builder.Services.AddControllers();
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 5 * 1024 * 1024;
+});
 builder.Services.AddProblemDetails();
 
 builder.Services.AddApiVersioning(options =>

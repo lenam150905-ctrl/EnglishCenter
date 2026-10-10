@@ -133,8 +133,9 @@ namespace EnglishCenter.API.Controllers
 
             return NoContent();
         }
-        [Authorize(Roles = "Admin,Teacher")]
+        [Authorize(Roles = "Admin")]
         [HttpPost("import-excel")]
+        [RequestSizeLimit(5 * 1024 * 1024)]
         public async Task<IActionResult> ImportExcel(
      IFormFile file)
         {
@@ -144,6 +145,11 @@ namespace EnglishCenter.API.Controllers
                 {
                     message = "Vui lòng chọn file Excel."
                 });
+            }
+
+            if (file.Length > 5 * 1024 * 1024)
+            {
+                return BadRequest(new { message = "File Excel không được vượt quá 5 MB." });
             }
 
             var userId =
