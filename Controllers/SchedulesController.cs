@@ -1,5 +1,6 @@
 using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Models;
+using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,11 +16,13 @@ namespace EnglishCenter.API.Controllers
     {
         private readonly IScheduleService _scheduleService;
         private readonly ISoftDeleteService _softDeleteService;
+        private readonly ITeacherScopeService _teacherScopeService;
 
-        public SchedulesController(IScheduleService scheduleService, ISoftDeleteService softDeleteService)
+        public SchedulesController(IScheduleService scheduleService, ISoftDeleteService softDeleteService, ITeacherScopeService teacherScopeService)
         {
             _scheduleService = scheduleService;
             _softDeleteService = softDeleteService;
+            _teacherScopeService = teacherScopeService;
         }
 
 [HttpGet]
@@ -33,6 +36,13 @@ namespace EnglishCenter.API.Controllers
     int page = 1,
     int pageSize = 20)
         {
+            if (User.IsInRole("Teacher"))
+            {
+                var ownTeacherId = await GetCurrentTeacherIdAsync();
+                if (!ownTeacherId.HasValue) return Forbid();
+                if (teacherId.HasValue && teacherId != ownTeacherId) return Forbid();
+                teacherId = ownTeacherId;
+            }
             var schedules = await _scheduleService.GetAllAsync(
                 search,
                 courseId,
@@ -55,6 +65,7 @@ namespace EnglishCenter.API.Controllers
             {
                 return NotFound();
             }
+            if (User.IsInRole("Teacher") && !await IsOwnScheduleAsync(schedule.TeacherId)) return Forbid();
 
             return Ok(schedule);
         }
@@ -64,6 +75,12 @@ namespace EnglishCenter.API.Controllers
         public async Task<ActionResult<ScheduleDto>> CreateSchedule(
             ScheduleCreateDto dto)
         {
+            if (User.IsInRole("Teacher"))
+            {
+                var ownTeacherId = await GetCurrentTeacherIdAsync();
+                if (!ownTeacherId.HasValue) return Forbid();
+                dto.TeacherId = ownTeacherId.Value;
+            }
             var schedule = await _scheduleService.CreateAsync(dto);
 
             return CreatedAtAction(
@@ -78,6 +95,13 @@ namespace EnglishCenter.API.Controllers
             int id,
             ScheduleUpdateDto dto)
         {
+            if (User.IsInRole("Teacher"))
+            {
+                var existing = await _scheduleService.GetByIdAsync(id);
+                if (existing is null) return NotFound();
+                if (!await IsOwnScheduleAsync(existing.TeacherId)) return Forbid();
+                dto.TeacherId = existing.TeacherId;
+            }
             var result = await _scheduleService.UpdateAsync(id, dto);
 
             if (!result)
@@ -92,6 +116,12 @@ namespace EnglishCenter.API.Controllers
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult> DeleteSchedule(int id)
         {
+            if (User.IsInRole("Teacher"))
+            {
+                var existing = await _scheduleService.GetByIdAsync(id);
+                if (existing is null) return NotFound();
+                if (!await IsOwnScheduleAsync(existing.TeacherId)) return Forbid();
+            }
             var result = await _scheduleService.DeleteAsync(id);
 
             if (!result)
@@ -100,6 +130,18 @@ namespace EnglishCenter.API.Controllers
             }
 
             return NoContent();
+        }
+
+        private async Task<int?> GetCurrentTeacherIdAsync()
+        {
+            var userId = AuditContext.GetUserId(HttpContext);
+            return userId.HasValue ? await _teacherScopeService.GetTeacherIdAsync(userId.Value) : null;
+        }
+
+        private async Task<bool> IsOwnScheduleAsync(int teacherId)
+        {
+            var ownTeacherId = await GetCurrentTeacherIdAsync();
+            return ownTeacherId.HasValue && ownTeacherId.Value == teacherId;
         }
         [HttpPut("{id}/restore")]
         [Authorize(Roles = "Admin")]
