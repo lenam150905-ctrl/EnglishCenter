@@ -4,6 +4,7 @@ using EnglishCenter.API.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace EnglishCenter.API.Controllers
 {
@@ -143,6 +144,18 @@ namespace EnglishCenter.API.Controllers
 
             SetAuthCookies(result);
             return Ok(ToClientAuth(result));
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        public IActionResult GetCurrentSession()
+        {
+            return Ok(new
+            {
+                Id = User.FindFirstValue(ClaimTypes.NameIdentifier),
+                UserName = User.Identity?.Name,
+                Role = User.FindFirstValue(ClaimTypes.Role)
+            });
         }
 
         [Authorize]
