@@ -101,19 +101,19 @@ namespace EnglishCenter.API.Controllers
         public async Task<IActionResult> Restore(int id)
         {
             var result =
-                await _softDeleteService.RestoreAsync<Course>(id);
+                await _softDeleteService.RestoreAsync<User>(id);
 
             if (!result)
             {
                 return NotFound(new
                 {
-                    message = "Không tìm thấy khóa học đã bị xóa."
+                    message = "Không tìm thấy người dùng đã bị xóa."
                 });
             }
 
             return Ok(new
             {
-                message = "Khôi phục khóa học thành công."
+                message = "Khôi phục người dùng thành công."
             });
         }
     }

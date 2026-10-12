@@ -1,8 +1,8 @@
 using EnglishCenter.API.DTOs;
-using EnglishCenter.API.Jobs;
 using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
 using EnglishCenter.API.Services;
+using Microsoft.Data.SqlClient;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,19 +17,15 @@ namespace EnglishCenter.API.Controllers
     {
         private readonly IStudentService _studentService;
         private readonly ISoftDeleteService _softDeleteService;
-        private readonly IBackgroundJobQueue _queue;
-        private readonly IServiceScopeFactory _scopeFactory;
         private readonly EnglishCenter.Application.Abstractions.Persistence.IStudentRepository _studentRepository;
 
         public StudentsController(
-            IStudentService studentService, ISoftDeleteService softDeleteService, IBackgroundJobQueue queue,
-    IServiceScopeFactory scopeFactory,
-    EnglishCenter.Application.Abstractions.Persistence.IStudentRepository studentRepository)
+            IStudentService studentService,
+            ISoftDeleteService softDeleteService,
+            EnglishCenter.Application.Abstractions.Persistence.IStudentRepository studentRepository)
         {
             _studentService = studentService;
             _softDeleteService = softDeleteService;
-            _queue = queue;
-            _scopeFactory = scopeFactory;
             _studentRepository = studentRepository;
         }
 
@@ -182,48 +178,35 @@ if (validation.Errors.Count > 0)
                 });
             }
 
-var ipAddress =
+            var ipAddress =
                 HttpContext.Connection.RemoteIpAddress?
                     .ToString();
 
-            var folder = Path.Combine(
-                Path.GetTempPath(),
-                "EnglishCenter",
-                "StudentImport");
-
-            Directory.CreateDirectory(folder);
-
-            var fileName =
-                $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
-
-            var filePath =
-                Path.Combine(folder, fileName);
-
-            await using (var stream =
-                new FileStream(
-                    filePath,
-                    FileMode.Create))
+            try
             {
-                await file.CopyToAsync(stream);
-            }
-
-var job =
-                new ImportStudentJob(
-                    _scopeFactory,
-                    filePath,
+                var result = await _studentService.ImportExcelAsync(
+                    file,
                     userId.Value,
                     ipAddress);
 
-            _queue.Enqueue(job);
-
-            return Accepted(new
+                return Ok(new
+                {
+                    message = "Import học sinh thành công.",
+                    successRows = result.SuccessRows
+                });
+            }
+            catch (SqlException)
             {
-                message =
-                    "File hợp lệ và đã được đưa vào hàng đợi.",
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    message = "Không thể ghi dữ liệu học sinh vào CSDL. Dữ liệu có thể bị trùng hoặc CSDL đang gặp sự cố."
+                });
+            }
+            catch (ArgumentException exception)
+            {
+                return BadRequest(new { message = exception.Message });
+            }
 
-                successRows =
-                    validation.SuccessRows
-            });
         }
     }
 }

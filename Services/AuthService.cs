@@ -122,9 +122,9 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException("Mật khẩu mới không được để trống.");
             }
 
-            if (dto.NewPassword.Length < 8)
+            if (dto.NewPassword.Length < 6)
             {
-                throw new ArgumentException("Mật khẩu phải có ít nhất 8 ký tự.");
+                throw new ArgumentException("Mật khẩu phải có ít nhất 6 ký tự.");
             }
 
             if (dto.NewPassword != dto.ConfirmPassword)

@@ -154,13 +154,13 @@ namespace EnglishCenter.API.Controllers
             {
                 return NotFound(new
                 {
-                    message = "Không tìm thấy khóa học đã bị xóa."
+                    message = "Không tìm thấy lịch học đã bị xóa."
                 });
             }
 
             return Ok(new
             {
-                message = "Khôi phục khóa học thành công."
+                message = "Khôi phục lịch học thành công."
             });
         }
     }

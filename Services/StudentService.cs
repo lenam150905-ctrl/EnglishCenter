@@ -527,16 +527,33 @@ namespace EnglishCenter.API.Services
             int userId,
             string? ipAddress)
         {
-            var result = await ValidateImportExcelAsync(file);
+            // Validation consumes the upload stream. Keep a stable copy so the
+            // complete .xlsx file is parsed after validation.
+            await using var uploadStream = file.OpenReadStream();
+            using var copiedFile = new MemoryStream();
+            await uploadStream.CopyToAsync(copiedFile);
+            var fileBytes = copiedFile.ToArray();
+
+            await using var validationStream = new MemoryStream(fileBytes, writable: false);
+            var validationFile = new FormFile(
+                validationStream,
+                0,
+                fileBytes.Length,
+                "file",
+                file.FileName)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = file.ContentType
+            };
+
+            var result = await ValidateImportExcelAsync(validationFile);
             if (result.Errors.Count > 0)
             {
                 throw new ArgumentException("File Excel không hợp lệ.");
             }
 
             var studentsToAdd = new List<Student>();
-            using var stream = new MemoryStream();
-            await file.CopyToAsync(stream);
-            stream.Position = 0;
+            using var stream = new MemoryStream(fileBytes);
 
             using var workbook = new XLWorkbook(stream);
             var worksheet = workbook.Worksheet(1);
