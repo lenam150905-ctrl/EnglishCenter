@@ -37,6 +37,21 @@ function isAuthenticated() {
     return !!getCurrentUserName() && !!getCurrentRole();
 }
 
+function normalizeRole(value) {
+    const role = String(value || "").trim().toLowerCase();
+
+    switch (role) {
+        case "admin":
+            return "Admin";
+        case "teacher":
+            return "Teacher";
+        case "student":
+            return "Student";
+        default:
+            return "";
+    }
+}
+
 function saveAuthData(data, rememberMe = false) {
     
     clearAuthData();
@@ -54,12 +69,13 @@ function saveAuthData(data, rememberMe = false) {
         auth.UserName ||
         "";
 
-    const role =
+    const role = normalizeRole(
         data.role ||
         data.Role ||
         auth.role ||
         auth.Role ||
-        "";
+        ""
+    );
 
     storage.setItem("userName", userName);
     storage.setItem("role", role);
@@ -71,6 +87,8 @@ function saveAuthData(data, rememberMe = false) {
             role: role
         })
     );
+
+    return { userName, role };
 }
 
 function clearAuthData() {

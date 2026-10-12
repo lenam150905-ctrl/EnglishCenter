@@ -122,8 +122,7 @@ hideOtpError();
 
 try {
 
-const data =
-                await apiPost(
+            await apiPost(
                     "/Auth/verify-login-otp",
                     {
                         userName:
@@ -133,10 +132,14 @@ const data =
                     }
                 );
 
-saveAuthData(
-                data,
-                pendingRememberMe
-            );
+            // Tokens are HttpOnly cookies. Read the authenticated profile from
+            // the server to confirm the cookie round-trip and obtain its role.
+            const session = await apiGet("/Auth/me");
+            const savedAuth = saveAuthData(session, pendingRememberMe);
+
+            if (!savedAuth.userName || !savedAuth.role) {
+                throw new Error("Đăng nhập thành công nhưng không xác định được quyền tài khoản.");
+            }
 
 sessionStorage.removeItem(
                 "pendingLoginUserName"
