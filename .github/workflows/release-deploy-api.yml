@@ -58,7 +58,18 @@ jobs:
             cd ~/EnglishCenter
             git fetch origin master
             git reset --hard origin/master
+            
+            # Make migration script executable
+            chmod +x ~/run-migrations.sh
+            
+            # Run database migrations
+            echo "Running database migrations..."
+            ~/run-migrations.sh || true
+            
+            # Rebuild and restart API
             cd ~
             docker compose up -d --build api
             docker compose ps api
+            
+            echo "Deployment completed successfully!"
           '
