@@ -106,7 +106,7 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException("Course không tồn tại.");
             }
 
-            if (dto.EnrollmentDate > DateTime.Now)
+            if (dto.EnrollmentDate.Date > DateTime.Now.Date)
             {
                 throw new ArgumentException("Ngày đăng ký không được lớn hơn ngày hiện tại.");
             }
@@ -201,7 +201,7 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException("Course không tồn tại.");
             }
 
-            if (dto.EnrollmentDate > DateTime.Now)
+            if (dto.EnrollmentDate.Date > DateTime.Now.Date)
             {
                 throw new ArgumentException("Ngày đăng ký không được lớn hơn ngày hiện tại.");
             }
