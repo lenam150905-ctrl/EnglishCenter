@@ -5,7 +5,8 @@
       "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete", "Patch" ],
       "DownstreamPathTemplate": "/api/v1/Auth/{everything}",
       "DownstreamScheme": "https",
-      "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 7207 } ]
+      "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 7207 } ],
+      "DangerousAcceptAnyServerCertificateValidator": true
     },
     {
       "UpstreamPathTemplate": "/gateway/v1/{everything}",
@@ -13,6 +14,7 @@
       "DownstreamPathTemplate": "/api/v1/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 7207 } ],
+      "DangerousAcceptAnyServerCertificateValidator": true,
       "AuthenticationOptions": {
         "AuthenticationProviderKeys": [ "GatewayJwt" ]
       }
@@ -22,7 +24,8 @@
       "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete", "Patch" ],
       "DownstreamPathTemplate": "/api/Auth/{everything}",
       "DownstreamScheme": "https",
-      "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 7207 } ]
+      "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 7207 } ],
+      "DangerousAcceptAnyServerCertificateValidator": true
     },
     {
       "UpstreamPathTemplate": "/gateway/{everything}",
@@ -30,6 +33,7 @@
       "DownstreamPathTemplate": "/api/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 7207 } ],
+      "DangerousAcceptAnyServerCertificateValidator": true,
       "AuthenticationOptions": {
         "AuthenticationProviderKeys": [ "GatewayJwt" ]
       }

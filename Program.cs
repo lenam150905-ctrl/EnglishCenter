@@ -3,15 +3,30 @@ using Ocelot.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Net.Http;
+using System.Net.Security;
 
 const string AccessTokenCookie = "ec_access";
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Giữ cổng local khi chạy F5; Docker sẽ cung cấp ASPNETCORE_URLS=http://+:8080.
+// Bypass SSL certificate validation for local development
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddHttpClient()
+        .ConfigureHttpClientDefaults(http =>
+        {
+            http.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            });
+        });
+}
+
+// Giữ cổng local HTTPS khi chạy F5; Docker sẽ cung cấp ASPNETCORE_URLS=http://+:8080.
 if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
 {
-    builder.WebHost.UseUrls("http://localhost:7300");
+    builder.WebHost.UseUrls("https://localhost:7300;http://localhost:5300");
 }
 
 builder.Logging
@@ -27,12 +42,17 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        policy.WithOrigins(
-                "http://127.0.0.1:5500",
-                "http://localhost:5500",
-                "http://20.89.171.41",
-                "https://englishcenter-namle.duckdns.org"
-            )
+        policy.SetIsOriginAllowed(origin =>
+            {
+                if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                {
+                    if (uri.Host is "localhost" or "127.0.0.1")
+                    {
+                        return true;
+                    }
+                }
+                return origin is "http://20.89.171.41" or "https://englishcenter-namle.duckdns.org";
+            })
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
