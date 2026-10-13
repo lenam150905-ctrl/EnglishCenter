@@ -122,25 +122,23 @@ hideOtpError();
 
 try {
 
-            await apiPost(
-                    "/Auth/verify-login-otp",
-                    {
-                        userName:
-                            pendingLoginUserName,
+            const result = await apiPost(
+                "/Auth/verify-login-otp",
+                {
+                    userName: pendingLoginUserName,
+                    otp: otp
+                }
+            );
 
-                        otp: otp
-                    }
-                );
-
-            // Tokens are HttpOnly cookies. Read the authenticated profile from
-            // the server to confirm the cookie round-trip and obtain its role.
-            const session = await apiGet("/Auth/me");
-            const savedAuth = saveAuthData(session, pendingRememberMe);
-
-            if (!savedAuth.userName || !savedAuth.role) {
-                throw new Error("Đăng nhập thành công nhưng không xác định được quyền tài khoản.");
+            let session = result?.auth || result?.Auth;
+            if (!session?.userName && !session?.UserName) {
+                session = await apiGet("/Auth/me");
             }
 
+            const savedAuth = saveAuthData(session || {}, pendingRememberMe);
+            if (!savedAuth.userName || !savedAuth.role) {
+                throw new Error("Mã OTP đã xác thực nhưng không nhận được thông tin phiên. Vui lòng đăng nhập lại.");
+            }
 sessionStorage.removeItem(
                 "pendingLoginUserName"
             );
