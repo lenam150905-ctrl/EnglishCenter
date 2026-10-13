@@ -63,6 +63,11 @@ namespace EnglishCenter.API.Controllers
                 });
             }
 
+            if (result.Auth is not null)
+            {
+                SetAuthCookies(result.Auth);
+            }
+
             return Ok(ToClientLoginResult(result));
         }
         [HttpPost("reset-password")]
@@ -212,8 +217,8 @@ namespace EnglishCenter.API.Controllers
             return new CookieOptions
             {
                 HttpOnly = true,
-                Secure = !_environment.IsDevelopment(),
-                SameSite = SameSiteMode.Strict,
+                Secure = true,
+                SameSite = _environment.IsDevelopment() ? SameSiteMode.None : SameSiteMode.Strict,
                 IsEssential = true,
                 Path = "/",
                 Expires = expires
