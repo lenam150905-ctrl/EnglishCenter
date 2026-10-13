@@ -61,6 +61,7 @@ public sealed class InvoiceRepository(IDbConnectionFactory connectionFactory)
             WHERE i.StudentId = @StudentId
               AND e.CourseId = @CourseId
               AND i.Status = 'Paid'
+              AND e.Status <> 'Cancelled'
               AND i.IsDeleted = 0
               AND e.IsDeleted = 0;
             """;

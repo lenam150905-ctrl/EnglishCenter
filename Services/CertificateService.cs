@@ -12,6 +12,7 @@ namespace EnglishCenter.API.Services
         private readonly ICourseRepository _courseRepository;
         private readonly IGradeRepository _gradeRepository;
         private readonly IEnrollmentRepository _enrollmentRepository;
+        private readonly IInvoiceRepository _invoiceRepository;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly INotificationService _notificationService;
@@ -22,6 +23,7 @@ namespace EnglishCenter.API.Services
             ICourseRepository courseRepository,
             IGradeRepository gradeRepository,
             IEnrollmentRepository enrollmentRepository,
+            IInvoiceRepository invoiceRepository,
             IAuditLogService auditLogService,
             IHttpContextAccessor httpContextAccessor,
             INotificationService notificationService)
@@ -31,6 +33,7 @@ namespace EnglishCenter.API.Services
             _courseRepository = courseRepository;
             _gradeRepository = gradeRepository;
             _enrollmentRepository = enrollmentRepository;
+            _invoiceRepository = invoiceRepository;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
             _notificationService = notificationService;
@@ -99,7 +102,7 @@ namespace EnglishCenter.API.Services
         public async Task<CertificateDto> CreateAsync(CertificateCreateDto dto)
         {
             var student = await _studentRepository.GetByIdAsync(dto.StudentId);
-            if (student == null)
+            if (student == null || student.IsDeleted)
             {
                 throw new ArgumentException("Student không tồn tại.");
             }
@@ -131,10 +134,21 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException("Ngày cấp không được lớn hơn ngày hiện tại.");
             }
 
-            var enrollmentExists = await _enrollmentRepository.ExistsAsync(dto.StudentId, dto.CourseId);
-            if (!enrollmentExists)
+            var enrollment = await _enrollmentRepository.GetByStudentAndCourseAsync(dto.StudentId, dto.CourseId);
+            if (enrollment == null)
             {
                 throw new ArgumentException("Student chưa đăng ký khóa học này.");
+            }
+
+            if (string.Equals(enrollment.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Đăng ký khóa học của học sinh đã bị hủy, không đủ điều kiện cấp chứng chỉ.");
+            }
+
+            var hasPaidInvoice = await _invoiceRepository.HasPaidInvoiceForStudentAndCourseAsync(dto.StudentId, dto.CourseId);
+            if (!hasPaidInvoice)
+            {
+                throw new ArgumentException("Học sinh chưa đủ điều kiện dự thi (chưa hoàn tất đóng học phí) nên không thể cấp chứng chỉ.");
             }
 
             var grade = await _gradeRepository.GetByStudentAndCourseAsync(dto.StudentId, dto.CourseId);
@@ -216,7 +230,7 @@ namespace EnglishCenter.API.Services
             }
 
             var student = await _studentRepository.GetByIdAsync(dto.StudentId);
-            if (student == null)
+            if (student == null || student.IsDeleted)
             {
                 throw new ArgumentException("Student không tồn tại.");
             }
@@ -246,6 +260,40 @@ namespace EnglishCenter.API.Services
             if (dto.IssueDate > DateTime.Now)
             {
                 throw new ArgumentException("Ngày cấp không được lớn hơn ngày hiện tại.");
+            }
+
+            var enrollment = await _enrollmentRepository.GetByStudentAndCourseAsync(dto.StudentId, dto.CourseId);
+            if (enrollment == null)
+            {
+                throw new ArgumentException("Student chưa đăng ký khóa học này.");
+            }
+
+            if (string.Equals(enrollment.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Đăng ký khóa học của học sinh đã bị hủy, không đủ điều kiện cấp chứng chỉ.");
+            }
+
+            var hasPaidInvoice = await _invoiceRepository.HasPaidInvoiceForStudentAndCourseAsync(dto.StudentId, dto.CourseId);
+            if (!hasPaidInvoice)
+            {
+                throw new ArgumentException("Học sinh chưa đủ điều kiện dự thi (chưa hoàn tất đóng học phí) nên không thể cấp chứng chỉ.");
+            }
+
+            var grade = await _gradeRepository.GetByStudentAndCourseAsync(dto.StudentId, dto.CourseId);
+            if (grade == null)
+            {
+                throw new ArgumentException("Student chưa có điểm thi.");
+            }
+
+            if (grade.Score < 5)
+            {
+                throw new ArgumentException("Student chưa đạt điểm để được cấp chứng chỉ.");
+            }
+
+            var existedCertificate = await _certificateRepository.ExistsAsync(dto.StudentId, dto.CourseId, id);
+            if (existedCertificate)
+            {
+                throw new ArgumentException("Student đã có chứng chỉ cho khóa học này.");
             }
 
             certificate.StudentId = dto.StudentId;

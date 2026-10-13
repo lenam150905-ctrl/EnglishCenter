@@ -42,7 +42,8 @@ public sealed class GradeRepository(IDbConnectionFactory connectionFactory)
                    e.Id, e.ExamName, e.ExamType, e.ExamDate, e.CourseId, e.IsDeleted
             FROM Grades g
             INNER JOIN Exams e ON g.ExamId = e.Id
-            WHERE g.StudentId = @StudentId AND e.CourseId = @CourseId AND g.IsDeleted = 0 AND e.IsDeleted = 0;
+            WHERE g.StudentId = @StudentId AND e.CourseId = @CourseId AND g.IsDeleted = 0 AND e.IsDeleted = 0
+            ORDER BY g.Score DESC, g.Id DESC;
             """;
 
         var list = await QueryAsync<Grade, Exam, Grade>(

@@ -11,6 +11,7 @@ namespace EnglishCenter.API.Services
         private readonly IExamRepository _examRepository;
         private readonly IStudentRepository _studentRepository;
         private readonly IEnrollmentRepository _enrollmentRepository;
+        private readonly IInvoiceRepository _invoiceRepository;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly INotificationService _notificationService;
@@ -20,6 +21,7 @@ namespace EnglishCenter.API.Services
             IExamRepository examRepository,
             IStudentRepository studentRepository,
             IEnrollmentRepository enrollmentRepository,
+            IInvoiceRepository invoiceRepository,
             IAuditLogService auditLogService,
             IHttpContextAccessor httpContextAccessor,
             INotificationService notificationService)
@@ -28,6 +30,7 @@ namespace EnglishCenter.API.Services
             _examRepository = examRepository;
             _studentRepository = studentRepository;
             _enrollmentRepository = enrollmentRepository;
+            _invoiceRepository = invoiceRepository;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
             _notificationService = notificationService;
@@ -96,24 +99,37 @@ namespace EnglishCenter.API.Services
         public async Task<GradeDto> CreateAsync(GradeCreateDto dto)
         {
             var exam = await _examRepository.GetByIdAsync(dto.ExamId);
-            if (exam == null)
+            if (exam == null || exam.IsDeleted)
             {
                 throw new ArgumentException("Kỳ thi không tồn tại.");
             }
 
             var student = await _studentRepository.GetByIdAsync(dto.StudentId);
-            if (student == null)
+            if (student == null || student.IsDeleted)
             {
                 throw new ArgumentException("Học sinh không tồn tại.");
             }
 
-            if (exam.CourseId.HasValue)
+            if (!exam.CourseId.HasValue)
             {
-                var enrolled = await _enrollmentRepository.ExistsAsync(dto.StudentId, exam.CourseId.Value);
-                if (!enrolled)
-                {
-                    throw new ArgumentException("Học sinh chưa đăng ký khóa học của kỳ thi này.");
-                }
+                throw new ArgumentException("Kỳ thi chưa được gắn với khóa học nên học sinh chưa đủ điều kiện dự thi và chấm điểm.");
+            }
+
+            var enrollment = await _enrollmentRepository.GetByStudentAndCourseAsync(dto.StudentId, exam.CourseId.Value);
+            if (enrollment == null)
+            {
+                throw new ArgumentException("Học sinh chưa đăng ký khóa học của kỳ thi này.");
+            }
+
+            if (string.Equals(enrollment.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Đăng ký khóa học của học sinh đã bị hủy, không đủ điều kiện dự thi và chấm điểm.");
+            }
+
+            var hasPaidInvoice = await _invoiceRepository.HasPaidInvoiceForStudentAndCourseAsync(dto.StudentId, exam.CourseId.Value);
+            if (!hasPaidInvoice)
+            {
+                throw new ArgumentException("Học sinh chưa đủ điều kiện dự thi (chưa hoàn tất đóng học phí) nên không thể chấm điểm.");
             }
 
             if (dto.Score < 0 || dto.Score > 10)
@@ -185,6 +201,18 @@ namespace EnglishCenter.API.Services
             if (grade == null)
             {
                 return false;
+            }
+
+            var exam = grade.Exam ?? await _examRepository.GetByIdAsync(grade.ExamId);
+            if (exam == null || !exam.CourseId.HasValue)
+            {
+                throw new ArgumentException("Kỳ thi chưa được gắn với khóa học nên học sinh chưa đủ điều kiện dự thi và chấm điểm.");
+            }
+
+            var hasPaidInvoice = await _invoiceRepository.HasPaidInvoiceForStudentAndCourseAsync(grade.StudentId, exam.CourseId.Value);
+            if (!hasPaidInvoice)
+            {
+                throw new ArgumentException("Học sinh chưa đủ điều kiện dự thi (chưa hoàn tất đóng học phí) nên không thể chấm điểm.");
             }
 
             if (dto.Score < 0 || dto.Score > 10)
