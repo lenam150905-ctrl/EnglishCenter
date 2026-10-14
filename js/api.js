@@ -1,6 +1,24 @@
 
 
+function resolveApiEndpoint(endpoint) {
+    if (!endpoint) return "";
+    let clean = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+
+    if (clean.startsWith("/admin/") || clean === "/admin" ||
+        clean.startsWith("/client/") || clean === "/client") {
+        return clean;
+    }
+
+    const pathname = window.location.pathname.toLowerCase();
+    if (pathname.includes("/pages/admin/") || pathname.includes("/pages/teacher/")) {
+        return `/admin${clean}`;
+    }
+
+    return `/client${clean}`;
+}
+
 async function apiRequest(endpoint, options = {}) {
+    const targetEndpoint = resolveApiEndpoint(endpoint);
     const controller = new AbortController();
 
     const timeoutId = window.setTimeout(
@@ -25,7 +43,7 @@ if (
         }
 
         const response = await fetch(
-            `${CONFIG.API_BASE_URL}${endpoint}`,
+            `${CONFIG.API_BASE_URL}${targetEndpoint}`,
             {
                 ...options,
                 headers: headers,
@@ -48,7 +66,7 @@ if (
 
 if (response.status === 401) {
 
-if (endpoint.toLowerCase().startsWith("/auth/")) {
+if (targetEndpoint.toLowerCase().includes("/auth/")) {
                 throw new Error(
                     data?.message ||
                     "Tên đăng nhập hoặc mật khẩu không đúng."
@@ -133,7 +151,8 @@ async function apiDelete(endpoint) {
 }
 
 async function apiDownload(endpoint, fileName) {
-    const response = await fetch(`${CONFIG.API_BASE_URL}${endpoint}`, {
+    const targetEndpoint = resolveApiEndpoint(endpoint);
+    const response = await fetch(`${CONFIG.API_BASE_URL}${targetEndpoint}`, {
         method: "GET",
         credentials: "include"
     });
