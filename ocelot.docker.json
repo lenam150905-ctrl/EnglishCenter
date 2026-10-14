@@ -1,6 +1,88 @@
 {
   "Routes": [
     {
+      "UpstreamPathTemplate": "/gateway/v1/client/Payments/vnpay-return",
+      "UpstreamHttpMethod": [ "Get" ],
+      "DownstreamPathTemplate": "/api/Payments/vnpay-return",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "api", "Port": 8080 } ]
+    },
+    {
+      "UpstreamPathTemplate": "/gateway/v1/client/Auth/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete", "Patch" ],
+      "DownstreamPathTemplate": "/api/Auth/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "api", "Port": 8080 } ]
+    },
+    {
+      "UpstreamPathTemplate": "/gateway/v1/client/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete", "Patch" ],
+      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "api", "Port": 8080 } ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKeys": [ "GatewayJwt" ]
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/gateway/client/Payments/vnpay-return",
+      "UpstreamHttpMethod": [ "Get" ],
+      "DownstreamPathTemplate": "/api/Payments/vnpay-return",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "api", "Port": 8080 } ]
+    },
+    {
+      "UpstreamPathTemplate": "/gateway/client/Auth/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete", "Patch" ],
+      "DownstreamPathTemplate": "/api/Auth/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "api", "Port": 8080 } ]
+    },
+    {
+      "UpstreamPathTemplate": "/gateway/client/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete", "Patch" ],
+      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "api", "Port": 8080 } ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKeys": [ "GatewayJwt" ]
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/gateway/v1/admin/Auth/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete", "Patch" ],
+      "DownstreamPathTemplate": "/api/Auth/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "api", "Port": 8080 } ]
+    },
+    {
+      "UpstreamPathTemplate": "/gateway/v1/admin/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete", "Patch" ],
+      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "api", "Port": 8080 } ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKeys": [ "GatewayJwt" ]
+      }
+    },
+    {
+      "UpstreamPathTemplate": "/gateway/admin/Auth/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete", "Patch" ],
+      "DownstreamPathTemplate": "/api/Auth/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "api", "Port": 8080 } ]
+    },
+    {
+      "UpstreamPathTemplate": "/gateway/admin/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete", "Patch" ],
+      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "api", "Port": 8080 } ],
+      "AuthenticationOptions": {
+        "AuthenticationProviderKeys": [ "GatewayJwt" ]
+      }
+    },
+    {
       "UpstreamPathTemplate": "/gateway/v1/Payments/vnpay-return",
       "UpstreamHttpMethod": [ "Get" ],
       "DownstreamPathTemplate": "/api/Payments/vnpay-return",
@@ -20,8 +102,12 @@
       "DownstreamPathTemplate": "/api/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [ { "Host": "api", "Port": 8080 } ],
-      "AuthenticationOptions": { "AuthenticationProviderKeys": [ "GatewayJwt" ] }
+      "AuthenticationOptions": {
+        "AuthenticationProviderKeys": [ "GatewayJwt" ]
+      }
     }
   ],
-  "GlobalConfiguration": { "BaseUrl": "http://localhost:7300" }
+  "GlobalConfiguration": {
+    "BaseUrl": "http://localhost:7300"
+  }
 }
