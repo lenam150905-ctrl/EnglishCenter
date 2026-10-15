@@ -59,7 +59,7 @@ if (
 
         if (
             contentType &&
-            contentType.includes("application/json")
+            (contentType.includes("application/json") || contentType.includes("problem+json") || contentType.includes("+json"))
         ) {
             data = await response.json();
         }
