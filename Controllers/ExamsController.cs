@@ -1,4 +1,4 @@
-using EnglishCenter.API.DTOs;
+﻿using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Models;
 using EnglishCenter.API.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -114,35 +114,33 @@ namespace EnglishCenter.API.Controllers
 
 [HttpGet("{examId}/can-start")]
         [Authorize(Roles = "Student")]
-        public async Task<IActionResult> CanStartExam(int examId)
+        public async Task<ActionResult<ExamStartCheckDto>> CanStartExam(int examId)
         {
             try
             {
                 var userId = EnglishCenter.API.Middleware.AuditContext.GetUserId(HttpContext);
                 if (!userId.HasValue)
                 {
-                    return Unauthorized(new { canStart = false, message = "Phiên đăng nhập không hợp lệ." });
+                    return Unauthorized(new ExamStartCheckDto { CanStart = false, Message = "Phiên đăng nhập không hợp lệ.", ExamId = examId });
                 }
 
                 var student = await _studentRepository.GetByUserIdAsync(userId.Value);
                 if (student == null)
                 {
-                    return BadRequest(new { canStart = false, message = "Tài khoản chưa được gắn với hồ sơ học viên." });
+                    return BadRequest(new ExamStartCheckDto { CanStart = false, Message = "Tài khoản chưa được gắn với hồ sơ học viên.", ExamId = examId });
                 }
 
                 var result = await _examService.CanStartExamAsync(student.Id, examId);
 
-                return Ok(new
-                {
-                    canStart = result
-                });
+                return Ok(result);
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(new
+                return BadRequest(new ExamStartCheckDto
                 {
-                    canStart = false,
-                    message = ex.Message
+                    CanStart = false,
+                    Message = ex.Message,
+                    ExamId = examId
                 });
             }
         }

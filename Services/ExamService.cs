@@ -1,4 +1,4 @@
-using EnglishCenter.API.DTOs;
+﻿using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
 using EnglishCenter.Application.Abstractions.Persistence;
@@ -17,6 +17,7 @@ namespace EnglishCenter.API.Services
         private readonly IEnrollmentRepository _enrollmentRepository;
         private readonly IGradeRepository _gradeRepository;
         private readonly IInvoiceRepository _invoiceRepository;
+        private readonly ICertificateRepository _certificateRepository;
 
         public ExamService(
             IExamRepository examRepository,
@@ -26,7 +27,8 @@ namespace EnglishCenter.API.Services
             INotificationService notificationService, IGradeRepository gradeRepository,
     IStudentRepository studentRepository,
     IEnrollmentRepository enrollmentRepository,
-    IInvoiceRepository invoiceRepository)
+    IInvoiceRepository invoiceRepository,
+    ICertificateRepository certificateRepository)
         {
             _examRepository = examRepository;
             _courseRepository = courseRepository;
@@ -37,6 +39,7 @@ namespace EnglishCenter.API.Services
             _enrollmentRepository = enrollmentRepository;
             _gradeRepository = gradeRepository;
             _invoiceRepository = invoiceRepository;
+            _certificateRepository = certificateRepository;
         }
 
         private int? userid => AuditContext.GetUserId(_httpContextAccessor.HttpContext!);
@@ -99,17 +102,17 @@ namespace EnglishCenter.API.Services
         {
             if (string.IsNullOrWhiteSpace(dto.ExamName))
             {
-                throw new ArgumentException("Tên kỳ thi không được để trống.");
+                throw new ArgumentException("TÃªn ká»³ thi khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng.");
             }
 
             if (dto.ExamName.Length > 100)
             {
-                throw new ArgumentException("Tên kỳ thi không được vượt quá 100 ký tự.");
+                throw new ArgumentException("TÃªn ká»³ thi khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 100 kÃ½ tá»±.");
             }
 
             if (string.IsNullOrWhiteSpace(dto.ExamType))
             {
-                throw new ArgumentException("Loại kỳ thi không được để trống.");
+                throw new ArgumentException("Loáº¡i ká»³ thi khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng.");
             }
 
             if (dto.CourseId.HasValue)
@@ -117,7 +120,7 @@ namespace EnglishCenter.API.Services
                 var courseExists = await _courseRepository.ExistsAsync(dto.CourseId.Value);
                 if (!courseExists)
                 {
-                    throw new ArgumentException("Course không tồn tại.");
+                    throw new ArgumentException("Course khÃ´ng tá»“n táº¡i.");
                 }
             }
 
@@ -138,7 +141,7 @@ namespace EnglishCenter.API.Services
                 "CREATE",
                 "Exam",
                 exam.Id,
-                $"Tạo kỳ thi {exam.ExamName} - Loại: {exam.ExamType}",
+                $"Táº¡o ká»³ thi {exam.ExamName} - Loáº¡i: {exam.ExamType}",
                 ipaddress);
 
             if (userid.HasValue)
@@ -146,8 +149,8 @@ namespace EnglishCenter.API.Services
                 await _notificationService.CreateAsync(new NotificationCreateDto
                 {
                     UserId = userid.Value,
-                    Title = "Tạo kỳ thi",
-                    Message = $"Bạn đã tạo kỳ thi {exam.ExamName}.",
+                    Title = "Táº¡o ká»³ thi",
+                    Message = $"Báº¡n Ä‘Ã£ táº¡o ká»³ thi {exam.ExamName}.",
                     Type = "EXAM"
                 });
             }
@@ -173,17 +176,17 @@ namespace EnglishCenter.API.Services
 
             if (string.IsNullOrWhiteSpace(dto.ExamName))
             {
-                throw new ArgumentException("Tên kỳ thi không được để trống.");
+                throw new ArgumentException("TÃªn ká»³ thi khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng.");
             }
 
             if (dto.ExamName.Length > 100)
             {
-                throw new ArgumentException("Tên kỳ thi không được vượt quá 100 ký tự.");
+                throw new ArgumentException("TÃªn ká»³ thi khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 100 kÃ½ tá»±.");
             }
 
             if (string.IsNullOrWhiteSpace(dto.ExamType))
             {
-                throw new ArgumentException("Loại kỳ thi không được để trống.");
+                throw new ArgumentException("Loáº¡i ká»³ thi khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng.");
             }
 
             if (dto.CourseId.HasValue)
@@ -191,7 +194,7 @@ namespace EnglishCenter.API.Services
                 var courseExists = await _courseRepository.ExistsAsync(dto.CourseId.Value);
                 if (!courseExists)
                 {
-                    throw new ArgumentException("Course không tồn tại.");
+                    throw new ArgumentException("Course khÃ´ng tá»“n táº¡i.");
                 }
             }
 
@@ -207,7 +210,7 @@ namespace EnglishCenter.API.Services
                 "UPDATE",
                 "Exam",
                 exam.Id,
-                $"Cập nhật kỳ thi {exam.ExamName} - Loại: {exam.ExamType}",
+                $"Cáº­p nháº­t ká»³ thi {exam.ExamName} - Loáº¡i: {exam.ExamType}",
                 ipaddress);
 
             if (userid.HasValue)
@@ -215,8 +218,8 @@ namespace EnglishCenter.API.Services
                 await _notificationService.CreateAsync(new NotificationCreateDto
                 {
                     UserId = userid.Value,
-                    Title = "Cập nhật kỳ thi",
-                    Message = $"Bạn đã cập nhật kỳ thi {exam.ExamName}.",
+                    Title = "Cáº­p nháº­t ká»³ thi",
+                    Message = $"Báº¡n Ä‘Ã£ cáº­p nháº­t ká»³ thi {exam.ExamName}.",
                     Type = "EXAM"
                 });
             }
@@ -242,7 +245,7 @@ namespace EnglishCenter.API.Services
                 "DELETE",
                 "Exam",
                 id,
-                $"Xóa kỳ thi {examName} - Loại: {examType}",
+                $"XÃ³a ká»³ thi {examName} - Loáº¡i: {examType}",
                 ipaddress);
 
             if (userid.HasValue)
@@ -250,51 +253,145 @@ namespace EnglishCenter.API.Services
                 await _notificationService.CreateAsync(new NotificationCreateDto
                 {
                     UserId = userid.Value,
-                    Title = "Xóa kỳ thi",
-                    Message = $"Bạn đã xóa kỳ thi {examName}.",
+                    Title = "XÃ³a ká»³ thi",
+                    Message = $"Báº¡n Ä‘Ã£ xÃ³a ká»³ thi {examName}.",
                     Type = "EXAM"
                 });
             }
 
             return true;
         }
-        public async Task<bool> CanStartExamAsync(
-      int studentId,
-      int examId)
+        public async Task<ExamStartCheckDto> CanStartExamAsync(
+            int studentId,
+            int examId)
         {
             var exam = await _examRepository.GetByIdAsync(examId);
 
             if (exam == null || exam.IsDeleted)
             {
-                return false;
+                return new ExamStartCheckDto
+                {
+                    CanStart = false,
+                    ExamId = examId,
+                    StudentId = studentId,
+                    Message = "Kỳ thi không tồn tại hoặc đã bị xóa."
+                };
             }
 
             var student = await _studentRepository.GetByIdAsync(studentId);
 
-            if (student == null)
+            if (student == null || student.IsDeleted)
             {
-                return false;
+                return new ExamStartCheckDto
+                {
+                    CanStart = false,
+                    ExamId = examId,
+                    StudentId = studentId,
+                    Message = "Học viên không tồn tại hoặc tài khoản đã bị khóa."
+                };
             }
 
             if (!exam.CourseId.HasValue)
             {
-                return false;
+                return new ExamStartCheckDto
+                {
+                    CanStart = false,
+                    ExamId = examId,
+                    StudentId = studentId,
+                    Message = "Kỳ thi chưa được gán vào khóa học."
+                };
+            }
+
+            var courseId = exam.CourseId.Value;
+            var enrollment = await _enrollmentRepository.GetByStudentAndCourseAsync(studentId, courseId);
+            if (enrollment == null)
+            {
+                return new ExamStartCheckDto
+                {
+                    CanStart = false,
+                    ExamId = examId,
+                    StudentId = studentId,
+                    Message = "Bạn chưa đăng ký khóa học của kỳ thi này."
+                };
+            }
+
+            if (string.Equals(enrollment.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+            {
+                return new ExamStartCheckDto
+                {
+                    CanStart = false,
+                    ExamId = examId,
+                    StudentId = studentId,
+                    EnrollmentId = enrollment.Id,
+                    Message = "Đăng ký khóa học của bạn đã bị hủy."
+                };
+            }
+
+            var (grades, _) = await _gradeRepository.GetAllAsync(null, examId, studentId, null, null, null, false, 1, 1);
+            var grade = grades.FirstOrDefault() ?? await _gradeRepository.GetByStudentAndCourseAsync(studentId, courseId);
+
+            var (certificates, _) = await _certificateRepository.GetAllAsync(null, studentId, courseId, null, false, 1, 1);
+            var certificate = certificates.FirstOrDefault();
+
+            if (certificate != null)
+            {
+                return new ExamStartCheckDto
+                {
+                    CanStart = false,
+                    ExamId = examId,
+                    StudentId = studentId,
+                    EnrollmentId = enrollment.Id,
+                    HasAttempted = true,
+                    AttemptCount = 1,
+                    Score = grade?.Score,
+                    HasCertificate = true,
+                    CertificateCode = certificate.CertificateCode,
+                    Message = grade != null
+                        ? $"Bạn đã hoàn thành bài thi và được cấp chứng chỉ (Mã: {certificate.CertificateCode}, Điểm: {grade.Score})."
+                        : $"Bạn đã được cấp chứng chỉ cho khóa học này (Mã: {certificate.CertificateCode})."
+                };
+            }
+
+            if (grade != null)
+            {
+                return new ExamStartCheckDto
+                {
+                    CanStart = false,
+                    ExamId = examId,
+                    StudentId = studentId,
+                    EnrollmentId = enrollment.Id,
+                    HasAttempted = true,
+                    AttemptCount = 1,
+                    Score = grade.Score,
+                    HasCertificate = false,
+                    Message = $"Bạn đã hoàn thành bài thi này (Điểm: {grade.Score})."
+                };
             }
 
             var hasPaidInvoice = await _invoiceRepository.HasPaidInvoiceForStudentAndCourseAsync(
-                studentId, exam.CourseId.Value);
-            if (!hasPaidInvoice) return false;
-
-var hasCompletedAttempt = await _gradeRepository.ExistsAsync(
-                examId,
-                studentId);
-
-            if (hasCompletedAttempt)
+                studentId, courseId);
+            if (!hasPaidInvoice)
             {
-                return false;
+                return new ExamStartCheckDto
+                {
+                    CanStart = false,
+                    ExamId = examId,
+                    StudentId = studentId,
+                    EnrollmentId = enrollment.Id,
+                    Message = "Bạn chưa hoàn tất đóng học phí cho khóa học này nên chưa đủ điều kiện thi."
+                };
             }
 
-            return true;
+            return new ExamStartCheckDto
+            {
+                CanStart = true,
+                ExamId = examId,
+                StudentId = studentId,
+                EnrollmentId = enrollment.Id,
+                AttemptCount = 0,
+                HasAttempted = false,
+                Message = "Bạn đủ điều kiện bắt đầu bài kiểm tra."
+            };
         }
     }
 }

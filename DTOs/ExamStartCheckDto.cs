@@ -1,4 +1,4 @@
-﻿namespace EnglishCenter.API.DTOs
+namespace EnglishCenter.API.DTOs
 {
     public class ExamStartCheckDto
     {
@@ -15,5 +15,11 @@
         public int AttemptCount { get; set; }
 
         public bool HasAttempted { get; set; }
+        
+        public decimal? Score { get; set; }
+
+        public bool HasCertificate { get; set; }
+
+        public string? CertificateCode { get; set; }
     }
 }

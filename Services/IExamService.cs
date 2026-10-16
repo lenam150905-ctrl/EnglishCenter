@@ -1,4 +1,4 @@
-﻿using EnglishCenter.API.DTOs;
+using EnglishCenter.API.DTOs;
 
 namespace EnglishCenter.API.Services
 {
@@ -23,8 +23,8 @@ namespace EnglishCenter.API.Services
             ExamUpdateDto dto);
 
         Task<bool> DeleteAsync(int id);
-        Task<bool> CanStartExamAsync(
-    int studentId,
-    int examId);
+        Task<ExamStartCheckDto> CanStartExamAsync(
+            int studentId,
+            int examId);
     }
 }

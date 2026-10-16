@@ -57,13 +57,17 @@ public sealed class InvoiceRepository(IDbConnectionFactory connectionFactory)
         const string sql = """
             SELECT COUNT(1)
             FROM Invoices i
-            INNER JOIN Enrollments e ON i.EnrollmentId = e.Id
+            LEFT JOIN Enrollments e ON i.EnrollmentId = e.Id
             WHERE i.StudentId = @StudentId
-              AND e.CourseId = @CourseId
+              AND (
+                  (e.CourseId = @CourseId AND e.Status <> 'Cancelled' AND e.IsDeleted = 0)
+                  OR (i.EnrollmentId IS NULL AND EXISTS (
+                      SELECT 1 FROM Enrollments ex
+                      WHERE ex.StudentId = @StudentId AND ex.CourseId = @CourseId AND ex.Status <> 'Cancelled' AND ex.IsDeleted = 0
+                  ))
+              )
               AND i.Status = 'Paid'
-              AND e.Status <> 'Cancelled'
-              AND i.IsDeleted = 0
-              AND e.IsDeleted = 0;
+              AND i.IsDeleted = 0;
             """;
         return await ExecuteScalarAsync<int>(sql, new { StudentId = studentId, CourseId = courseId }, cancellationToken) > 0;
     }
