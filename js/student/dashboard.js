@@ -117,7 +117,7 @@
         } catch (error) { alert(error.message); }
     }
     async function checkExam(examId) {
-        try { var result = await apiGet("/Exams/" + examId + "/can-start"); alert(result.canStart ? "Bạn đủ điều kiện bắt đầu bài kiểm tra." : (result.message || "Bạn chưa đủ điều kiện.")); } catch (error) { alert(error.message); }
+        try { var result = await apiGet("/Exams/" + examId + "/can-start"); alert(result.message || (result.canStart ? "Bạn đủ điều kiện bắt đầu bài kiểm tra." : "Bạn chưa đủ điều kiện.")); } catch (error) { alert(error.message); }
     }
     async function exportPdf(id) { try { await apiDownload("/Certificates/" + id + "/download", "chung-chi-" + id + ".pdf"); alert("Đã tải chứng chỉ PDF."); } catch (error) { alert(error.message); } }
     async function payInvoice(id) { try { preserveAuthForPaymentReturn(); var result = await apiPost("/Payments/create-vnpay/" + id, {}); var url = result && (result.paymentUrl || result.url); if (!url) throw new Error("Không nhận được liên kết thanh toán."); window.location.assign(url); } catch (error) { alert(error.message); } }
