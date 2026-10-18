@@ -1,3 +1,4 @@
+﻿using System.Security.Claims;
 using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
@@ -32,6 +33,17 @@ namespace EnglishCenter.API.Services
 
         private int? userid => AuditContext.GetUserId(_httpContextAccessor.HttpContext!);
         private string? ipaddress => AuditContext.GetIPAddress(_httpContextAccessor.HttpContext!);
+
+        private int? CurrentUserId
+        {
+            get
+            {
+                if (userid.HasValue) return userid.Value;
+                var claim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (int.TryParse(claim, out var parsed)) return parsed;
+                return null;
+            }
+        }
 
         public async Task<PagedResultDto<UserDto>> GetAllAsync(
             string? search,
@@ -151,6 +163,20 @@ namespace EnglishCenter.API.Services
                 return false;
             }
 
+            var currentUserId = CurrentUserId;
+
+            // Admin không được sửa admin khác
+            if (currentUserId.HasValue && user.Id != currentUserId.Value && string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Quản trị viên không được phép sửa tài khoản của quản trị viên khác.");
+            }
+
+            // Admin không được sửa vai trò của chính mình
+            if (currentUserId.HasValue && user.Id == currentUserId.Value && !string.Equals(user.Role?.Trim(), dto.Role?.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Quản trị viên không được phép tự sửa vai trò của chính mình.");
+            }
+
             var existed = await _userRepository.ExistsByUserNameAsync(dto.UserName, id);
             if (existed)
             {
@@ -229,6 +255,18 @@ namespace EnglishCenter.API.Services
             if (user == null)
             {
                 return false;
+            }
+
+            var currentUserId = CurrentUserId;
+
+            if (currentUserId.HasValue && user.Id == currentUserId.Value)
+            {
+                throw new ArgumentException("Bạn không thể tự xóa tài khoản của chính mình.");
+            }
+
+            if (currentUserId.HasValue && user.Id != currentUserId.Value && string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Quản trị viên không được phép xóa tài khoản của quản trị viên khác.");
             }
 
             var userName = user.UserName;
