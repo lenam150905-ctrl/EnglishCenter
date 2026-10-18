@@ -1,4 +1,4 @@
-using ClosedXML.Excel;
+﻿using ClosedXML.Excel;
 using EnglishCenter.API.DTOs;
 using EnglishCenter.API.Middleware;
 using EnglishCenter.API.Models;
@@ -10,6 +10,7 @@ namespace EnglishCenter.API.Services
     public class StudentService : IStudentService
     {
         private readonly IStudentRepository _studentRepository;
+        private readonly ITeacherRepository _teacherRepository;
         private readonly IUserRepository _userRepository;
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -17,12 +18,14 @@ namespace EnglishCenter.API.Services
 
         public StudentService(
             IStudentRepository studentRepository,
+            ITeacherRepository teacherRepository,
             IUserRepository userRepository,
             IAuditLogService auditLogService,
             IHttpContextAccessor httpContextAccessor,
             INotificationService notificationService)
         {
             _studentRepository = studentRepository;
+            _teacherRepository = teacherRepository;
             _userRepository = userRepository;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
@@ -150,11 +153,14 @@ namespace EnglishCenter.API.Services
                     throw new ArgumentException("Tài khoản User không tồn tại.");
                 }
 
-                var userAssigned = await _studentRepository.ExistsByUserIdAsync(dto.UserId.Value);
-                if (userAssigned)
+                if (!string.Equals(userExists.Role, "Student", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new ArgumentException("User này đã được gán cho học sinh khác.");
+                    userExists.Role = "Student";
+                    await _userRepository.UpdateAsync(userExists);
                 }
+
+                await _studentRepository.ClearUserIdAsync(dto.UserId.Value);
+                await _teacherRepository.ClearUserIdAsync(dto.UserId.Value);
             }
 
             var student = new Student
@@ -279,11 +285,14 @@ namespace EnglishCenter.API.Services
                     throw new ArgumentException("Tài khoản User không tồn tại.");
                 }
 
-                var userAssigned = await _studentRepository.ExistsByUserIdAsync(dto.UserId.Value, id);
-                if (userAssigned)
+                if (!string.Equals(userExists.Role, "Student", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new ArgumentException("User này đã được gán cho học sinh khác.");
+                    userExists.Role = "Student";
+                    await _userRepository.UpdateAsync(userExists);
                 }
+
+                await _studentRepository.ClearUserIdAsync(dto.UserId.Value, id);
+                await _teacherRepository.ClearUserIdAsync(dto.UserId.Value);
             }
 
             student.FullName = dto.FullName;

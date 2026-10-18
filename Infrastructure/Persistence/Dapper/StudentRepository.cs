@@ -214,9 +214,14 @@ public sealed class StudentRepository(IDbConnectionFactory connectionFactory)
                 cancellationToken: cancellationToken));
     }
 
-    public async Task<bool> ClearUserIdAsync(int userId, CancellationToken cancellationToken = default)
+    public Task<bool> ClearUserIdAsync(int userId, CancellationToken cancellationToken = default)
+        => ClearUserIdAsync(userId, null, cancellationToken);
+
+    public async Task<bool> ClearUserIdAsync(int userId, int? excludeId, CancellationToken cancellationToken = default)
     {
-        const string sql = "UPDATE Students SET UserId = NULL WHERE UserId = @UserId;";
-        return await ExecuteAsync(sql, new { UserId = userId }, cancellationToken) > 0;
+        var sql = excludeId.HasValue
+            ? "UPDATE Students SET UserId = NULL WHERE UserId = @UserId AND Id <> @ExcludeId;"
+            : "UPDATE Students SET UserId = NULL WHERE UserId = @UserId;";
+        return await ExecuteAsync(sql, new { UserId = userId, ExcludeId = excludeId }, cancellationToken) > 0;
     }
 }

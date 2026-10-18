@@ -26,4 +26,5 @@ public interface IStudentRepository
         int userId,
         CancellationToken cancellationToken = default);
     Task<bool> ClearUserIdAsync(int userId, CancellationToken cancellationToken = default);
+    Task<bool> ClearUserIdAsync(int userId, int? excludeId, CancellationToken cancellationToken = default);
 }

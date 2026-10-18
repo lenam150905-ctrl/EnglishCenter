@@ -22,4 +22,5 @@ public interface ITeacherRepository
     Task<bool> SoftDeleteAsync(int id, CancellationToken cancellationToken = default);
     Task<Teacher?> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default);
     Task<bool> ClearUserIdAsync(int userId, CancellationToken cancellationToken = default);
+    Task<bool> ClearUserIdAsync(int userId, int? excludeId, CancellationToken cancellationToken = default);
 }
