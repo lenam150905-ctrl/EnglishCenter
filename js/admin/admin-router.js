@@ -86,7 +86,7 @@
             }
             body.innerHTML = rows.length ? rows.map(function (row) {
                 var cells = view.columns.map(function (column) { return "<td>" + value(column[0], row[column[0]]) + "</td>"; }).join("");
-                if (!view.readonly) cells += '<td><div class="row-actions"><button class="table-button" data-edit="' + row.id + '">Sửa</button>' + (view.cancelable ? '<button class="table-button warning" data-cancel="' + row.id + '">Hủy</button>' : "") + (view.payment ? '<button class="table-button" data-pay="' + row.id + '">VNPay</button>' : "") + (view.exportPdf ? '<button class="table-button" data-pdf="' + row.id + '">PDF</button>' : "") + '<button class="table-button danger" data-delete="' + row.id + '">Xóa</button></div></td>';
+                if (!view.readonly) { var isOtherAdmin = (name === "users" && row.role === "Admin" && row.userName !== getCurrentUserName()); var isSelf = (name === "users" && row.userName === getCurrentUserName()); cells += '<td><div class="row-actions">' + (isOtherAdmin ? '<button class="table-button" disabled title="Admin không được sửa Admin khác">Khóa</button>' : '<button class="table-button" data-edit="' + row.id + '">Sửa</button>') + (view.cancelable ? '<button class="table-button warning" data-cancel="' + row.id + '">Hủy</button>' : "") + (view.payment ? '<button class="table-button" data-pay="' + row.id + '">VNPay</button>' : "") + (view.exportPdf ? '<button class="table-button" data-pdf="' + row.id + '">PDF</button>' : "") + (isOtherAdmin ? '<button class="table-button danger" disabled title="Admin không được xóa Admin khác">Khóa</button>' : (isSelf ? '<button class="table-button danger" disabled title="Bạn không thể tự xóa tài khoản của chính mình">Khóa</button>' : '<button class="table-button danger" data-delete="' + row.id + '">Xóa</button>')) + '</div></td>'; }
                 else if (view.notification) cells += '<td><div class="row-actions"><button class="table-button" data-read="' + row.id + '"' + (row.isRead ? " disabled" : "") + '>Đã đọc</button><button class="table-button danger" data-delete-notification="' + row.id + '">Xóa</button></div></td>';
                 else if (view.trash) cells += '<td><button class="table-button" data-restore-entity="' + esc(row.entity) + '" data-restore-id="' + row.id + '">Khôi phục</button></td>';
                 return "<tr>" + cells + "</tr>";
@@ -126,8 +126,8 @@
         courses: ["/Courses?page=1&pageSize=100", function (row) { return row.courseCode + " — " + row.courseName; }],
         exams: ["/Exams?page=1&pageSize=100", function (row) { return row.examName + " — " + row.examType + " (#" + row.id + ")"; }],
         enrollments: ["/Enrollments?page=1&pageSize=100", function (row) { return (row.studentName || "Học viên") + " — " + (row.courseName || "Khóa học") + " (#" + row.id + ")"; }],
-        studentUsers: ["/Users?page=1&pageSize=100", function (row) { return row.userName + " — " + row.email + " (#" + row.id + ")"; }, "Student"],
-        teacherUsers: ["/Users?page=1&pageSize=100", function (row) { return row.userName + " — " + row.email + " (#" + row.id + ")"; }, "Teacher"]
+        studentUsers: ["/Users?page=1&pageSize=100&role=Student", function (row) { return row.userName + (row.email ? " — " + row.email : "") + " (#" + row.id + ")"; }, "Student"],
+        teacherUsers: ["/Users?page=1&pageSize=100&role=Teacher", function (row) { return row.userName + (row.email ? " — " + row.email : "") + " (#" + row.id + ")"; }, "Teacher"]
     };
     async function populateLookups(modal) {
         var selects = modal.querySelectorAll("[data-lookup]");
@@ -137,8 +137,17 @@
             try {
                 var response = await apiGet(source[0]);
                 var rows = Array.isArray(response) ? response : (response.data || []);
-                if (source[2]) rows = rows.filter(function (row) { return row.role === source[2]; });
+                if (source[2]) rows = rows.filter(function (row) { return (row.role || "").toLowerCase() === source[2].toLowerCase(); });
                 var selected = select.dataset.value || "";
+                if (selected && !rows.some(function (r) { return String(r.id) === String(selected); })) {
+                    try {
+                        var baseEndpoint = source[0].split("?")[0];
+                        var currentRecord = await apiGet(baseEndpoint + "/" + selected);
+                        if (currentRecord && currentRecord.id !== undefined) {
+                            rows.unshift(currentRecord);
+                        }
+                    } catch (_) {}
+                }
                 select.innerHTML = '<option value="">-- Chọn ' + select.closest("label").childNodes[0].textContent.trim() + ' --</option>' + rows.map(function (row) { return '<option value="' + row.id + '"' + (String(row.id) === String(selected) ? " selected" : "") + ">" + esc(source[1](row)) + "</option>"; }).join("");
             } catch (_) { select.innerHTML = '<option value="">Không tải được dữ liệu</option>'; }
         }));
@@ -146,14 +155,14 @@
     function openForm(name, record, reload) {
         var view = views[name], modal = document.getElementById("adminModal");
         modal.innerHTML = '<div class="modal-backdrop"><form class="modal-card" id="recordForm"><div class="modal-heading"><div><h3>' + (record ? "Cập nhật " : "Thêm ") + view.title.toLowerCase() + '</h3><p>Nhập thông tin và lưu thay đổi.</p></div><button type="button" class="modal-close" id="closeModal">×</button></div><div class="form-grid">' + view.fields.map(function (item) { return formControl(item, record); }).join("") + '</div><div class="modal-actions"><button type="button" class="secondary-button" id="cancelModal">Hủy</button><button class="primary-button" type="submit">Lưu</button></div></form></div>';
-        populateLookups(modal);
+        populateLookups(modal); if (name === "users" && record && record.userName === getCurrentUserName()) { var roleSelect = modal.querySelector('select[name="role"]'); if (roleSelect) { roleSelect.disabled = true; roleSelect.title = "Admin không được tự sửa vai trò của chính mình"; var note = document.createElement("small"); note.style.cssText = "display:block;color:#64748b;font-size:12px;margin-top:4px;"; note.textContent = "Admin không được tự sửa vai trò của chính mình"; roleSelect.parentNode.appendChild(note); } }
         function close() { modal.innerHTML = ""; }
         document.getElementById("closeModal").onclick = close; document.getElementById("cancelModal").onclick = close;
         document.getElementById("recordForm").onsubmit = async function (event) {
             event.preventDefault();
             var payload = Object.fromEntries(new FormData(event.target).entries());
             view.fields.forEach(function (item) { if (item[2] === "number" || item[2] === "lookup") payload[item[0]] = payload[item[0]] === "" ? null : Number(payload[item[0]]); });
-            if (name === "users" && record && !payload.password) delete payload.password;
+            if (name === "users" && record) { if (!payload.password) delete payload.password; if (record.userName === getCurrentUserName() && !payload.role) payload.role = record.role; }
             try { await apiRequest(view.endpoint + (record ? "/" + record.id : ""), { method: record ? "PUT" : "POST", body: JSON.stringify(payload) }); close(); alert(record ? "Cập nhật thành công." : "Thêm mới thành công."); reload(); }
             catch (error) { alert(error.message); }
         };
