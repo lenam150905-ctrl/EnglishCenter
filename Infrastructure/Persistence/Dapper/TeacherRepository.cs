@@ -153,4 +153,34 @@ public sealed class TeacherRepository(IDbConnectionFactory connectionFactory)
         const string sql = "UPDATE Teachers SET IsDeleted = 1 WHERE Id = @Id AND IsDeleted = 0;";
         return await ExecuteAsync(sql, new { Id = id }, cancellationToken) > 0;
     }
+
+    public async Task<Teacher?> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        const string sql = """
+            SELECT t.Id, t.FullName, t.Email, t.Phone, t.Specialization, t.UserId, t.IsDeleted,
+                   u.Id, u.UserName, u.Email, u.PasswordHash, u.Role, u.IsDeleted
+            FROM Teachers t
+            LEFT JOIN Users u ON t.UserId = u.Id
+            WHERE t.UserId = @UserId AND t.IsDeleted = 0;
+            """;
+
+        var list = await QueryAsync<Teacher, User, Teacher>(
+            sql,
+            (teacher, user) =>
+            {
+                teacher.User = user;
+                return teacher;
+            },
+            new { UserId = userId },
+            splitOn: "Id",
+            cancellationToken: cancellationToken);
+
+        return list.FirstOrDefault();
+    }
+
+    public async Task<bool> ClearUserIdAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        const string sql = "UPDATE Teachers SET UserId = NULL WHERE UserId = @UserId;";
+        return await ExecuteAsync(sql, new { UserId = userId }, cancellationToken) > 0;
+    }
 }

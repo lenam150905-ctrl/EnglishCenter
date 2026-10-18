@@ -23,6 +23,7 @@ public interface IStudentRepository
     Task<bool> UpdateAsync(Student student, CancellationToken cancellationToken = default);
     Task<bool> SoftDeleteAsync(int id, CancellationToken cancellationToken = default);
     Task<Student?> GetByUserIdAsync(
-    int userId,
-    CancellationToken cancellationToken = default);
+        int userId,
+        CancellationToken cancellationToken = default);
+    Task<bool> ClearUserIdAsync(int userId, CancellationToken cancellationToken = default);
 }

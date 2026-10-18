@@ -11,17 +11,23 @@ namespace EnglishCenter.API.Services
         private readonly IAuditLogService _auditLogService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly INotificationService _notificationService;
+        private readonly IStudentRepository _studentRepository;
+        private readonly ITeacherRepository _teacherRepository;
 
         public UserService(
             IUserRepository userRepository,
             IAuditLogService auditLogService,
             IHttpContextAccessor httpContextAccessor,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IStudentRepository studentRepository,
+            ITeacherRepository teacherRepository)
         {
             _userRepository = userRepository;
             _auditLogService = auditLogService;
             _httpContextAccessor = httpContextAccessor;
             _notificationService = notificationService;
+            _studentRepository = studentRepository;
+            _teacherRepository = teacherRepository;
         }
 
         private int? userid => AuditContext.GetUserId(_httpContextAccessor.HttpContext!);
@@ -157,9 +163,12 @@ namespace EnglishCenter.API.Services
                 throw new ArgumentException("Email đã tồn tại.");
             }
 
+            var oldRole = user.Role;
+            var isRoleChanged = !string.Equals(oldRole?.Trim(), dto.Role?.Trim(), StringComparison.OrdinalIgnoreCase);
+
             user.UserName = dto.UserName;
             user.Email = dto.Email;
-            user.Role = dto.Role;
+            user.Role = dto.Role ?? string.Empty;
 
             if (!string.IsNullOrWhiteSpace(dto.Password))
             {
@@ -167,6 +176,19 @@ namespace EnglishCenter.API.Services
             }
 
             await _userRepository.UpdateAsync(user);
+
+            if (isRoleChanged)
+            {
+                if (!string.Equals(dto.Role?.Trim(), "Teacher", StringComparison.OrdinalIgnoreCase))
+                {
+                    await _teacherRepository.ClearUserIdAsync(user.Id);
+                }
+
+                if (!string.Equals(dto.Role?.Trim(), "Student", StringComparison.OrdinalIgnoreCase))
+                {
+                    await _studentRepository.ClearUserIdAsync(user.Id);
+                }
+            }
 
             await _auditLogService.CreateAsync(
                 userid,
@@ -213,6 +235,8 @@ namespace EnglishCenter.API.Services
             var email = user.Email;
             var role = user.Role;
 
+            await _teacherRepository.ClearUserIdAsync(id);
+            await _studentRepository.ClearUserIdAsync(id);
             await _userRepository.SoftDeleteAsync(id);
 
             await _auditLogService.CreateAsync(

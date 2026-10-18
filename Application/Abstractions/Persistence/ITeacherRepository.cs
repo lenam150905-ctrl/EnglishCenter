@@ -20,4 +20,6 @@ public interface ITeacherRepository
     Task CreateAsync(Teacher teacher, CancellationToken cancellationToken = default);
     Task<bool> UpdateAsync(Teacher teacher, CancellationToken cancellationToken = default);
     Task<bool> SoftDeleteAsync(int id, CancellationToken cancellationToken = default);
+    Task<Teacher?> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default);
+    Task<bool> ClearUserIdAsync(int userId, CancellationToken cancellationToken = default);
 }

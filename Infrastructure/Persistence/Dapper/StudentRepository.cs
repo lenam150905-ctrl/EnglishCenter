@@ -213,4 +213,10 @@ public sealed class StudentRepository(IDbConnectionFactory connectionFactory)
                 new { UserId = userId },
                 cancellationToken: cancellationToken));
     }
+
+    public async Task<bool> ClearUserIdAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        const string sql = "UPDATE Students SET UserId = NULL WHERE UserId = @UserId;";
+        return await ExecuteAsync(sql, new { UserId = userId }, cancellationToken) > 0;
+    }
 }
